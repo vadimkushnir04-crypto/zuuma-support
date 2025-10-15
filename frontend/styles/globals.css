@@ -4762,7 +4762,7 @@ background: #111111;
 .activity-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.1rem;
   padding: 1rem;
   border-bottom: 1px solid var(--border);
   transition: background 0.3s ease;
