@@ -1,0 +1,107 @@
+# =====================
+# Compiled output
+# =====================
+/dist
+/build
+/node_modules
+
+# =====================
+# Backend
+# =====================
+backend/.env
+backend/node_modules
+backend/dist
+backend/.cache
+/data/
+
+# =====================
+# Frontend
+# =====================
+frontend/.env.local
+frontend/.next
+frontend/node_modules
+frontend/.turbo
+frontend/.vercel
+frontend/out
+
+# =====================
+# Docker
+# =====================
+docker/postgres-data/
+docker/qdrant-data/
+docker/*.log
+docker/*.tmp
+docker-compose.override.yml
+
+# =====================
+# Secrets
+# =====================
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+
+# =====================
+# Logs
+# =====================
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# =====================
+# OS
+# =====================
+.DS_Store
+*.swp
+*.swo
+*.bak
+
+# =====================
+# Tests / Coverage
+# =====================
+/coverage
+/.nyc_output
+
+# =====================
+# IDEs and Editors
+# =====================
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# VSCode specific
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# =====================
+# Temp directories
+# =====================
+.temp
+.tmp
+uploads/
+
+# =====================
+# Runtime data
+# =====================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =====================
+# Diagnostic reports
+# =====================
+uploads/
+

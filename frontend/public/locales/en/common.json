@@ -1,0 +1,10 @@
+{
+  "loading": "Loading assistants...",
+  "createAssistant": "Create Assistant",
+  "nav": {
+    "dashboard": "Dashboard",
+    "assistant": "Creating an assistant",
+    "login": "Login",
+    "register": "Register"
+  }
+}

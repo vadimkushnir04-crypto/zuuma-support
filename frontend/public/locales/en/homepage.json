@@ -1,0 +1,27 @@
+{
+  "emptyState": {
+    "title": "You don't have any assistants yet",
+    "description": "Create your first AI assistant to automate customer support",
+    "createButton": "Create Assistant"
+  },
+  "uploadSection": {
+    "title": "Upload Training Material"
+  },
+  "testingSection": {
+    "title": "How to test?",
+    "steps": {
+      "1": "Select an assistant for training from the list above",
+      "2": "Upload text with information about your company",
+      "3": "Wait for upload confirmation",
+      "4": "Ask a question in the chat on the right",
+      "5": "AI will respond based on the uploaded information"
+    },
+    "example": {
+      "label": "Example:",
+      "text": "Select \"Banking Assistant\", upload FAQ about returns, then ask \"How to process a return?\""
+    }
+  },
+  "chat": {
+    "title": "Test Chat"
+  }
+}

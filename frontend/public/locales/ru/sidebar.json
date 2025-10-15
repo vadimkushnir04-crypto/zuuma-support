@@ -1,0 +1,10 @@
+{
+  "createAssistant": "Создать ассистента",
+  "trainAssistant": "Обучить ассистента",
+  "myAssistants": "Мои ассистенты", 
+  "tutorials": "Документы",
+  "statistics": "Статистика",
+  "users": "Пользователи",
+  "models": "Модели",
+  "apiFunctions": "API Функции"
+}

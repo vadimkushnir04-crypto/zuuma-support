@@ -1,0 +1,10 @@
+{
+  "createAssistant": "Create Assistant",
+  "trainAssistant": "Train Assistant", 
+  "myAssistants": "My Assistants",
+  "tutorials": "Docs",
+  "statistics": "Statistics",
+  "users": "Users",
+  "models": "Models",
+  "apiFunctions": "API Functions"
+}

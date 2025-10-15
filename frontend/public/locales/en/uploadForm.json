@@ -1,0 +1,34 @@
+{
+  "errors": {
+    "selectAssistant": "Select an assistant for training",
+    "enterText": "Enter text for training",
+    "uploadError": "Error",
+    "networkError": "Network error",
+    "loadAssistants": "Error loading assistants",
+    "connectionError": "Failed to load assistants. Check server connection."
+  },
+  "defaultTitle": "Document without title",
+  "warnings": {
+    "selectFirst": "First select an assistant for training from the list above"
+  },
+  "fields": {
+    "title": "Material title",
+    "content": "Content"
+  },
+  "placeholders": {
+    "title": "Returns FAQ",
+    "content": "Paste document content, FAQ, instructions, etc. here"
+  },
+  "buttons": {
+    "uploading": "Uploading...",
+    "upload": "Upload"
+  },
+  "loading": {
+    "assistants": "Loading assistants..."
+  },
+  "dropdown": {
+    "label": "Select assistant for training",
+    "placeholder": "Select assistant",
+    "selected": "Selected"
+  }
+}

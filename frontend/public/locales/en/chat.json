@@ -1,0 +1,16 @@
+{
+  "welcomeMessage": "Hello! I'm your AI assistant. Ask a question about the uploaded materials.",
+  "noAssistant": "First select an assistant for testing",
+  "askQuestion": "Ask a question about the uploaded materials",
+  "thinking": "Thinking...",
+  "sources": "Based on {{count}} document",
+  "sources_plural": "Based on {{count}} documents",
+  "errors": {
+    "status": "Error",
+    "requestError": "Sorry, an error occurred while processing your request."
+  },
+  "placeholders": {
+    "selectAssistant": "Select assistant...",
+    "askQuestion": "Ask a question..."
+  }
+}

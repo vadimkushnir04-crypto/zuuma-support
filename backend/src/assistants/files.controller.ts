@@ -1,0 +1,319 @@
+// backend/src/assistants/files.controller.ts
+// ПОЛНОСТЬЮ ЗАМЕНИТЕ содержимое файла на этот код:
+
+import { 
+  Controller, 
+  Get, 
+  Delete, 
+  Post,
+  Param, 
+  UseGuards, 
+  Req,
+  UseInterceptors,
+  UploadedFile,
+  Body,
+  Res,
+  StreamableFile,
+  HttpException,
+  HttpStatus
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { QdrantClient } from '@qdrant/js-client-rest';
+import { promises as fsPromises } from 'fs';
+import * as path from 'path';
+import type { Response } from 'express'; // ✅ ИСПРАВЛЕНИЕ: type-only import
+import { createReadStream, existsSync } from 'fs';
+import { KnowledgeService } from '../knowledge/knowledge.service';
+
+// ============================================
+// 📁 КОНТРОЛЛЕР ДЛЯ УПРАВЛЕНИЯ ФАЙЛАМИ
+// ============================================
+
+@Controller('assistants/:assistantId')
+@UseGuards(JwtAuthGuard)
+export class FilesController {
+  private qdrant: QdrantClient;
+
+  constructor(
+    private readonly knowledgeService: KnowledgeService,
+  ) {
+    this.qdrant = new QdrantClient({
+      url: process.env.QDRANT_URL || 'http://localhost:6333',
+    });
+  }
+
+  /**
+   * Получить список всех файлов ассистента
+   * GET /assistants/:assistantId/files
+   */
+  @Get('files')
+  async getFiles(@Param('assistantId') assistantId: string, @Req() req: any) {
+    try {
+      console.log(`📁 Getting files for assistant: ${assistantId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      // Получаем все точки из коллекции
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        limit: 1000,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      // Группируем по файлам (по fileUrl)
+      const filesMap = new Map();
+      
+      for (const point of scrollResult.points) {
+        const payload = point.payload as any;
+        
+        // Пропускаем текстовые загрузки без файлов
+        if (!payload.fileUrl || !payload.fileType) continue;
+        
+        const fileUrl = payload.fileUrl;
+        
+        if (!filesMap.has(fileUrl)) {
+          filesMap.set(fileUrl, {
+            id: payload.fileUrl.split('/').pop(), // Используем имя файла как ID
+            title: payload.title || 'Без названия',
+            description: payload.description || '',
+            fileUrl: payload.fileUrl,
+            fileType: payload.fileType,
+            fileSize: payload.fileSize || null,
+            mimeType: payload.mimeType || null,
+            chunks: 1,
+            createdAt: payload.timestamp || payload.createdAt,
+          });
+        } else {
+          // Увеличиваем счетчик чанков
+          const file = filesMap.get(fileUrl);
+          file.chunks += 1;
+        }
+      }
+
+      const files = Array.from(filesMap.values())
+        .sort((a, b) => {
+          // Сортируем по дате создания (новые сверху)
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+          return dateB - dateA;
+        });
+
+      console.log(`✅ Found ${files.length} files`);
+      
+      return {
+        success: true,
+        files,
+        total: files.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting files:', error);
+      return {
+        success: false,
+        files: [],
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Удалить файл
+   * DELETE /assistants/:assistantId/files/:fileId
+   */
+  @Delete('files/:fileId')
+  async deleteFile(
+    @Param('assistantId') assistantId: string,
+    @Param('fileId') fileId: string,
+    @Req() req: any
+  ) {
+    try {
+      console.log(`🗑️ Deleting file: ${fileId} from assistant: ${assistantId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      // Ищем все точки с этим файлом
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        filter: {
+          must: [
+            {
+              key: 'fileUrl',
+              match: { text: fileId }
+            }
+          ]
+        },
+        limit: 1000,
+        with_payload: true,
+      });
+
+      if (scrollResult.points.length === 0) {
+        return {
+          success: false,
+          error: 'Файл не найден',
+        };
+      }
+
+      // Получаем информацию о файле
+      const firstPoint = scrollResult.points[0].payload as any;
+      const filePath = firstPoint.filePath;
+
+      // Удаляем все точки (чанки) этого файла из Qdrant
+      const pointIds = scrollResult.points.map(p => p.id);
+      
+      await this.qdrant.delete(collectionName, {
+        points: pointIds,
+        wait: true,
+      });
+
+      console.log(`✅ Deleted ${pointIds.length} chunks from Qdrant`);
+
+      // Удаляем физический файл с диска
+      if (filePath) {
+        try {
+          const fullPath = path.join(process.cwd(), filePath);
+          await fsPromises.unlink(fullPath);
+          console.log(`✅ Deleted file from disk: ${fullPath}`);
+        } catch (fsError) {
+          console.warn(`⚠️ Could not delete file from disk:`, fsError.message);
+          // Не критично, продолжаем
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Файл успешно удален',
+        deletedChunks: pointIds.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error deleting file:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Загрузить файл
+   * POST /assistants/:assistantId/upload-file
+   */
+  @Post('upload-file')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadFile(
+    @Param('assistantId') assistantId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('title') title: string,
+    @Body('description') description?: string,
+    @Req() req?: any,
+  ) {
+    try {
+      const collectionName = `assistant_${assistantId}`;
+      
+      const result = await this.knowledgeService.uploadFile(
+        file,
+        collectionName,
+        title,
+        description,
+        assistantId,
+      );
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error('Upload error:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+}
+
+// ============================================
+// 📤 КОНТРОЛЛЕР ДЛЯ РАЗДАЧИ ФАЙЛОВ
+// ============================================
+
+@Controller('api/files')
+export class FileServeController {
+  /**
+   * Раздача файлов по URL
+   * GET /api/files/:assistantId/:filename
+   */
+  @Get(':assistantId/:filename')
+  async serveFile(
+    @Param('assistantId') assistantId: string,
+    @Param('filename') filename: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      console.log(`📥 GET /api/files/${assistantId}/${filename}`);
+      console.log('Headers:', {
+        'content-type': res.req.headers['content-type'],
+        authorization: res.req.headers['authorization'] ? 'Bearer ***' : 'none',
+      });
+
+      // Декодируем имя файла (на случай если были кириллические символы)
+      const decodedFilename = decodeURIComponent(filename);
+      
+      // Формируем путь к файлу
+      const filePath = path.join(
+        process.cwd(),
+        'uploads',
+        assistantId,
+        decodedFilename
+      );
+
+      console.log(`📥 Requesting file: ${filePath}`);
+
+      // Проверяем существование файла
+      if (!existsSync(filePath)) {
+        console.error(`❌ File not found: ${filePath}`);
+        throw new HttpException('Файл не найден', HttpStatus.NOT_FOUND);
+      }
+
+      // Определяем MIME type по расширению
+      const ext = path.extname(decodedFilename).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.pdf': 'application/pdf',
+        '.txt': 'text/plain',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      };
+
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+      // Устанавливаем заголовки
+      res.set({
+        'Content-Type': contentType,
+        'Content-Disposition': `inline; filename="${encodeURIComponent(decodedFilename)}"`,
+        'Cache-Control': 'public, max-age=31536000',
+      });
+
+      console.log(`✅ Serving file: ${decodedFilename} (${contentType})`);
+
+      // Создаем поток для чтения файла
+      const fileStream = createReadStream(filePath);
+      
+      return new StreamableFile(fileStream);
+
+    } catch (error) {
+      console.error('❌ Error serving file:', error);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      throw new HttpException(
+        'Ошибка при получении файла',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+}
