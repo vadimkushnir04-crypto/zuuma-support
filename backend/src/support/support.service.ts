@@ -195,6 +195,7 @@ export class SupportService {
   // ============================================
   // 💬 MESSAGES
   // ============================================
+// В support.service.ts замените метод saveMessage:
 
   async saveMessage(
     chatSessionId: string,
@@ -203,7 +204,7 @@ export class SupportService {
     senderId?: string,
     metadata?: any,
     userIdentifier?: string,
-    files?: any[] // ⬅️ ДОБАВЛЕНО
+    files?: any[]
   ): Promise<ChatMessage> {
     if (!content?.trim()) {
       throw new BadRequestException('Message content cannot be empty');
@@ -214,10 +215,10 @@ export class SupportService {
       throw new NotFoundException(`ChatSession ${chatSessionId} not found`);
     }
 
-    // ⬅️ Добавляем files в metadata
+    // ✅ Добавляем files в metadata
     const messageMetadata = {
       ...metadata,
-      files: files || [], // Сохраняем files в метаданные
+      files: files || [],
     };
 
     const message = this.chatMessageRepo.create({
@@ -225,7 +226,7 @@ export class SupportService {
       senderType,
       senderId,
       content,
-      metadata: messageMetadata, // ⬅️ Используем обновленные метаданные
+      metadata: messageMetadata,
     });
 
     await this.chatMessageRepo.save(message);
@@ -234,7 +235,7 @@ export class SupportService {
       id: message.id, 
       chatSessionId, 
       senderId,
-      filesCount: files?.length || 0 // ⬅️ Логируем количество файлов
+      filesCount: files?.length || 0
     });
 
     const payload = {
@@ -244,33 +245,25 @@ export class SupportService {
       content,
       createdAt: message.createdAt || new Date().toISOString(),
       senderId,
-      metadata: messageMetadata, // ⬅️ Метаданные с files
-      files: files || [], // ⬅️ ДОБАВЛЕНО: files в payload для WebSocket
+      metadata: messageMetadata,
+      files: files || [],
       userIdentifier,
     };
 
-    // Отправка WS с проверкой готовности Gateway
+    // ✅ WebSocket отправка с проверкой готовности Gateway
     if (!this.gateway?.server) {
       console.warn('⚠️ Gateway not ready, delaying emit');
       setTimeout(() => this.saveMessage(chatSessionId, senderType, content, senderId, metadata, userIdentifier, files), 500);
     } else {
       try {
-        // Отправляем в комнату сессии
+        // Отправляем в комнату сессии (для support страницы и Chat.tsx)
         this.gateway.emitMessageToSession(chatSessionId, payload);
-
-        // Также отправляем в комнату ассистента с userIdentifier
-        if (session.assistantId && userIdentifier) {
-          this.gateway.emitToAssistantRoom(session.assistantId, {
-            ...payload,
-            assistantId: session.assistantId,
-          });
-        }
       } catch (err) {
         console.error('WS emit error:', err);
       }
     }
 
-    // Если это Telegram-чат — отправляем сообщение туда
+    // ✅ Отправка в Telegram ТОЛЬКО для сообщений от AI и manager
     if (
       session.integrationType === 'telegram' &&
       session.externalChatId &&
@@ -281,14 +274,47 @@ export class SupportService {
         { strict: false },
       );
 
-      if (telegramService?.sendTelegramMessageForSession) {
+      if (telegramService) {
         try {
+          // 1️⃣ Отправляем текст
           await telegramService.sendTelegramMessageForSession(session, content);
+          
+          // 2️⃣ Отправляем файлы
+          if (files && files.length > 0) {
+            console.log(`📎 Sending ${files.length} file(s) to Telegram`);
+            
+            const bot = await this.telegramBotRepo.findOne({ 
+              where: { assistantId: session.assistantId } 
+            });
+            
+            if (bot) {
+              const botToken = this.encryptionService.decrypt(bot.botToken);
+              const chatId = Number(session.externalChatId);
+              
+              for (const file of files) {
+                const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:4000'}${file.fileUrl}`;
+                
+                try {
+                  if (file.fileType === 'image') {
+                    await telegramService.sendTelegramPhoto(botToken, chatId, fileUrl, file.fileName);
+                  } else {
+                    await telegramService.sendTelegramDocument(botToken, chatId, fileUrl, file.fileName);
+                  }
+                  console.log(`✅ File sent to Telegram: ${file.fileName}`);
+                } catch (fileError) {
+                  console.error(`❌ Failed to send file ${file.fileName}:`, fileError);
+                  await telegramService.sendTelegramMessage(
+                    botToken, 
+                    chatId, 
+                    `⚠️ Не удалось отправить файл: ${file.fileName}`
+                  );
+                }
+              }
+            }
+          }
         } catch (err) {
           console.error('Failed to send message to Telegram:', err);
         }
-      } else {
-        console.warn('TelegramWebhookService not available or missing helper method');
       }
     }
 

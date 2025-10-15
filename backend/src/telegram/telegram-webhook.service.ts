@@ -162,48 +162,18 @@ export class TelegramWebhookService {
         let cleanAnswer = (result.answer || '').replace(/<\|channel\|>.*?<\|message\|>/gs, '').replace(/<\|[^|>]+\|>/g, '').trim();
         if (!cleanAnswer || cleanAnswer.length < 2) cleanAnswer = result.answer;
 
-        // 📎 Сохраняем ответ AI ОДИН РАЗ (saveMessage уже отправляет WebSocket И в Telegram)
+        // ✅ ИСПРАВЛЕНО: Передаем files в saveMessage - он сам отправит в Telegram
         await this.supportService.saveMessage(
           chatSession.id,
           'ai',
           cleanAnswer,
           undefined,
-          { sources: result.sources, hasContext: result.hasContext }
+          { sources: result.sources, hasContext: result.hasContext },
+          undefined,
+          result.files // ✅ Передаем файлы - saveMessage сам отправит в TG
         );
 
-        // ============================================
-        // 📎 ОТПРАВКА ФАЙЛОВ В TELEGRAM
-        // ============================================
-        
-        if (result.files && result.files.length > 0) {
-          console.log(`📎 Sending ${result.files.length} file(s) to Telegram`);
-          
-          for (const file of result.files) {
-            try {
-              // Формируем полный URL файла
-              const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:4000'}${file.fileUrl}`;
-              console.log(`📤 Sending file: ${fileUrl}`);
-              
-              // Определяем тип файла и отправляем соответствующим методом
-              if (file.fileType === 'image') {
-                // Отправляем как фото
-                await this.sendTelegramPhoto(botToken, chatId, fileUrl, file.fileName);
-              } else if (file.fileType === 'pdf' || file.fileType === 'doc') {
-                // Отправляем как документ
-                await this.sendTelegramDocument(botToken, chatId, fileUrl, file.fileName);
-              } else {
-                // Для текстовых файлов отправляем как документ
-                await this.sendTelegramDocument(botToken, chatId, fileUrl, file.fileName);
-              }
-              
-            } catch (fileError) {
-              console.error('❌ Failed to send file to Telegram:', fileError);
-              await this.sendTelegramMessage(botToken, chatId, `⚠️ Не удалось отправить файл: ${file.fileName}`);
-            }
-          }
-        }
-
-        // Обновляем историю
+        // Обновляем историю...
         const updatedHistory = [
           ...history,
           { role: 'user' as const, content: userMessage, timestamp: new Date() },
@@ -213,14 +183,6 @@ export class TelegramWebhookService {
         const maxHistory = assistant.settings?.maxHistoryMessages || 10;
         if (updatedHistory.length > maxHistory * 2) updatedHistory.splice(0, updatedHistory.length - maxHistory * 2);
         this.conversations.set(conversationKey, updatedHistory);
-
-        // 📚 Источники отправляем отдельно (они не сохраняются в БД)
-        if (result.sources > 0 && result.searchResults?.length) {
-          const sourcesText = this.formatSources(result.searchResults);
-          if (sourcesText) {
-            await this.sendTelegramMessage(botToken, chatId, sourcesText, { parse_mode: 'HTML' });
-          }
-        }
 
       currentBot.totalMessages = (currentBot.totalMessages || 0) + 1;
       currentBot.lastMessageAt = new Date();
@@ -327,16 +289,6 @@ export class TelegramWebhookService {
     }
   }
 
-  private formatSources(searchResults: any[]): string {
-    if (!searchResults || searchResults.length === 0) return '';
-    let text = '📚 <b>Источники:</b>\n\n';
-    searchResults.slice(0, 3).forEach((result, index) => {
-      const score = Math.round(result.score * 100);
-      text += `${index + 1}. ${result.title || 'Документ'} (${score}%)\n`;
-    });
-    return text;
-  }
-
   // Helper для отправки сообщений из SupportService
   public async sendTelegramMessageForSession(session: ChatSession, text: string) {
     if (!session || !session.externalChatId) return;
@@ -362,10 +314,10 @@ export class TelegramWebhookService {
   // 📎 МЕТОДЫ ДЛЯ ОТПРАВКИ ФАЙЛОВ В TELEGRAM
   // ============================================
 
-/**
-   * Отправка фото в Telegram через stream (используя axios)
+  /**
+   * ✅ ПУБЛИЧНЫЙ метод - отправка фото в Telegram
    */
-  private async sendTelegramPhoto(
+  public async sendTelegramPhoto(
     botToken: string,
     chatId: number,
     photoUrl: string,
@@ -374,7 +326,6 @@ export class TelegramWebhookService {
     try {
       console.log(`📸 Sending photo to Telegram: ${photoUrl}`);
       
-      // Скачиваем файл
       const fileResponse = await fetch(photoUrl);
       
       if (!fileResponse.ok) {
@@ -383,9 +334,7 @@ export class TelegramWebhookService {
       
       const fileBuffer = await fileResponse.arrayBuffer();
       
-      // Создаём FormData (browser-compatible в Node.js)
       const FormData = require('form-data');
-      const fs = require('fs');
       const formData = new FormData();
       
       formData.append('chat_id', chatId.toString());
@@ -395,7 +344,6 @@ export class TelegramWebhookService {
         formData.append('caption', caption);
       }
       
-      // Используем axios для надёжной отправки multipart
       const axios = require('axios');
       
       const response = await axios.post(
@@ -415,9 +363,9 @@ export class TelegramWebhookService {
   }
 
   /**
-   * Отправка документа в Telegram через stream
+   * ✅ ПУБЛИЧНЫЙ метод - отправка документа в Telegram
    */
-  private async sendTelegramDocument(
+  public async sendTelegramDocument(
     botToken: string,
     chatId: number,
     documentUrl: string,
@@ -426,7 +374,6 @@ export class TelegramWebhookService {
     try {
       console.log(`📄 Sending document to Telegram: ${documentUrl}`);
       
-      // Скачиваем файл
       const fileResponse = await fetch(documentUrl);
       
       if (!fileResponse.ok) {
@@ -436,7 +383,6 @@ export class TelegramWebhookService {
       const fileBuffer = await fileResponse.arrayBuffer();
       const fileName = caption || 'document.pdf';
       
-      // Создаём FormData
       const FormData = require('form-data');
       const formData = new FormData();
       
@@ -449,7 +395,6 @@ export class TelegramWebhookService {
         formData.append('caption', caption);
       }
       
-      // Отправляем в Telegram
       const response = await fetch(
         `https://api.telegram.org/bot${botToken}/sendDocument`,
         {

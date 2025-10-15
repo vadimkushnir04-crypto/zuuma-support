@@ -47,8 +47,16 @@ export default function Chat() {
         socketRef.current = null;
       }
       
-      const newUserIdentifier = `frontend:${Date.now()}`;
-      setUserIdentifier(newUserIdentifier);
+      // ✅ ИСПРАВЛЕНО: Сохраняем userIdentifier в localStorage
+      let identifier = localStorage.getItem(`userIdentifier_${selectedAssistantId}`);
+      if (!identifier) {
+        identifier = `frontend:${Date.now()}`;
+        localStorage.setItem(`userIdentifier_${selectedAssistantId}`, identifier);
+        console.log('🆕 Created new userIdentifier:', identifier);
+      } else {
+        console.log('♻️ Reusing existing userIdentifier:', identifier);
+      }
+      setUserIdentifier(identifier);
       
       setMessages([{
         id: `welcome-${Date.now()}`,
@@ -135,14 +143,12 @@ export default function Chat() {
 
       if (response.ok) {
         const data = await response.json();
-        
-        if (data.conversationId) {
-          setConversationId(data.conversationId);
-        }
-
         if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
           setChatSessionId(data.chatSessionId);
-          console.log('💾 Chat session ID:', data.chatSessionId);
+          if (socketRef.current) {
+            socketRef.current.emit('join', { sessionId: data.chatSessionId });
+            console.log('🔌 Joined session room:', data.chatSessionId);
+          }
         }
 
         if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
@@ -178,104 +184,63 @@ export default function Chat() {
   };
 
   // ✅ ИСПРАВЛЕННОЕ WebSocket подключение
+  // components/Chat.tsx - WebSocket секция (замените useEffect с socket)
+
   useEffect(() => {
     if (!selectedAssistantId) return;
 
-    const token = localStorage.getItem('auth_token');
-    
-    // ✅ Убрали /support - теперь root namespace
     const socket = io('http://localhost:4000', {
-      transports: ['websocket', 'polling'], // ✅ Добавили fallback на polling
-      auth: { token },
+      transports: ['websocket', 'polling'],
+      auth: { token: localStorage.getItem('auth_token') },
       reconnection: true,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
     });
 
     socketRef.current = socket;
 
-    console.log('🔌 WebSocket connecting for assistant:', selectedAssistantId);
-    console.log('🔑 UserIdentifier:', userIdentifier);
-
     socket.on('connect', () => {
       console.log('✅ WebSocket connected, socket ID:', socket.id);
-      
-      // ✅ Присоединяемся к комнате ассистента
       socket.emit('joinAssistant', { 
         assistantId: selectedAssistantId,
-        userIdentifier: userIdentifier
+        userIdentifier: userIdentifier,
+        sessionId: chatSessionId // Убедитесь, что chatSessionId доступен
       });
-      console.log('🔌 Joined assistant room:', `assistant:${selectedAssistantId}:${userIdentifier}`);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('❌ WebSocket connection error:', error.message);
+      console.error('❌ WebSocket connect error:', error.message);
     });
 
     socket.on('assistant:message', (payload) => {
-      console.log('📨 WS assistant:message received:', {
-        id: payload.id,
-        content: payload.content?.substring(0, 50),
-        senderType: payload.senderType,
-        files: payload.files?.length || 0,
-        createdAt: payload.createdAt
-      });
-      
+      console.log('📨 Received assistant message:', payload);
       const newMessage: Message = {
         id: payload.id || `ws-${Date.now()}`,
-        text: payload.content,
+        text: payload.content || 'No content',
         sender: payload.senderType === 'user' ? 'user' : 'assistant',
         timestamp: new Date(payload.createdAt || Date.now()),
         sources: payload.metadata?.sources || payload.sources,
         files: payload.files || [],
       };
-      
       addMessageIfNotExists(newMessage);
-      
-      if (payload.senderType !== 'user') {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     });
 
     socket.on('message', (payload) => {
-      console.log('💬 WS message received:', {
-        id: payload.id,
-        content: payload.content?.substring(0, 50),
-        senderType: payload.senderType,
-        files: payload.files?.length || 0,
-        createdAt: payload.createdAt
-      });
-      
-      const newMessage: Message = {
-        id: payload.id || `ws-${Date.now()}`,
-        text: payload.content,
-        sender: payload.senderType === 'user' ? 'user' : 'assistant',
-        timestamp: new Date(payload.createdAt || Date.now()),
-        sources: payload.metadata?.sources || payload.sources,
-        files: payload.files || [],
-      };
-      
-      addMessageIfNotExists(newMessage);
-      
-      if (payload.senderType !== 'user') {
-        setIsLoading(false);
-      }
+      console.log('💬 Received message:', payload);
+      // Обработка, если нужно
     });
 
     socket.on('disconnect', (reason) => {
       console.log('❌ WebSocket disconnected:', reason);
-    });
-
-    socket.on('error', (error) => {
-      console.error('❌ WebSocket error:', error);
+      setIsLoading(false); // Сброс при разрыве
     });
 
     return () => {
-      console.log('🔌 WebSocket cleanup - disconnecting');
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [selectedAssistantId, userIdentifier]);
+  }, [selectedAssistantId, userIdentifier, chatSessionId]); // Зависимость от chatSessionId
 
   if (!selectedAssistantId) {
     return (

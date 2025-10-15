@@ -104,6 +104,17 @@ export class ChatService {
     // Сохраняем ответ ассистента в историю
     state.messages.push({ role: "assistant", content: answer });
 
+    // Передача через WebSocket
+    if (conversationId && assistantId) {
+      await this.supportService.emitMessageToSessionSafe(conversationId, {
+        id: `msg-${Date.now()}`,
+        content: answer,
+        senderType: 'assistant',
+        chatSessionId: conversationId,
+        createdAt: new Date(),
+      });
+    }
+
     console.log("🤖 Ответ LLM:", answer.substring(0, 100) + "...");
     console.log("📊 Токены использовано:", response.tokensUsed);
 

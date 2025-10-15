@@ -8,6 +8,11 @@ interface Message {
   senderType: 'user' | 'ai' | 'manager';
   content: string;
   createdAt: string;
+  files?: Array<{
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+  }>;
 }
 
 interface ChatSession {
@@ -35,6 +40,7 @@ export default function ChatDetailPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  // ✅ Загрузка чата
   useEffect(() => {
     if (!sessionId) return;
 
@@ -48,8 +54,13 @@ export default function ChatDetailPage() {
         const data = await res.json();
         setSession(data.session);
         setMessages(data.messages);
+        console.log('✅ Chat loaded:', {
+          sessionId: data.session.id,
+          messagesCount: data.messages.length,
+          status: data.session.status,
+        });
       } catch (err) {
-        console.error('Ошибка загрузки чата:', err);
+        console.error('❌ Ошибка загрузки чата:', err);
       } finally {
         setLoading(false);
       }
@@ -58,32 +69,67 @@ export default function ChatDetailPage() {
     loadChat();
   }, [sessionId]);
 
+  // ✅ WebSocket подключение
   useEffect(() => {
     if (!sessionId || loading) return;
+    
     const token = localStorage.getItem('auth_token');
 
     if (socketRef.current) {
+      console.log('🔌 Disconnecting previous socket');
       socketRef.current.disconnect();
       socketRef.current = null;
     }
 
-    const socket = io('http://localhost:4000/support', {
+    // ✅ ИСПРАВЛЕНО: Убрали /support из URL
+    const socket = io('http://localhost:4000', {
       transports: ['websocket', 'polling'],
       auth: { token },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
     });
 
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('✅ WebSocket connected:', socket.id);
+      console.log('✅ Support page WebSocket connected:', socket.id);
+      
+      // ✅ Присоединяемся к комнате sessionId
       socket.emit('join', { sessionId });
+      console.log('🔌 Joined session room:', sessionId);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connection error:', error.message);
     });
 
     socket.on('message', (payload: any) => {
-      console.log('📨 WS message:', payload);
+      console.log('📨 WS message received on support page:', {
+        id: payload.id,
+        senderType: payload.senderType,
+        content: payload.content?.substring(0, 50),
+        chatSessionId: payload.chatSessionId,
+        currentSessionId: sessionId,
+        files: payload.files?.length || 0,
+      });
+      
+      // ✅ Проверяем, что сообщение для нашей сессии
+      if (payload.chatSessionId !== sessionId) {
+        console.log('⚠️ Message for different session, ignoring');
+        return;
+      }
+      
       setMessages(prev => {
+        // Проверка на дубликаты
         const exists = prev.some(m => m.id === payload.id);
-        if (exists) return prev;
+        if (exists) {
+          console.log('🚫 Duplicate message prevented:', payload.id);
+          return prev;
+        }
+        
+        console.log('✅ Adding message to support page:', payload.id);
+        
         return [
           ...prev,
           {
@@ -91,20 +137,29 @@ export default function ChatDetailPage() {
             senderType: payload.senderType || 'manager',
             content: payload.content,
             createdAt: payload.createdAt || new Date().toISOString(),
+            files: payload.files || payload.metadata?.files || [],
           },
         ];
       });
     });
 
-    socket.on('session:update', (s: any) => setSession(s));
+    socket.on('session:update', (s: any) => {
+      console.log('📊 Session updated:', s.status);
+      setSession(s);
+    });
 
-    socket.on('disconnect', reason => {
-      console.log('❌ WS disconnected:', reason);
-      setTimeout(() => socket.connect(), 1000);
+    socket.on('disconnect', (reason) => {
+      console.log('❌ Support page WS disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // Server disconnected, reconnect manually
+        setTimeout(() => socket.connect(), 1000);
+      }
     });
 
     return () => {
+      console.log('🧹 Support page WebSocket cleanup');
       socket.off('connect');
+      socket.off('connect_error');
       socket.off('message');
       socket.off('session:update');
       socket.off('disconnect');
@@ -113,6 +168,7 @@ export default function ChatDetailPage() {
     };
   }, [sessionId, loading]);
 
+  // ✅ Автоскролл
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -134,9 +190,11 @@ export default function ChatDetailPage() {
       });
 
       if (!response.ok) throw new Error('Ошибка при отправке сообщения');
+      
+      console.log('✅ Message sent from support page');
       setNewMessage('');
     } catch (err) {
-      console.error(err);
+      console.error('❌ Send message error:', err);
       alert('Ошибка при отправке сообщения');
     } finally {
       setSending(false);
@@ -155,11 +213,12 @@ export default function ChatDetailPage() {
         body: JSON.stringify({ message: returnMessage.trim() || undefined }),
       });
       
+      console.log('✅ Chat returned to AI');
       setShowReturnModal(false);
       setReturnMessage('');
       router.push('/support');
     } catch (err) {
-      console.error('Ошибка при возврате на AI:', err);
+      console.error('❌ Return to AI error:', err);
       alert('Не удалось вернуть чат на AI');
     }
   };
@@ -177,9 +236,11 @@ export default function ChatDetailPage() {
         },
         body: JSON.stringify({ chatSessionId: sessionId }),
       });
+      
+      console.log('✅ Chat resolved');
       router.push('/support');
     } catch (err) {
-      console.error('Ошибка при закрытии чата:', err);
+      console.error('❌ Resolve chat error:', err);
       alert('Не удалось закрыть чат');
     }
   };
@@ -273,6 +334,38 @@ export default function ChatDetailPage() {
                   </span>
                 </div>
                 <p className="whitespace-pre-wrap">{msg.content}</p>
+                
+                {/* ✅ Отображение файлов */}
+                {msg.files && msg.files.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {msg.files.map((file, idx) => (
+                      <div key={idx} className="border-t pt-2">
+                        {file.fileType === 'image' ? (
+                          <a 
+                            href={`http://localhost:4000${file.fileUrl}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            <img 
+                              src={`http://localhost:4000${file.fileUrl}`} 
+                              alt={file.fileName}
+                              className="max-w-xs rounded"
+                            />
+                          </a>
+                        ) : (
+                          <a 
+                            href={`http://localhost:4000${file.fileUrl}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-2"
+                          >
+                            📎 {file.fileName}
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -302,7 +395,7 @@ export default function ChatDetailPage() {
             <button
               onClick={sendMessage}
               disabled={sending || !newMessage.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:bg-gray-300"
             >
               {sending ? 'Отправка...' : 'Отправить'}
             </button>
