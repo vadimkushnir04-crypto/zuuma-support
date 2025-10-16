@@ -32,11 +32,10 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:6333/ || exit 0"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:6333/collections || exit 1"]
       interval: 10s
       timeout: 10s
-      retries: 10
-      start_period: 10s
+      retries: 15
 
   # Backend (NestJS)
   backend:
@@ -62,7 +61,7 @@ services:
       postgres:
         condition: service_healthy
       qdrant:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
     networks:
@@ -76,7 +75,7 @@ services:
     container_name: support_frontend
     restart: always
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
