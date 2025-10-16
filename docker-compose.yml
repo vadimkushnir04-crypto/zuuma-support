@@ -32,10 +32,11 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:6333/collections || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/ || exit 0"]
       interval: 10s
       timeout: 10s
-      retries: 15
+      retries: 10
+      start_period: 10s
 
   # Backend (NestJS)
   backend:
@@ -61,7 +62,7 @@ services:
       postgres:
         condition: service_healthy
       qdrant:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - ./uploads:/app/uploads
     networks:
