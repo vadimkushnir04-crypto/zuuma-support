@@ -104,15 +104,15 @@ nginx:
     - app_network
 
   # Certbot для автоматического обновления SSL
-  certbot:
-    image: certbot/certbot
-    container_name: support_certbot
-    volumes:
-      - certbot_www:/var/www/certbot
-      - certbot_conf:/etc/letsencrypt
-    entrypoint: >
-      /bin/sh -c "trap exit TERM;
-      while :; do certbot renew; sleep 12h & wait $${!}; done;"
+#  certbot:
+ #   image: certbot/certbot
+ #   container_name: support_certbot
+ #   volumes:
+ #     - certbot_www:/var/www/certbot
+ #     - certbot_conf:/etc/letsencrypt
+  #  entrypoint: >
+ #     /bin/sh -c "trap exit TERM;
+  #    while :; do certbot renew; sleep 12h & wait $${!}; done;"
 
 volumes:
   postgres_data:
