@@ -87,21 +87,21 @@ services:
       - app_network
 
    # Nginx Reverse Proxy
-nginx:
-  image: nginx:alpine
-  container_name: support_nginx
-  restart: always
-  ports:
-    - "${NGINX_HTTP_PORT:-8080}:80"
-    - "8443:443"   # self-signed тест
-  volumes:
-    - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    - ./nginx/ssl:/etc/nginx/ssl:ro
-  depends_on:
-    - frontend
-    - backend
-  networks:
-    - app_network
+  nginx:
+    image: nginx:alpine
+    container_name: support_nginx
+    restart: always
+    ports:
+      - "${NGINX_HTTP_PORT:-8080}:80"
+      - "8443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - app_network
 
   # Certbot для автоматического обновления SSL
 #  certbot:
