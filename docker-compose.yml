@@ -1,7 +1,4 @@
-version: '3.9'
-
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15
     container_name: support_postgres
@@ -16,13 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Qdrant Vector Database
   qdrant:
     image: qdrant/qdrant:latest
     container_name: support_qdrant
@@ -33,13 +24,7 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - app_network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:6333/ || exit 0"]
-      interval: 10s
-      timeout: 10s
-      retries: 15
 
-  # Backend (NestJS)
   backend:
     build:
       context: ./backend
@@ -48,28 +33,12 @@ services:
     restart: always
     ports:
       - "8000:8000"
-    environment:
-      NODE_ENV: production
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_NAME: ${POSTGRES_DB}
-      DATABASE_USER: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      QDRANT_URL: http://qdrant:6333
-      JWT_SECRET: ${JWT_SECRET}
-      YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-    volumes:
-      - ./uploads:/app/uploads
+      - postgres
+      - qdrant
     networks:
       - app_network
 
-  # Frontend (Next.js) с динамическим портом
   frontend:
     build:
       context: ./frontend
@@ -77,16 +46,12 @@ services:
     container_name: support_frontend
     restart: always
     ports:
-      - "${FRONTEND_PORT:-3000}:3000" # если FRONTEND_PORT не задан, будет 3000
-    environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
       - backend
     networks:
       - app_network
 
-   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
     container_name: support_nginx
@@ -103,25 +68,10 @@ services:
     networks:
       - app_network
 
-  # Certbot для автоматического обновления SSL
-#  certbot:
- #   image: certbot/certbot
- #   container_name: support_certbot
- #   volumes:
- #     - certbot_www:/var/www/certbot
- #     - certbot_conf:/etc/letsencrypt
-  #  entrypoint: >
- #     /bin/sh -c "trap exit TERM;
-  #    while :; do certbot renew; sleep 12h & wait $${!}; done;"
-
 volumes:
   postgres_data:
     driver: local
   qdrant_data:
-    driver: local
-  certbot_www:
-    driver: local
-  certbot_conf:
     driver: local
 
 networks:
