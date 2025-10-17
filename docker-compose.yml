@@ -4,9 +4,9 @@ services:
     container_name: support_postgres
     restart: always
     environment:
-      - POSTGRES_DB=${{project.POSTGRES_DB}}
-      - POSTGRES_USER=${{project.POSTGRES_USER}}
-      - POSTGRES_PASSWORD=${{project.POSTGRES_PASSWORD}}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -37,11 +37,20 @@ services:
       - postgres
       - qdrant
     environment:
-    - DATABASE_HOST=${DATABASE_HOST}
-    - DATABASE_PORT=${DATABASE_PORT}
-    - DATABASE_NAME=${DATABASE_NAME}
-    - DATABASE_USER=${DATABASE_USER}
-    - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
+      - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
+      - YANDEX_API_KEY=${YANDEX_API_KEY}
+      - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - BACKEND_URL=${BACKEND_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
     networks:
       - app_network
 
@@ -55,6 +64,8 @@ services:
       - "${FRONTEND_PORT:-3001}:3000"
     depends_on:
       - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     networks:
       - app_network
 
