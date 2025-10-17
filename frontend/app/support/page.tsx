@@ -90,9 +90,9 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="dashboard">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
+        <div className="dashboard-header">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Поддержка</h1>
           <p className="text-gray-600">
             Управление чатами и эскалацией на живых операторов

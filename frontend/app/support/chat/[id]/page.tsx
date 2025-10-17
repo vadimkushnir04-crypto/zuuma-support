@@ -272,9 +272,9 @@ export default function ChatDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="dashboard">
       {/* Header */}
-      <div className="bg-white border-b p-4">
+      <div className="dashboard-header">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <button

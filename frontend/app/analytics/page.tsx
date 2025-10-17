@@ -55,7 +55,6 @@ interface AssistantData {
 export default function AnalyticsPage() {
   const { balance, loading, error, mutate } = useTokens();
   const [timeRange, setTimeRange] = useState('30d');
-  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [analytics, setAnalytics] = useState<any>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -144,11 +143,6 @@ export default function AnalyticsPage() {
     );
   }
 
-  const handleTopUp = () => {
-    setIsTopUpOpen(true);
-  };
-
-
   const usagePercentage = userStats.monthlyLimit > 0 
     ? (userStats.usedTokens / userStats.monthlyLimit) * 100 
     : 0;
@@ -172,10 +166,6 @@ export default function AnalyticsPage() {
           <div className="balance-header">
             <h2 className="balance-title">Баланс токенов</h2>
             <div className="balance-actions">
-              <button className="btn-primary" onClick={handleTopUp}>
-                <Plus size={16} />
-                Пополнить
-              </button>
               <button className="btn-secondary">
                 История операций
               </button>
@@ -263,15 +253,6 @@ export default function AnalyticsPage() {
             </ResponsiveContainer>
           </div>
         </div>
-
-        <TopUpModal 
-          isOpen={isTopUpOpen}
-          onClose={() => setIsTopUpOpen(false)}
-          onSuccess={() => {
-            mutate();
-            setIsTopUpOpen(false);
-          }}
-        />
       </div>
     </AuthGuard>
   );

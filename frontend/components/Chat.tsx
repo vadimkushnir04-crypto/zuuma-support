@@ -30,6 +30,8 @@ export default function Chat() {
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const { selectedAssistantId } = useContext(SelectedAssistantContext);
 
   const scrollToBottom = () => {
@@ -357,12 +359,36 @@ export default function Chat() {
 
       <div className="chat-input-wrapper">
         <textarea
+          ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => {
+            setInput(e.target.value);
+            if (textareaRef.current) {
+              const textarea = textareaRef.current;
+              const lineHeight = 24; // высота одной строки в px (можно подогнать под CSS)
+              const maxRows = 5;
+              const maxHeight = lineHeight * maxRows;
+
+              // Сброс высоты, чтобы scrollHeight пересчитался
+              textarea.style.height = 'auto';
+
+              // Выставляем новую высоту, но не больше maxHeight
+              const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+              textarea.style.height = `${newHeight}px`;
+
+              // Включаем скролл, если превысили maxHeight
+              textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+            }
+          }}
           onKeyDown={handleKeyPress}
           placeholder={t('placeholders.askQuestion')}
           disabled={isLoading}
           rows={1}
+          style={{
+            resize: 'none',
+            overflowY: 'hidden', // по умолчанию скрыт, включится динамически
+            maxHeight: `${24 * 5}px`, // ограничение по стилю для безопасности
+          }}
         />
         <button onClick={sendMessage} disabled={!input.trim() || isLoading}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

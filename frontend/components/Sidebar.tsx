@@ -12,6 +12,8 @@ import {
   Settings,
   User,
   Headphones,
+  FileText,
+  LifeBuoy
 } from "lucide-react";
 import React from "react";
 import { useTranslation } from "react-i18next";
@@ -78,6 +80,19 @@ export default function Sidebar() {
       href: "/tutorials",
     },
 
+    // Новая ссылка на страницу оферты
+    {
+      title: "Условия и политика",
+      icon: <FileText size={20} />,
+      href: "/offer",
+    },
+
+    // Вторая ссылка для будущего функционала
+    {
+      title: "Получить помощь",
+      icon: <LifeBuoy size={20} />,
+      href: "/help", // пока страница не создана
+    },
   ];
 
   return (
