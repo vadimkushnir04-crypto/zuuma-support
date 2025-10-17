@@ -37,11 +37,11 @@ services:
       - postgres
       - qdrant
     environment:
-      - DATABASE_HOST=${{project.DATABASE_HOST}}
-      - DATABASE_PORT=${{project.DATABASE_PORT}}
-      - DATABASE_NAME=${{project.DATABASE_NAME}}
-      - DATABASE_USER=${{project.DATABASE_USER}}
-      - DATABASE_PASSWORD=${{project.DATABASE_PASSWORD}}
+    - DATABASE_HOST=${DATABASE_HOST}
+    - DATABASE_PORT=${DATABASE_PORT}
+    - DATABASE_NAME=${DATABASE_NAME}
+    - DATABASE_USER=${DATABASE_USER}
+    - DATABASE_PASSWORD=${DATABASE_PASSWORD}
     networks:
       - app_network
 
