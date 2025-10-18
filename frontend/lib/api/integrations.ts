@@ -1,6 +1,8 @@
 // frontend/lib/api/integrations.ts
 import { telegramAPI } from './telegram';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+
 export interface CreateTelegramBotRequest {
   botName: string;
   botToken: string;
@@ -50,7 +52,6 @@ export interface DeleteIntegrationResponse {
 }
 
 class IntegrationsAPI {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
   private getAuthToken(): string {
     try {
@@ -121,7 +122,7 @@ class IntegrationsAPI {
 
   async getAllIntegrations(): Promise<Integration[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/integrations`, {
+      const response = await fetch(`${API_BASE_URL}/integrations`, {
         headers: { 'Authorization': `Bearer ${this.getAuthToken()}` },
       });
 
@@ -151,7 +152,7 @@ class IntegrationsAPI {
 
   async toggleIntegration(id: string): Promise<ToggleIntegrationResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/integrations/${id}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/integrations/${id}/toggle`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -183,7 +184,7 @@ class IntegrationsAPI {
 
   async deleteIntegration(id: string): Promise<DeleteIntegrationResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/integrations/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/integrations/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -217,7 +218,7 @@ class IntegrationsAPI {
         return [];
       }
 
-      const response = await fetch(`${this.baseUrl}/assistants`, {
+      const response = await fetch(`${API_BASE_URL}/assistants`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

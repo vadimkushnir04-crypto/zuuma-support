@@ -1,7 +1,7 @@
 //useTokens
 import useSWR from 'swr';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
 
 interface TokenBalance {
   total_tokens: string;
@@ -14,7 +14,7 @@ const fetcher = async (url: string) => {
   
   console.log('🔍 Token exists:', !!token);
   
-  const res = await fetch(`${API_URL}${url}`, {
+  const res = await fetch(`${API_BASE_URL}${url}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'

@@ -21,8 +21,9 @@ export interface ConnectManualBotRequest {
   creationMethod: 'manual';
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+
 class TelegramAPI {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
   private getAuthToken(): string {
     const token = localStorage.getItem('auth_token') || '';
@@ -41,7 +42,7 @@ class TelegramAPI {
 
   async getAuthStatus(): Promise<TelegramAuthStatus> {
     try {
-      const response = await fetch(`${this.baseUrl}/telegram/auth/status`, {
+      const response = await fetch(`${API_BASE_URL}/telegram/auth/status`, {
         headers: this.getHeaders(),
       });
       if (!response.ok) throw new Error('Failed to get auth status');
@@ -54,7 +55,7 @@ class TelegramAPI {
 
   async sendAuthCode(phone: string): Promise<TelegramAuthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/telegram/auth/send-code`, {
+      const response = await fetch(`${API_BASE_URL}/telegram/auth/send-code`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ phone }),
@@ -67,7 +68,7 @@ class TelegramAPI {
 
   async confirmCode(phone: string, code: string): Promise<TelegramAuthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/telegram/auth/confirm-code`, {
+      const response = await fetch(`${API_BASE_URL}/telegram/auth/confirm-code`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ phone, code }),
@@ -80,7 +81,7 @@ class TelegramAPI {
 
   async revokeAuth(): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await fetch(`${this.baseUrl}/telegram/auth/revoke`, {
+      const response = await fetch(`${API_BASE_URL}/telegram/auth/revoke`, {
         method: 'POST',
         headers: this.getHeaders(),
       });
@@ -116,7 +117,7 @@ class TelegramAPI {
     console.log('📤 Sending payload to backend:', JSON.stringify(payload, null, 2));
 
     try {
-      const response = await fetch(`${this.baseUrl}/telegram/bots/connect-manual`, {
+      const response = await fetch(`${API_BASE_URL}/telegram/bots/connect-manual`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(payload),

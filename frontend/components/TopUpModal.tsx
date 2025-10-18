@@ -13,7 +13,7 @@ export default function TopUpModal({ isOpen, onClose, onSuccess }: TopUpModalPro
   const [amount, setAmount] = useState(100000);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
 
   if (!isOpen) return null;
 
@@ -21,7 +21,7 @@ const handleTopUp = async () => {
   setLoading(true);
   try {
     const token = localStorage.getItem('auth_token'); // ← Исправлено
-    const res = await fetch(`${API_URL}/api/tokens/topup`, {
+    const res = await fetch(`${API_BASE_URL}/api/tokens/topup`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

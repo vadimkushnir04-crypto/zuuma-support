@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { SelectedAssistantContext } from "./UploadTextForm";
 import { io, Socket } from 'socket.io-client';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 interface Message {
   id: string;
   text: string;
@@ -128,7 +130,7 @@ export default function Chat() {
         throw new Error('Требуется авторизация');
       }
 
-      const response = await fetch(`http://localhost:4000/chat/ask`, {
+      const response = await fetch(`${API_BASE_URL}/chat/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -191,7 +193,7 @@ export default function Chat() {
   useEffect(() => {
     if (!selectedAssistantId) return;
 
-    const socket = io('http://localhost:4000', {
+    const socket = io(`${API_BASE_URL}`, {
       transports: ['websocket', 'polling'],
       auth: { token: localStorage.getItem('auth_token') },
       reconnection: true,
@@ -289,13 +291,13 @@ export default function Chat() {
                         <div key={idx} className="file-attachment">
                           {file.fileType === 'image' ? (
                             <a 
-                              href={`http://localhost:4000${file.fileUrl}`} 
+                              href={`${API_BASE_URL}${file.fileUrl}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="image-preview-link"
                             >
                               <img 
-                                src={`http://localhost:4000${file.fileUrl}`} 
+                                src={`${API_BASE_URL}${file.fileUrl}`} 
                                 alt={file.fileName}
                                 className="message-image"
                                 style={{ maxWidth: '300px', borderRadius: '8px', marginTop: '8px' }}
@@ -304,7 +306,7 @@ export default function Chat() {
                             </a>
                           ) : (
                             <a 
-                              href={`http://localhost:4000${file.fileUrl}`} 
+                              href={`${API_BASE_URL}${file.fileUrl}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="file-link"

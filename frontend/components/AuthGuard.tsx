@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Lock, LogIn } from 'lucide-react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAuth?: boolean;
@@ -28,7 +30,7 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
       }
 
       // Проверяем токен через запрос профиля
-      const response = await fetch('http://localhost:4000/auth/profile', {
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

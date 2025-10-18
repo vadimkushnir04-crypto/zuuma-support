@@ -6,6 +6,8 @@ import { Plus, Bot, Loader2, Sparkles, Zap, Users, ArrowLeft, CheckCircle } from
 import { useRouter } from "next/navigation";
 import AuthGuard from '../../../components/AuthGuard';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+
 export default function CreateAssistantPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [loadingDemo, setLoadingDemo] = useState(false);
@@ -35,7 +37,7 @@ export default function CreateAssistantPage() {
         return;
       }
 
-      const res = await fetch(`http://localhost:4000/assistants`, {
+      const res = await fetch(`${API_BASE_URL}/assistants`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -222,7 +224,7 @@ const CreateAssistantModal = ({
       }
 
       // ✅ ИЗМЕНЕНО: убрали companyId из body
-      const response = await fetch("http://localhost:4000/assistants", {
+      const response = await fetch(`${API_BASE_URL}/assistants`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

@@ -10,6 +10,8 @@ import {
 
 import AuthGuard from '../../../components/AuthGuard';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 // Типы
 interface FunctionParameter {
   name: string;
@@ -77,195 +79,196 @@ export default function GlobalFunctionsPage() {
   }, []);
 
   const loadFunctions = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch('http://localhost:4000/functions/global', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setFunctions(data.data);
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE_URL}/functions/global`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Ошибка загрузки функций:', error);
+    });
+    const data = await response.json();
+    if (data.success) {
+      setFunctions(data.data);
     }
-  };
+  } catch (error) {
+    console.error('Ошибка загрузки функций:', error);
+  }
+};
 
-    const loadAssistants = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        console.error('No auth token');
-        setAssistants([]);
-        return;
+const loadAssistants = async () => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token) {
+      console.error('No auth token');
+      setAssistants([]);
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/assistants`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+    const data = await response.json();
 
-      // ✅ ИЗМЕНЕНО
-      const response = await fetch(`http://localhost:4000/assistants`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-
-      if (Array.isArray(data.data?.assistants)) {
-        setAssistants(data.data.assistants);
-      } else {
-        setAssistants([]);
-      }
-    } catch (err) {
-      console.error("Ошибка загрузки ассистентов:", err);
+    if (Array.isArray(data.data?.assistants)) {
+      setAssistants(data.data.assistants);
+    } else {
       setAssistants([]);
     }
-  };
+  } catch (err) {
+    console.error("Ошибка загрузки ассистентов:", err);
+    setAssistants([]);
+  }
+};
 
-  // Загрузка статистики использования функций
-  const loadUsageStats = async () => {
-    console.log("DEBUG: loadUsageStats вызван");
-    try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch('http://localhost:4000/functions/usage-stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log("DEBUG: response status:", response.status);
-      const text = await response.text();
-      console.log("DEBUG: raw response text:", text);
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("DEBUG: не удалось распарсить JSON:", e);
-        return;
+// Загрузка статистики использования функций
+const loadUsageStats = async () => {
+  console.log("DEBUG: loadUsageStats вызван");
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE_URL}/functions/usage-stats`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
+    });
+    console.log("DEBUG: response status:", response.status);
+    const text = await response.text();
+    console.log("DEBUG: raw response text:", text);
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("DEBUG: не удалось распарсить JSON:", e);
+      return;
+    }
 
-      console.log("DEBUG usage-stats response (JSON):", data);
-      if (data.success) {
-        const statsMap: Record<string, number> = {};
-        data.data.forEach((stat: any) => {
-          statsMap[stat.functionId] = stat.usageCount;
-        });
-        console.log("DEBUG: построен statsMap:", statsMap);
-        setUsageStats(statsMap);
+    console.log("DEBUG usage-stats response (JSON):", data);
+    if (data.success) {
+      const statsMap: Record<string, number> = {};
+      data.data.forEach((stat: any) => {
+        statsMap[stat.functionId] = stat.usageCount;
+      });
+      console.log("DEBUG: построен statsMap:", statsMap);
+      setUsageStats(statsMap);
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки статистики:', error);
+  }
+};
+
+// Создание новой функции
+const createNewFunction = () => {
+  const newFunction: GlobalFunction = {
+    name: 'Новая глобальная функция',
+    description: 'Описание функции для взаимодействия с внешним API',
+    endpoint_url: 'https://api.example.com/endpoint',
+    method: 'GET',
+    headers: { 'Authorization': 'Bearer YOUR_TOKEN' },
+    parameters: [],
+    is_active: true
+  };
+  setSelectedFunction(newFunction);
+  setIsEditing(true);
+};
+
+// Удаление функции
+const deleteFunction = async (functionId: string) => {
+  if (!confirm('Вы уверены, что хотите удалить эту функцию? Она будет удалена у всех ботов.')) return;
+
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE_URL}/functions/global/${functionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Ошибка загрузки статистики:', error);
+    });
+
+    if (response.ok) {
+      await loadFunctions();
+      await loadUsageStats();
+      setSelectedFunction(null);
+      alert('Функция удалена');
     }
-  };
+  } catch (error) {
+    console.error('Ошибка удаления:', error);
+  }
+};
 
-  // Создание новой функции
-  const createNewFunction = () => {
-    const newFunction: GlobalFunction = {
-      name: 'Новая глобальная функция',
-      description: 'Описание функции для взаимодействия с внешним API',
-      endpoint_url: 'https://api.example.com/endpoint',
-      method: 'GET',
-      headers: { 'Authorization': 'Bearer YOUR_TOKEN' },
-      parameters: [],
-      is_active: true
-    };
-    setSelectedFunction(newFunction);
-    setIsEditing(true);
-  };
+// Тестирование функции
+const testFunction = async () => {
+  if (!selectedFunction?.id) return;
 
-  // Удаление функции
-  const deleteFunction = async (functionId: string) => {
-    if (!confirm('Вы уверены, что хотите удалить эту функцию? Она будет удалена у всех ботов.')) return;
+  try {
+    const token = localStorage.getItem('auth_token');
+    const testParams: Record<string, any> = {};
 
-    try {
-      const token = localStorage.getItem('auth_token');
-      
-      const response = await fetch(`http://localhost:4000/functions/global/${functionId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        await loadFunctions();
-        await loadUsageStats();
-        setSelectedFunction(null);
-        alert('Функция удалена');
-      }
-    } catch (error) {
-      console.error('Ошибка удаления:', error);
-    }
-  };
-
-
-  // Тестирование функции
-  const testFunction = async () => {
-    if (!selectedFunction?.id) return;
-
-    try {
-      const token = localStorage.getItem('auth_token');
-      const testParams: Record<string, any> = {};
-
-      selectedFunction.parameters.forEach(param => {
-        // Используем тестовое значение, если оно есть
-        if (param.testValue) {
-          if (param.type === 'string') testParams[param.name] = param.testValue;
-          else if (param.type === 'number') testParams[param.name] = parseFloat(param.testValue) || 0;
-          else if (param.type === 'boolean') testParams[param.name] = param.testValue.toLowerCase() === 'true';
-        } else {
-          // Используем дефолтные значения
-          if (param.type === 'string') testParams[param.name] = param.defaultValue || 'test-value';
-          else if (param.type === 'number') testParams[param.name] = parseFloat(param.defaultValue || '123') || 123;
-          else if (param.type === 'boolean') testParams[param.name] = param.defaultValue === 'true';
-        }
-      });
-
-      const response = await fetch(`http://localhost:4000/functions/global/${selectedFunction.id}/test`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ testParameters: testParams }),
-      });
-
-      const data = await response.json();
-      setTestResult(data);
-
-    } catch (error: any) {
-      setTestResult({
-        success: false,
-        message: 'Не удалось выполнить тест',
-        error: error.message,
-      });
-    }
-  };
-
-  // Назначение функции боту
-  const assignFunctionToBot = async (assistantId: string, functionId: string) => {
-    try {
-      const response = await fetch(`http://localhost:4000/assistants/${assistantId}/functions/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ globalFunctionId: functionId })
-      });
-
-      const data = await response.json();
-      if (data.success || response.ok) {
-        alert('Функция назначена боту!');
-        setShowAssignModal(false);
-        await loadFunctions();
-        await loadUsageStats();
+    selectedFunction.parameters.forEach(param => {
+      if (param.testValue) {
+        if (param.type === 'string') testParams[param.name] = param.testValue;
+        else if (param.type === 'number') testParams[param.name] = parseFloat(param.testValue) || 0;
+        else if (param.type === 'boolean') testParams[param.name] = param.testValue.toLowerCase() === 'true';
       } else {
-        alert('Ошибка назначения функции: ' + (data.error || 'Неизвестная ошибка'));
+        if (param.type === 'string') testParams[param.name] = param.defaultValue || 'test-value';
+        else if (param.type === 'number') testParams[param.name] = parseFloat(param.defaultValue || '123') || 123;
+        else if (param.type === 'boolean') testParams[param.name] = param.defaultValue === 'true';
       }
-    } catch (error) {
-      console.error('Ошибка назначения:', error);
-      alert('Ошибка назначения функции');
+    });
+
+    const response = await fetch(`${API_BASE_URL}/functions/global/${selectedFunction.id}/test`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ testParameters: testParams }),
+    });
+
+    const data = await response.json();
+    setTestResult(data);
+
+  } catch (error: any) {
+    setTestResult({
+      success: false,
+      message: 'Не удалось выполнить тест',
+      error: error.message,
+    });
+  }
+};
+
+// Назначение функции боту
+const assignFunctionToBot = async (assistantId: string, functionId: string) => {
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/functions/assign`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ globalFunctionId: functionId })
+    });
+
+    const data = await response.json();
+    if (data.success || response.ok) {
+      alert('Функция назначена боту!');
+      setShowAssignModal(false);
+      await loadFunctions();
+      await loadUsageStats();
+    } else {
+      alert('Ошибка назначения функции: ' + (data.error || 'Неизвестная ошибка'));
     }
-  };
+  } catch (error) {
+    console.error('Ошибка назначения:', error);
+    alert('Ошибка назначения функции');
+  }
+};
 
   // Копирование функции
   const duplicateFunction = (func: GlobalFunction) => {
@@ -642,54 +645,65 @@ const FunctionEditor = () => {
 
 
   const unassignFunctionFromBot = async (assistantId: string, functionId: string) => {
-    try {
-      const response = await fetch(
-        `http://localhost:4000/assistants/${assistantId}/functions/${functionId}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert("Функция отвязана от бота!");
-        await loadFunctions();
-        await loadAssistants();
-        await loadUsageStats();
-      } else {
-        alert("Ошибка отвязки: " + (data.error || "Неизвестная ошибка"));
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    const response = await fetch(
+      `${API_BASE_URL}/assistants/${assistantId}/functions/${functionId}`,
+      {
+        method: "DELETE",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
       }
-    } catch (error) {
-      console.error("Ошибка отвязки:", error);
-      alert("Ошибка отвязки функции");
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert("Функция отвязана от бота!");
+      await loadFunctions();
+      await loadAssistants();
+      await loadUsageStats();
+    } else {
+      alert("Ошибка отвязки: " + (data.error || "Неизвестная ошибка"));
     }
-  };
+  } catch (error) {
+    console.error("Ошибка отвязки:", error);
+    alert("Ошибка отвязки функции");
+  }
+};
 
-  // Модальное окно назначения ботам
-  const AssignModal = () => {
-    const [assistantFunctions, setAssistantFunctions] = useState<Record<string, GlobalFunction[]>>({});
-    const [loadingFunctions, setLoadingFunctions] = useState<Record<string, boolean>>({});
+// Модальное окно назначения ботам
+const AssignModal = () => {
+  const [assistantFunctions, setAssistantFunctions] = useState<Record<string, GlobalFunction[]>>({});
+  const [loadingFunctions, setLoadingFunctions] = useState<Record<string, boolean>>({});
 
-    if (!showAssignModal || !selectedFunction) return null;
+  if (!showAssignModal || !selectedFunction) return null;
 
-    const fetchAssistantFunctions = useCallback(async (assistantId: string) => {
-      if (assistantFunctions[assistantId]) return;
+  const fetchAssistantFunctions = useCallback(async (assistantId: string) => {
+    if (assistantFunctions[assistantId]) return;
 
-      setLoadingFunctions(prev => ({ ...prev, [assistantId]: true }));
+    setLoadingFunctions(prev => ({ ...prev, [assistantId]: true }));
 
-      try {
-        const res = await fetch(`http://localhost:4000/assistants/${assistantId}/functions`);
-        const json = await res.json();
-        const data: GlobalFunction[] = json.data || [];
-        setAssistantFunctions(prev => ({ ...prev, [assistantId]: data }));
-      } catch (error) {
-        console.error('Ошибка при загрузке функций ассистента:', error);
-      } finally {
-        setLoadingFunctions(prev => ({ ...prev, [assistantId]: false }));
-      }
-    }, [assistantFunctions]);
+    try {
+      const token = localStorage.getItem('auth_token');
+      
+      const res = await fetch(`${API_BASE_URL}/assistants/${assistantId}/functions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const json = await res.json();
+      const data: GlobalFunction[] = json.data || [];
+      setAssistantFunctions(prev => ({ ...prev, [assistantId]: data }));
+    } catch (error) {
+      console.error('Ошибка при загрузке функций ассистента:', error);
+    } finally {
+      setLoadingFunctions(prev => ({ ...prev, [assistantId]: false }));
+    }
+  }, [assistantFunctions]);
 
     return (
       <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>

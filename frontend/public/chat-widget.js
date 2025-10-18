@@ -7,7 +7,7 @@
     // Конфигурация
     const config = window.chatConfig || {
         apiKey: 'your_assistant_api_key',
-        serverUrl: 'http://localhost:4000',
+        serverUrl: 'https://zuuma.ru/api',
     };
 
     // 🔥 Подключаем Socket.IO CDN

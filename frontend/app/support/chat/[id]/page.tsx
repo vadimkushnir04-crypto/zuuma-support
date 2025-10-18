@@ -24,6 +24,8 @@ interface ChatSession {
   integrationType: string;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 export default function ChatDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -47,7 +49,7 @@ export default function ChatDetailPage() {
     const loadChat = async () => {
       try {
         const token = localStorage.getItem('auth_token');
-        const res = await fetch(`http://localhost:4000/support/chats/${sessionId}`, {
+        const res = await fetch(`${API_BASE_URL}/support/chats/${sessionId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to load chat');
@@ -82,7 +84,7 @@ export default function ChatDetailPage() {
     }
 
     // ✅ ИСПРАВЛЕНО: Убрали /support из URL
-    const socket = io('http://localhost:4000', {
+    const socket = io('${API_BASE_URL}', {
       transports: ['websocket', 'polling'],
       auth: { token },
       reconnection: true,
@@ -180,7 +182,7 @@ export default function ChatDetailPage() {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`http://localhost:4000/support/chats/${sessionId}/message`, {
+      const response = await fetch(`${API_BASE_URL}/support/chats/${sessionId}/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -204,7 +206,7 @@ export default function ChatDetailPage() {
   const returnToAi = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      await fetch(`http://localhost:4000/support/chats/${sessionId}/return-to-ai`, {
+      await fetch(`${API_BASE_URL}/support/chats/${sessionId}/return-to-ai`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -228,7 +230,7 @@ export default function ChatDetailPage() {
 
     try {
       const token = localStorage.getItem('auth_token');
-      await fetch('http://localhost:4000/support/chats/resolve', {
+      await fetch('${API_BASE_URL}/support/chats/resolve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -342,19 +344,19 @@ export default function ChatDetailPage() {
                       <div key={idx} className="border-t pt-2">
                         {file.fileType === 'image' ? (
                           <a 
-                            href={`http://localhost:4000${file.fileUrl}`} 
+                            href={`${API_BASE_URL}${file.fileUrl}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                           >
                             <img 
-                              src={`http://localhost:4000${file.fileUrl}`} 
+                              src={`${API_BASE_URL}${file.fileUrl}`} 
                               alt={file.fileName}
                               className="max-w-xs rounded"
                             />
                           </a>
                         ) : (
                           <a 
-                            href={`http://localhost:4000${file.fileUrl}`} 
+                            href={`${API_BASE_URL}${file.fileUrl}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:underline flex items-center gap-2"

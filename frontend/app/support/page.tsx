@@ -16,6 +16,8 @@ interface ChatSession {
   createdAt: string;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 export default function SupportPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'resolved'>('pending');
@@ -39,7 +41,7 @@ export default function SupportPage() {
       const statusFilter = filter === 'all' ? '' : `&status=${filter === 'pending' ? 'pending_human' : filter === 'active' ? 'human_active' : 'resolved'}`;
       
       const response = await fetch(
-        `http://localhost:4000/support/chats?${statusFilter}`,
+        `${API_BASE_URL}/support/chats?${statusFilter}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

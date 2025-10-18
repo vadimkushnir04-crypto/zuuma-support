@@ -8,41 +8,43 @@ import { SelectedAssistantContext } from "./UploadTextForm";
 import { FolderOpen } from 'lucide-react';
 import FileManager from './FileManager';
 
-export default function FileUploadForm() {
-  const { t } = useTranslation('uploadForm');
-  const { selectedAssistantId } = useContext(SelectedAssistantContext);
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
 
-  const [showFileManager, setShowFileManager] = useState(false);
-  
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  export default function FileUploadForm() {
+    const { t } = useTranslation('uploadForm');
+    const { selectedAssistantId } = useContext(SelectedAssistantContext);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+    const [showFileManager, setShowFileManager] = useState(false);
+    
+    const [file, setFile] = useState<File | null>(null);
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
+    const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    // Проверка размера (10MB)
-    if (selectedFile.size > 10 * 1024 * 1024) {
-      setMessage("❌ Файл слишком большой. Максимум 10MB");
-      return;
-    }
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files?.[0];
+      if (!selectedFile) return;
 
-    // Проверка типа
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
-    if (!allowedTypes.includes(selectedFile.type)) {
-      setMessage("❌ Поддерживаются только PDF, изображения (PNG, JPG) и текстовые файлы");
-      return;
-    }
+      // Проверка размера (10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        setMessage("❌ Файл слишком большой. Максимум 10MB");
+        return;
+      }
 
-    setFile(selectedFile);
-    setMessage("");
-  };
+      // Проверка типа
+      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
+      if (!allowedTypes.includes(selectedFile.type)) {
+        setMessage("❌ Поддерживаются только PDF, изображения (PNG, JPG) и текстовые файлы");
+        return;
+      }
+
+      setFile(selectedFile);
+      setMessage("");
+    };
 
 
-  const handleUpload = async (e: React.FormEvent) => {
+    const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedAssistantId) {
@@ -79,7 +81,7 @@ export default function FileUploadForm() {
       }
 
       const res = await fetch(
-        `http://localhost:4000/assistants/${selectedAssistantId}/upload-file`,
+        `${API_BASE_URL}/assistants/${selectedAssistantId}/upload-file`,
         {
           method: "POST",
           headers: {
@@ -97,7 +99,7 @@ export default function FileUploadForm() {
         setTitle("");
         setDescription("");
 
-        await fetch(`http://localhost:4000/assistants/${selectedAssistantId}`, {
+        await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}`, {
           method: "PATCH",
           headers: { 
             "Content-Type": "application/json",

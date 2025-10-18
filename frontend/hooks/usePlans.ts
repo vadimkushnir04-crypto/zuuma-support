@@ -1,10 +1,10 @@
 import useSWR from 'swr';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
 
 const fetcher = async (url: string) => {
   const token = localStorage.getItem('auth_token');
-  const res = await fetch(`${API_URL}${url}`, {
+  const res = await fetch(`${API_BASE_URL}${url}`, {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -27,7 +27,7 @@ export function usePlans() {
 
 export async function changePlan(planSlug: string) {
   const token = localStorage.getItem('auth_token');
-  const res = await fetch(`${API_URL}/api/tokens/change-plan`, {
+  const res = await fetch(`${API_BASE_URL}/api/tokens/change-plan`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,

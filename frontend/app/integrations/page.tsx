@@ -82,7 +82,7 @@ export default function IntegrationsPage() {
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/integrations/${integration.id}/analytics`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integrations/${integration.id}/analytics`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -116,7 +116,7 @@ export default function IntegrationsPage() {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/integrations/${selectedIntegration.id}/settings`,
+        `${process.env.NEXT_PUBLIC_API_URL}/integrations/${selectedIntegration.id}/settings`,
         {
           method: 'PUT',
           headers: {

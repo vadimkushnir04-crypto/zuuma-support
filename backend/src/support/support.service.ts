@@ -292,7 +292,7 @@ export class SupportService {
               const chatId = Number(session.externalChatId);
               
               for (const file of files) {
-                const fileUrl = `${process.env.BACKEND_URL || 'http://localhost:4000'}${file.fileUrl}`;
+                const fileUrl = `${process.env.NEXT_PUBLIC_API_URL}${file.fileUrl}`;
                 
                 try {
                   if (file.fileType === 'image') {

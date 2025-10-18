@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useContext, createContext } from "react";
 import { useTranslation } from "react-i18next";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 // ===== КОНТЕКСТ ДЛЯ ВЫБРАННОГО АССИСТЕНТА =====
 
 interface SelectedAssistantContextType {
@@ -62,7 +64,7 @@ export default function UploadTextForm() {
         return;
       }
 
-      const res = await fetch(`http://localhost:4000/assistants/${selectedAssistantId}/upload`, {
+      const res = await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}/upload`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -80,7 +82,7 @@ export default function UploadTextForm() {
         setText("");
         setTitle("");
 
-        await fetch(`http://localhost:4000/assistants/${selectedAssistantId}`, {
+        await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}`, {
           method: "PATCH",
           headers: { 
             "Content-Type": "application/json",
@@ -169,7 +171,7 @@ export function AssistantsDropdown() {
       return;
     }
 
-    fetch(`http://localhost:4000/assistants`, {
+    fetch(`${API_BASE_URL}/assistants`, {
       headers: {
         "Authorization": `Bearer ${token}`
       }

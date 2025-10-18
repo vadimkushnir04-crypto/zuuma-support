@@ -1,5 +1,4 @@
 // frontend/components/FileManager.tsx
-// ПОЛНОСТЬЮ ЗАМЕНИТЕ содержимое файла на этот код:
 
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, Eye, FileText, Image, Download } from 'lucide-react';
@@ -22,6 +21,8 @@ interface FileManagerProps {
   onClose: () => void;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 export default function FileManager({ assistantId, onClose }: FileManagerProps) {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +37,7 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `http://localhost:4000/assistants/${assistantId}/files`,
+        `${API_BASE_URL}/assistants/${assistantId}/files`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -46,17 +47,27 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
 
       if (response.ok) {
         const data = await response.json();
-        // ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Заменяем порт 3000 на 4000 в URL файлов
+        // ✅ Исправляем URL файлов на правильные
         const fixedFiles = (data.files || []).map((file: FileItem) => {
           let fileUrl = file.fileUrl || '';
           
-          // Заменяем localhost:3000 на localhost:4000
-          fileUrl = fileUrl.replace('http://localhost:3000', 'http://localhost:4000');
-          fileUrl = fileUrl.replace('https://localhost:3000', 'http://localhost:4000');
+          // Если URL уже полный (начинается с http), оставляем как есть
+          if (fileUrl.startsWith('http')) {
+            return {
+              ...file,
+              fileUrl
+            };
+          }
           
-          // Если URL относительный, добавляем полный путь
+          // Если URL относительный, добавляем base URL
           if (fileUrl.startsWith('/api/files')) {
-            fileUrl = `http://localhost:4000${fileUrl}`;
+            fileUrl = `${API_BASE_URL}${fileUrl.replace('/api', '')}`;
+          } else if (fileUrl.startsWith('/files')) {
+            fileUrl = `${API_BASE_URL}${fileUrl}`;
+          } else if (!fileUrl.startsWith('/')) {
+            fileUrl = `${API_BASE_URL}/${fileUrl}`;
+          } else {
+            fileUrl = `${API_BASE_URL}${fileUrl}`;
           }
           
           console.log('📎 Fixed file URL:', fileUrl);
@@ -83,7 +94,7 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(
-        `http://localhost:4000/assistants/${assistantId}/files/${fileId}`,
+        `${API_BASE_URL}/assistants/${assistantId}/files/${fileId}`,
         {
           method: 'DELETE',
           headers: {

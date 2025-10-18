@@ -15,6 +15,8 @@ import {
   Zap  
 } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+
 /**
  * Типы данных
  */
@@ -108,13 +110,13 @@ export default function AssistantsPage() {
       const token = localStorage.getItem('auth_token');
       
       const [assistantsResponse, statsResponse] = await Promise.all([
-        fetch(`http://localhost:4000/assistants`, {
+        fetch(`${API_BASE_URL}/assistants`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         }),
         // ✅ ИЗМЕНЕНО: убрали companyId
-        fetch(`http://localhost:4000/assistants/stats`, {
+        fetch(`${API_BASE_URL}/assistants/stats`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -143,7 +145,7 @@ export default function AssistantsPage() {
     try {
       const functionsPromises = assistantsList.map(async (assistant) => {
         try {
-          const response = await fetch(`http://localhost:4000/assistants/${assistant.id}/functions`);
+          const response = await fetch(`${API_BASE_URL}/assistants/${assistant.id}/functions`);
           const data = await response.json();
           return {
             assistantId: assistant.id,
@@ -184,7 +186,7 @@ export default function AssistantsPage() {
     try {
       const token = localStorage.getItem('auth_token');
       
-      const response = await fetch(`http://localhost:4000/assistants/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/assistants/${id}`, {
         method: "DELETE",
         headers: {
           'Authorization': `Bearer ${token}`
@@ -208,7 +210,7 @@ const regenerateApiKey = async (id: string) => {
   try {
     const token = localStorage.getItem('auth_token');
     
-    const response = await fetch(`http://localhost:4000/assistants/${id}/regenerate-key`, {
+    const response = await fetch(`${API_BASE_URL}/assistants/${id}/regenerate-key`, {
       method: "POST",
       headers: {
         'Authorization': `Bearer ${token}`
@@ -416,7 +418,7 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
   <script>
     window.chatConfig = {
       apiKey: '${assistant.apiKey}',
-      serverUrl: 'http://localhost:4000',
+      serverUrl: '${API_BASE_URL}',
       theme: '${assistant.settings?.theme || "light"}',
       assistantName: '${assistant.name}',
       customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
@@ -424,18 +426,18 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
       assistantId: '${assistant.id}'
     };
   </script>
-  <script src="http://localhost:3000/chat-widget.js"></script>`,
+  <script src="https://zuuma.ru/chat-widget.js"></script>`,
 
       javascript: `// JavaScript (browser)
 async function initChatWidget() {
   // Загружаем виджет
   const script = document.createElement('script');
-  script.src = 'http://localhost:3000/chat-widget.js';
+  script.src = 'https://zuuma.ru/chat-widget.js';
   
   // Конфигурация
   window.chatConfig = {
       apiKey: '${assistant.apiKey}',
-      serverUrl: 'http://localhost:4000',
+      serverUrl: '${API_BASE_URL}',
       theme: '${assistant.settings?.theme || "light"}',
       assistantName: '${assistant.name}',
       customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
@@ -447,7 +449,7 @@ async function initChatWidget() {
 
 // Вызов API напрямую
 async function sendMessage(message, conversationId = null) {
-  const response = await fetch('http://localhost:4000/chat', {
+  const response = await fetch('${API_BASE_URL}/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -469,7 +471,7 @@ const axios = require('axios');
 class ChatAssistant {
   constructor() {
     this.apiKey = '${assistant.apiKey}';
-    this.baseURL = 'http://localhost:4000';
+    this.baseURL = '${API_BASE_URL}';
   }
 
   async sendMessage(message, conversationId = null) {
@@ -511,7 +513,7 @@ import json
 class ChatAssistant:
     def __init__(self):
         self.api_key = '${assistant.apiKey}'
-        self.base_url = 'http://localhost:4000'
+        self.base_url = '${API_BASE_URL}'
         self.headers = {
             'Authorization': f'Bearer {self.api_key}',
             'Content-Type': 'application/json'
@@ -548,7 +550,7 @@ print(result)`,
       curl: `# cURL примеры
 
 # Отправить сообщение
-curl -X POST "http://localhost:4000/chat" \\
+curl -X POST "${API_BASE_URL}/chat" \\
   -H "Authorization: Bearer ${assistant.apiKey}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -557,16 +559,16 @@ curl -X POST "http://localhost:4000/chat" \\
   }'
 
 # Получить информацию об ассистенте
-curl -X GET "http://localhost:4000/chat/info" \\
+curl -X GET "${API_BASE_URL}/chat/info" \\
   -H "Authorization: Bearer ${assistant.apiKey}"
 
 # Получить историю разговора
-curl -X GET "http://localhost:4000/chat/history/CONVERSATION_ID" \\
+curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
   -H "Authorization: Bearer ${assistant.apiKey}"`,
 
       json: `{
   "apiKey": "${assistant.apiKey}",
-  "serverUrl": "http://localhost:4000",
+  "serverUrl": "${API_BASE_URL}",
   "assistantConfig": {
     "name": "${assistant.name}",
     "description": "${assistant.description || ''}",
@@ -576,11 +578,11 @@ curl -X GET "http://localhost:4000/chat/history/CONVERSATION_ID" \\
     "primaryColor": "${assistant.settings?.primaryColor || '#667eea'}"
   },
   "endpoints": {
-    "chat": "http://localhost:4000/chat",
-    "info": "http://localhost:4000/chat/info",
-    "history": "http://localhost:4000/chat/history/{conversationId}"
+    "chat": "${API_BASE_URL}/chat",
+    "info": "${API_BASE_URL}/chat/info",
+    "history": "${API_BASE_URL}/chat/history/{conversationId}"
   },
-  "widgetScript": "http://localhost:3000/chat-widget.js"
+  "widgetScript": "https://zuuma.ru/chat-widget.js"
 }`
     };
 
@@ -665,7 +667,7 @@ curl -X GET "http://localhost:4000/chat/history/CONVERSATION_ID" \\
         <div class="info-card">
             <h3>Инструкции:</h3>
             <ol>
-                <li>Убедитесь, что сервер запущен на порту 4000</li>
+                <li>Убедитесь, что сервер запущен</li>
                 <li>Виджет должен загрузиться автоматически</li>
                 <li>Нажмите на кнопку чата в правом нижнем углу</li>
                 <li>Начните диалог с ассистентом</li>
@@ -677,14 +679,14 @@ curl -X GET "http://localhost:4000/chat/history/CONVERSATION_ID" \\
     <script>
       window.chatConfig = {
         apiKey: '${assistant.apiKey}',
-        serverUrl: 'http://localhost:4000',
+        serverUrl: '${API_BASE_URL}',
         theme: '${assistant.settings?.theme || 'light'}',
         assistantName: '${assistant.name}',
         customGreeting: '${assistant.settings?.customGreeting || 'Здравствуйте! Чем могу помочь?'}',
         primaryColor: '${assistant.settings?.primaryColor || '#667eea'}'
       };
     </script>
-    <script src="http://localhost:3000/chat-widget.js"></script>
+    <script src="https://zuuma.ru/chat-widget.js"></script>
 </body>
 </html>`;
   };
@@ -1003,7 +1005,7 @@ const AssistantSettingsModal: React.FC<{
 Отвечай на основе предоставленного контекста.`;
       }
       
-      const response = await fetch(`http://localhost:4000/assistants/${assistant.id}`, {
+      const response = await fetch(`${API_BASE_URL}/assistants/${assistant.id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json",

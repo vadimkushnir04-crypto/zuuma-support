@@ -52,12 +52,14 @@ interface AssistantData {
   success: number;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+
 export default function AnalyticsPage() {
   const { balance, loading, error, mutate } = useTokens();
   const [timeRange, setTimeRange] = useState('30d');
   const [analytics, setAnalytics] = useState<any>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
   
   // Получаем реальные данные из баланса
   const userStats: UserStats = balance ? {
@@ -101,7 +103,7 @@ export default function AnalyticsPage() {
     const fetchAnalytics = async () => {
       try {
         const token = localStorage.getItem('auth_token'); // ← Исправлено
-        const res = await fetch(`${API_URL}/api/tokens/analytics`, {
+        const res = await fetch(`${API_BASE_URL}/api/tokens/analytics`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

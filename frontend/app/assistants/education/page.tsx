@@ -8,6 +8,8 @@ import FileUploadForm from "../../../components/FileUploadForm";
 import Chat from "../../../components/Chat";
 import AuthGuard from '../../../components/AuthGuard';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+
 // ========================
 // Провайдер контекста для выбранного ассистента
 // ========================
@@ -71,7 +73,7 @@ export default function Home() {
       return;
     }
 
-    fetch(`http://localhost:4000/assistants`, {
+    fetch(`${API_BASE_URL}/assistants`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
