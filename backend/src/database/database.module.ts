@@ -42,7 +42,7 @@ import { Payment } from '../entities/payment.entity';
         Subscription,
         Payment,
       ],
-      synchronize: false,
+      synchronize: true,
       logging: process.env.NODE_ENV === 'development',
     }),
   ],
