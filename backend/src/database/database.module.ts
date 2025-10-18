@@ -21,11 +21,11 @@ import { Payment } from '../entities/payment.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: String(process.env.DB_PASSWORD || 'password'),
-      database: process.env.DB_NAME || 'assistants_db',
+      host: process.env.DATABASE_HOST || 'postgres', // ← ИЗМЕНЕНО
+      port: Number(process.env.DATABASE_PORT) || 5432,
+      username: process.env.DATABASE_USER || 'postgres',
+      password: String(process.env.DATABASE_PASSWORD || 'password'),
+      database: process.env.DATABASE_NAME || 'assistants_db',
       entities: [
         Assistant,
         GlobalFunction,
@@ -42,7 +42,7 @@ import { Payment } from '../entities/payment.entity';
         Subscription,
         Payment,
       ],
-      synchronize: false, // ⚠️ Всегда false в продакшене!
+      synchronize: false,
       logging: process.env.NODE_ENV === 'development',
     }),
   ],
