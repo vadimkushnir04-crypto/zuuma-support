@@ -8,7 +8,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const isProd = process.env.NODE_ENV === 'production';
-  const port = process.env.PORT || 4000;
+  const port = process.env.PORT || 8000;
 
   // 🔥 Включаем CORS с поддержкой виджета и локальных файлов
   app.enableCors({
