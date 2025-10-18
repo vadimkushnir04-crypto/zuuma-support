@@ -17,7 +17,7 @@ export interface LLMResponse {
   model?: string;
 }
 
-export type LLMProvider = 'yandexgpt' | 'openrouter';
+export type LLMProvider = 'yandexgpt';
 
 @Injectable()
 export class LLMService {
@@ -28,24 +28,15 @@ export class LLMService {
   private yandexFolderId: string;
   private yandexUrl = 'https://llm.api.cloud.yandex.net/foundationModels/v1';
   
-  // === OpenRouter (запасной вариант) ===
-  private openrouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
-  private openrouterKey: string;
-  private openrouterModel = 'qwen/qwen3-coder:free';
-  
 
   constructor(private configService: ConfigService) {
     // YandexGPT (основной)
     this.yandexApiKey = this.configService.get<string>('YANDEX_API_KEY') || '';
     this.yandexFolderId = this.configService.get<string>('YANDEX_FOLDER_ID') || '';
     
-    // OpenRouter (запасной)
-    this.openrouterKey = this.configService.get<string>('OPENROUTER_API_KEY') || '';
-    
-    
     this.logger.log('LLM Service initialized');
     this.logger.log(`YandexGPT: ${this.yandexApiKey ? '✅' : '❌'}`);
-    this.logger.log(`OpenRouter: ${this.openrouterKey ? '✅' : '❌'}`);
+
   }
 
   /**
@@ -68,19 +59,11 @@ export class LLMService {
       switch (provider) {
         case 'yandexgpt':
           return await this.chatYandexGPT(messages, options);
-        case 'openrouter':
-          return await this.chatOpenRouter(messages, options);
         default:
           throw new Error(`Unknown provider: ${provider}`);
       }
     } catch (error) {
       this.logger.error(`Chat error with ${provider}:`, error);
-      
-      // Fallback на другой провайдер
-      if (provider === 'yandexgpt' && this.openrouterKey) {
-        this.logger.warn('Falling back to OpenRouter');
-        return await this.chatOpenRouter(messages, options);
-      }
       
       throw error;
     }
@@ -228,61 +211,12 @@ export class LLMService {
     };
   }
 
-  /**
-   * OpenRouter Chat (запасной вариант)
-   */
-  private async chatOpenRouter(
-    messages: ChatMessage[],
-    options: {
-      temperature?: number;
-      maxTokens?: number;
-      model?: string;
-    } = {}
-  ): Promise<LLMResponse> {
-    const model = options.model || this.openrouterModel;
-
-    const body = {
-      model,
-      messages: messages.map(m => ({ role: m.role, content: m.text })),
-      temperature: options.temperature || 0.7,
-      max_tokens: options.maxTokens || 2000,
-    };
-
-    const response = await fetch(this.openrouterUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.openrouterKey}`,
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenRouter error: ${error}`);
-    }
-
-    const data = await response.json();
-    const usage = data.usage;
-
-    return {
-      content: data.choices?.[0]?.message?.content || '',
-      tokensUsed: usage ? {
-        prompt: usage.prompt_tokens || 0,
-        completion: usage.completion_tokens || 0,
-        total: usage.total_tokens || 0,
-      } : undefined,
-      model,
-    };
-  }
-
 
   /**
    * Определить провайдер по умолчанию
    */
   private getDefaultProvider(): LLMProvider {
     if (this.yandexApiKey) return 'yandexgpt';
-    if (this.openrouterKey) return 'openrouter';
     throw new Error('No LLM provider configured');
   }
 
@@ -378,11 +312,9 @@ export class LLMService {
    */
   async healthCheck(): Promise<{
     yandexgpt: boolean;
-    openrouter: boolean;
   }> {
     return {
       yandexgpt: !!this.yandexApiKey,
-      openrouter: !!this.openrouterKey,
     };
   }
 }
