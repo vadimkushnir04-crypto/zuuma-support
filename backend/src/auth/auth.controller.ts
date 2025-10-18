@@ -33,7 +33,7 @@ export class AuthController {
     const { token, user } = req.user;
     
     // Редирект на фронтенд с токеном
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL;
     res.redirect(
       `${frontendUrl}?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`
     );

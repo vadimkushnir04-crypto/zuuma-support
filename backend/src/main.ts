@@ -6,6 +6,7 @@ import { ErrorFormatterInterceptor } from './common/error-formatter.interceptor'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.setGlobalPrefix('api');
 
   const isProd = process.env.NODE_ENV === 'production';
   const port = process.env.PORT || 8000;
