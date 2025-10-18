@@ -21,11 +21,11 @@ import { Payment } from '../entities/payment.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DATABASE_HOST || 'postgres', // ← ИЗМЕНЕНО
-      port: Number(process.env.DATABASE_PORT) || 5432,
-      username: process.env.DATABASE_USER || 'postgres',
-      password: String(process.env.DATABASE_PASSWORD || 'password'),
-      database: process.env.DATABASE_NAME || 'assistants_db',
+      host: process.env.DATABASE_HOST,
+      port: Number(process.env.DATABASE_PORT),
+      username: process.env.DATABASE_USER,
+      password: String(process.env.DATABASE_PASSWORD),
+      database: process.env.DATABASE_NAME,
       entities: [
         Assistant,
         GlobalFunction,

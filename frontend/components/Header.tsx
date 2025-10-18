@@ -23,7 +23,7 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://158.160.198.62:4000";
+  const API_BASE_URL = "https://zuuma.ru/api";
 
   useEffect(() => {
     setMounted(true);
