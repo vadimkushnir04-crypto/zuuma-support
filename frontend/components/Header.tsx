@@ -122,11 +122,6 @@ export default function Header() {
           <span className="font-semibold text-lg tracking-tight">zuuma</span>
         </Link>
 
-        {mounted && (
-          <div className="header-nav">
-            <span className="current-section">AI Assistant Platform</span>
-          </div>
-        )}
       </div>
 
       <div className="header-right">

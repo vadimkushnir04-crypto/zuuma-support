@@ -190,7 +190,7 @@ export default function Chat() {
   // ✅ ИСПРАВЛЕННОЕ WebSocket подключение
   // components/Chat.tsx - WebSocket секция (замените useEffect с socket)
 
-  useEffect(() => {
+ useEffect(() => {
   if (!selectedAssistantId) return;
 
   console.log('🔌 Initializing WebSocket connection...');
@@ -261,12 +261,13 @@ export default function Chat() {
     setIsLoading(false);
   });
 
+  // ✅ Cleanup функция - ПРАВИЛЬНО вложена
   return () => {
     console.log('🔌 Disconnecting WebSocket...');
     socket.disconnect();
     socketRef.current = null;
   };
-}, [selectedAssistantId, userIdentifier]); // ❌ Убрали chatSessionId из зависимостей!
+}, [selectedAssistantId, userIdentifier]); // ❌ Убрали chatSessionId!
 
 // ✅ НОВЫЙ useEffect - следим за chatSessionId отдельно
 useEffect(() => {
@@ -274,7 +275,7 @@ useEffect(() => {
     socketRef.current.emit('join', { sessionId: chatSessionId });
     console.log('📌 Joined session room:', chatSessionId);
     
-    // Также обновляем joinAssistant с новым sessionId
+    // ✅ Также обновляем joinAssistant с новым sessionId
     socketRef.current.emit('joinAssistant', {
       assistantId: selectedAssistantId,
       userIdentifier: userIdentifier,
