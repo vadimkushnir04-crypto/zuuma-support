@@ -191,61 +191,97 @@ export default function Chat() {
   // components/Chat.tsx - WebSocket секция (замените useEffect с socket)
 
   useEffect(() => {
-    if (!selectedAssistantId) return;
+  if (!selectedAssistantId) return;
 
-  const socket = io('https://zuuma.ru', {  // ✅ Убрали /api
+  console.log('🔌 Initializing WebSocket connection...');
+
+  const socket = io('https://zuuma.ru', {
     path: '/socket.io',
     transports: ['websocket', 'polling'],
     auth: { token: localStorage.getItem('auth_token') },
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
+    timeout: 10000,
   });
 
-    socketRef.current = socket;
+  socketRef.current = socket;
 
-    socket.on('connect', () => {
-      console.log('✅ WebSocket connected, socket ID:', socket.id);
-      socket.emit('joinAssistant', { 
-        assistantId: selectedAssistantId,
-        userIdentifier: userIdentifier,
-        sessionId: chatSessionId // Убедитесь, что chatSessionId доступен
-      });
+  socket.on('connect', () => {
+    console.log('✅ WebSocket connected, socket ID:', socket.id);
+    
+    // ✅ СРАЗУ присоединяемся к комнате ассистента
+    socket.emit('joinAssistant', { 
+      assistantId: selectedAssistantId,
+      userIdentifier: userIdentifier,
+      sessionId: chatSessionId, // Может быть null на первом подключении
     });
+    
+    // ✅ Если есть chatSessionId - присоединяемся к комнате сессии
+    if (chatSessionId) {
+      socket.emit('join', { sessionId: chatSessionId });
+      console.log('📌 Joined session room:', chatSessionId);
+    }
+  });
 
-    socket.on('connect_error', (error) => {
-      console.error('❌ WebSocket connect error:', error.message);
-    });
+  socket.on('connect_error', (error) => {
+    console.error('❌ WebSocket connect error:', error.message);
+  });
 
-    socket.on('assistant:message', (payload) => {
-      console.log('📨 Received assistant message:', payload);
-      const newMessage: Message = {
-        id: payload.id || `ws-${Date.now()}`,
-        text: payload.content || 'No content',
-        sender: payload.senderType === 'user' ? 'user' : 'assistant',
-        timestamp: new Date(payload.createdAt || Date.now()),
-        sources: payload.metadata?.sources || payload.sources,
-        files: payload.files || [],
-      };
-      addMessageIfNotExists(newMessage);
-      setIsLoading(false);
-    });
-
-    socket.on('message', (payload) => {
-      console.log('💬 Received message:', payload);
-      // Обработка, если нужно
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket disconnected:', reason);
-      setIsLoading(false); // Сброс при разрыве
-    });
-
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
+  socket.on('assistant:message', (payload) => {
+    console.log('📨 Received assistant message:', payload);
+    const newMessage: Message = {
+      id: payload.id || `ws-${Date.now()}`,
+      text: payload.content || 'No content',
+      sender: payload.senderType === 'user' ? 'user' : 'assistant',
+      timestamp: new Date(payload.createdAt || Date.now()),
+      sources: payload.metadata?.sources || payload.sources,
+      files: payload.files || [],
     };
-  }, [selectedAssistantId, userIdentifier, chatSessionId]); // Зависимость от chatSessionId
+    addMessageIfNotExists(newMessage);
+    setIsLoading(false);
+  });
+
+  socket.on('message', (payload) => {
+    console.log('💬 Received message:', payload);
+    const newMessage: Message = {
+      id: payload.id || `msg-${Date.now()}`,
+      text: payload.content || payload.text || 'No content',
+      sender: payload.senderType === 'user' ? 'user' : 'assistant',
+      timestamp: new Date(payload.createdAt || Date.now()),
+      sources: payload.metadata?.sources || payload.sources,
+      files: payload.files || [],
+    };
+    addMessageIfNotExists(newMessage);
+    setIsLoading(false);
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('❌ WebSocket disconnected:', reason);
+    setIsLoading(false);
+  });
+
+  return () => {
+    console.log('🔌 Disconnecting WebSocket...');
+    socket.disconnect();
+    socketRef.current = null;
+  };
+}, [selectedAssistantId, userIdentifier]); // ❌ Убрали chatSessionId из зависимостей!
+
+// ✅ НОВЫЙ useEffect - следим за chatSessionId отдельно
+useEffect(() => {
+  if (chatSessionId && socketRef.current?.connected) {
+    socketRef.current.emit('join', { sessionId: chatSessionId });
+    console.log('📌 Joined session room:', chatSessionId);
+    
+    // Также обновляем joinAssistant с новым sessionId
+    socketRef.current.emit('joinAssistant', {
+      assistantId: selectedAssistantId,
+      userIdentifier: userIdentifier,
+      sessionId: chatSessionId,
+    });
+  }
+}, [chatSessionId]); // ✅ Реагируем на изменение chatSessionId
 
   if (!selectedAssistantId) {
     return (
