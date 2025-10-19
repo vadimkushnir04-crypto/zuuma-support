@@ -5,21 +5,28 @@ import { ValidationPipe } from '@nestjs/common';
 import { ErrorFormatterInterceptor } from './common/error-formatter.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    cors: true, // Включаем базовый CORS для NestJS
+  });
+
   app.setGlobalPrefix('api');
 
   const isProd = process.env.NODE_ENV === 'production';
   const port = process.env.PORT || 8000;
 
-  // 🔥 Включаем CORS с поддержкой виджета и локальных файлов
+  // ✅ CORS с правильными доменами
   app.enableCors({
     origin: isProd 
-      ? ['https://ваш-домен.com'] 
+      ? [
+          'https://zuuma.ru',
+          'https://www.zuuma.ru',
+        ]
       : [
           'http://localhost:3000',
           'http://localhost:3001',
           'http://127.0.0.1:3000',
-          'null', // 🔥 Для локальных HTML файлов (виджет)
+          'http://127.0.0.1:3001',
+          'null', // Для локальных HTML файлов (виджет)
         ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -36,7 +43,7 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(new ErrorFormatterInterceptor());
 
-  // ✅ Лог всех запросов
+  // ✅ Логирование запросов
   app.use((req, res, next) => {
     console.log(`\n📥 ${req.method} ${req.url}`);
     console.log('Headers:', {
@@ -48,15 +55,21 @@ async function bootstrap() {
 
   // ✅ Health Check endpoint
   app.getHttpAdapter().get('/health', (req, res) => {
-    res.json({ status: 'OK', message: 'NestJS Chat API is running' });
+    res.json({ 
+      status: 'OK', 
+      message: 'NestJS Chat API is running',
+      timestamp: new Date().toISOString(),
+    });
   });
 
   // ✅ Запускаем сервер
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0'); // Слушаем на всех интерфейсах
 
   console.log('\n🚀 ===================================');
-  console.log(`✅ HTTP + WS server started on http://localhost:${port}`);
-  console.log(`🌍 CORS режим: ${isProd ? 'PRODUCTION' : 'DEV (localhost:3000 + виджет)'}`);
+  console.log(`✅ Backend running on http://0.0.0.0:${port}`);
+  console.log(`🔗 API available at http://localhost:${port}/api`);
+  console.log(`🌍 CORS: ${isProd ? 'PRODUCTION (zuuma.ru)' : 'DEV (localhost)'}`);
+  console.log(`🔌 WebSocket endpoint: ws://localhost:${port}/socket.io`);
   console.log('🚀 ===================================\n');
 }
 

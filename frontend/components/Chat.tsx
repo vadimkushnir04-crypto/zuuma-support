@@ -193,13 +193,14 @@ export default function Chat() {
   useEffect(() => {
     if (!selectedAssistantId) return;
 
-    const socket = io(`${API_BASE_URL}`, {
-      transports: ['websocket', 'polling'],
-      auth: { token: localStorage.getItem('auth_token') },
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-    });
+  const socket = io('https://zuuma.ru', {  // ✅ Убрали /api
+    path: '/socket.io',
+    transports: ['websocket', 'polling'],
+    auth: { token: localStorage.getItem('auth_token') },
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+  });
 
     socketRef.current = socket;
 
