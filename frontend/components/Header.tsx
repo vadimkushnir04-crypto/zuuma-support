@@ -105,7 +105,7 @@ export default function Header() {
           {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
         <a href="/" className="logo">
-          Vecta <Brain size={25} />
+          zuuma
         </a>
         {mounted && (
           <div className="header-nav">
