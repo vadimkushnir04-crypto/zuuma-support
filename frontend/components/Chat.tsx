@@ -31,7 +31,6 @@ export default function Chat() {
   const [userIdentifier, setUserIdentifier] = useState<string>(`frontend:${Date.now()}`);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { selectedAssistantId } = useContext(SelectedAssistantContext);
@@ -44,6 +43,7 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
+  // Инициализация при выборе ассистента
   useEffect(() => {
     if (selectedAssistantId) {
       if (socketRef.current) {
@@ -51,7 +51,6 @@ export default function Chat() {
         socketRef.current = null;
       }
       
-      // ✅ ИСПРАВЛЕНО: Сохраняем userIdentifier в localStorage
       let identifier = localStorage.getItem(`userIdentifier_${selectedAssistantId}`);
       if (!identifier) {
         identifier = `frontend:${Date.now()}`;
@@ -75,9 +74,7 @@ export default function Chat() {
 
   const isDuplicate = (newMessage: Message): boolean => {
     return messages.some(msg => {
-      if (msg.id === newMessage.id) {
-        return true;
-      }
+      if (msg.id === newMessage.id) return true;
       
       const timeDiff = Math.abs(msg.timestamp.getTime() - newMessage.timestamp.getTime());
       const sameContent = msg.text.trim() === newMessage.text.trim();
@@ -113,15 +110,12 @@ export default function Chat() {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  const sendMessage = async () => {
+const sendMessage = async () => {
     if (!input.trim() || isLoading || !selectedAssistantId) return;
 
     const messageText = input;
     setInput("");
     setIsLoading(true);
-
-    // ✅ НЕ добавляем сообщение локально - оно придёт через WebSocket
-    // Это избегает дублирования
 
     try {
       const token = localStorage.getItem('auth_token');
@@ -147,12 +141,10 @@ export default function Chat() {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // ✅ ВАЖНО: Сохраняем chatSessionId
         if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
           setChatSessionId(data.chatSessionId);
-          if (socketRef.current) {
-            socketRef.current.emit('join', { sessionId: data.chatSessionId });
-            console.log('🔌 Joined session room:', data.chatSessionId);
-          }
         }
 
         if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
@@ -187,104 +179,102 @@ export default function Chat() {
     }
   };
 
-  // ✅ ИСПРАВЛЕННОЕ WebSocket подключение
-  // components/Chat.tsx - WebSocket секция (замените useEffect с socket)
+  // ✅ WebSocket подключение - ПЕРВЫЙ useEffect
+  useEffect(() => {
+    if (!selectedAssistantId) return;
 
- useEffect(() => {
-  if (!selectedAssistantId) return;
+    console.log('🔌 Initializing WebSocket connection...');
 
-  console.log('🔌 Initializing WebSocket connection...');
-
-  const socket = io('https://zuuma.ru', {
-    path: '/socket.io',
-    transports: ['websocket', 'polling'],
-    auth: { token: localStorage.getItem('auth_token') },
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    timeout: 10000,
-  });
-
-  socketRef.current = socket;
-
-  socket.on('connect', () => {
-    console.log('✅ WebSocket connected, socket ID:', socket.id);
-    
-    // ✅ СРАЗУ присоединяемся к комнате ассистента
-    socket.emit('joinAssistant', { 
-      assistantId: selectedAssistantId,
-      userIdentifier: userIdentifier,
-      sessionId: chatSessionId, // Может быть null на первом подключении
+    const socket = io('https://zuuma.ru', {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      auth: { token: localStorage.getItem('auth_token') },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
     });
-    
-    // ✅ Если есть chatSessionId - присоединяемся к комнате сессии
-    if (chatSessionId) {
-      socket.emit('join', { sessionId: chatSessionId });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('✅ WebSocket connected, socket ID:', socket.id);
+      
+      // Присоединяемся к комнате ассистента
+      socket.emit('joinAssistant', { 
+        assistantId: selectedAssistantId,
+        userIdentifier: userIdentifier,
+        sessionId: chatSessionId,
+      });
+      
+      // Если уже есть chatSessionId - присоединяемся к сессии
+      if (chatSessionId) {
+        socket.emit('join', { sessionId: chatSessionId });
+        console.log('📌 Joined session room:', chatSessionId);
+      }
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connect error:', error.message);
+    });
+
+    socket.on('assistant:message', (payload) => {
+      console.log('📨 Received assistant message:', payload);
+      const newMessage: Message = {
+        id: payload.id || `ws-${Date.now()}`,
+        text: payload.content || 'No content',
+        sender: payload.senderType === 'user' ? 'user' : 'assistant',
+        timestamp: new Date(payload.createdAt || Date.now()),
+        sources: payload.metadata?.sources || payload.sources,
+        files: payload.files || [],
+      };
+      addMessageIfNotExists(newMessage);
+      setIsLoading(false);
+    });
+
+    socket.on('message', (payload) => {
+      console.log('💬 Received message:', payload);
+      const newMessage: Message = {
+        id: payload.id || `msg-${Date.now()}`,
+        text: payload.content || payload.text || 'No content',
+        sender: payload.senderType === 'user' ? 'user' : 'assistant',
+        timestamp: new Date(payload.createdAt || Date.now()),
+        sources: payload.metadata?.sources || payload.sources,
+        files: payload.files || [],
+      };
+      addMessageIfNotExists(newMessage);
+      setIsLoading(false);
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.log('❌ WebSocket disconnected:', reason);
+      setIsLoading(false);
+    });
+
+    return () => {
+      console.log('🔌 Disconnecting WebSocket...');
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [selectedAssistantId, userIdentifier]);
+
+  // ✅ Отслеживание chatSessionId - ВТОРОЙ useEffect
+  useEffect(() => {
+    if (chatSessionId && socketRef.current?.connected) {
+      console.log('🔄 ChatSessionId changed, joining room:', chatSessionId);
+      
+      socketRef.current.emit('join', { sessionId: chatSessionId });
+      socketRef.current.emit('joinAssistant', {
+        assistantId: selectedAssistantId,
+        userIdentifier: userIdentifier,
+        sessionId: chatSessionId,
+      });
+      
       console.log('📌 Joined session room:', chatSessionId);
     }
-  });
+  }, [chatSessionId, selectedAssistantId, userIdentifier]);
 
-  socket.on('connect_error', (error) => {
-    console.error('❌ WebSocket connect error:', error.message);
-  });
-
-  socket.on('assistant:message', (payload) => {
-    console.log('📨 Received assistant message:', payload);
-    const newMessage: Message = {
-      id: payload.id || `ws-${Date.now()}`,
-      text: payload.content || 'No content',
-      sender: payload.senderType === 'user' ? 'user' : 'assistant',
-      timestamp: new Date(payload.createdAt || Date.now()),
-      sources: payload.metadata?.sources || payload.sources,
-      files: payload.files || [],
-    };
-    addMessageIfNotExists(newMessage);
-    setIsLoading(false);
-  });
-
-  socket.on('message', (payload) => {
-    console.log('💬 Received message:', payload);
-    const newMessage: Message = {
-      id: payload.id || `msg-${Date.now()}`,
-      text: payload.content || payload.text || 'No content',
-      sender: payload.senderType === 'user' ? 'user' : 'assistant',
-      timestamp: new Date(payload.createdAt || Date.now()),
-      sources: payload.metadata?.sources || payload.sources,
-      files: payload.files || [],
-    };
-    addMessageIfNotExists(newMessage);
-    setIsLoading(false);
-  });
-
-  socket.on('disconnect', (reason) => {
-    console.log('❌ WebSocket disconnected:', reason);
-    setIsLoading(false);
-  });
-
-  // ✅ Cleanup функция - ПРАВИЛЬНО вложена
-  return () => {
-    console.log('🔌 Disconnecting WebSocket...');
-    socket.disconnect();
-    socketRef.current = null;
-  };
-}, [selectedAssistantId, userIdentifier]); // ❌ Убрали chatSessionId!
-
-// ✅ НОВЫЙ useEffect - следим за chatSessionId отдельно
-useEffect(() => {
-  if (chatSessionId && socketRef.current?.connected) {
-    socketRef.current.emit('join', { sessionId: chatSessionId });
-    console.log('📌 Joined session room:', chatSessionId);
-    
-    // ✅ Также обновляем joinAssistant с новым sessionId
-    socketRef.current.emit('joinAssistant', {
-      assistantId: selectedAssistantId,
-      userIdentifier: userIdentifier,
-      sessionId: chatSessionId,
-    });
-  }
-}, [chatSessionId]); // ✅ Реагируем на изменение chatSessionId
-
-  if (!selectedAssistantId) {
+if (!selectedAssistantId) {
     return (
       <div className="chat-wrapper">
         <div className="chat-messages">
@@ -322,7 +312,6 @@ useEffect(() => {
                 <div className="chat-bubble">
                   {message.text}
                   
-                  {/* Отображение файлов */}
                   {message.files && message.files.length > 0 && (
                     <div className="message-files">
                       {message.files.map((file, idx) => (
@@ -405,18 +394,13 @@ useEffect(() => {
             setInput(e.target.value);
             if (textareaRef.current) {
               const textarea = textareaRef.current;
-              const lineHeight = 24; // высота одной строки в px (можно подогнать под CSS)
+              const lineHeight = 24;
               const maxRows = 5;
               const maxHeight = lineHeight * maxRows;
 
-              // Сброс высоты, чтобы scrollHeight пересчитался
               textarea.style.height = 'auto';
-
-              // Выставляем новую высоту, но не больше maxHeight
               const newHeight = Math.min(textarea.scrollHeight, maxHeight);
               textarea.style.height = `${newHeight}px`;
-
-              // Включаем скролл, если превысили maxHeight
               textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
             }
           }}
@@ -426,8 +410,8 @@ useEffect(() => {
           rows={1}
           style={{
             resize: 'none',
-            overflowY: 'hidden', // по умолчанию скрыт, включится динамически
-            maxHeight: `${24 * 5}px`, // ограничение по стилю для безопасности
+            overflowY: 'hidden',
+            maxHeight: `${24 * 5}px`,
           }}
         />
         <button onClick={sendMessage} disabled={!input.trim() || isLoading}>
