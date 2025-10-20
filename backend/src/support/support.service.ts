@@ -195,7 +195,6 @@ export class SupportService {
   // ============================================
   // 💬 MESSAGES
   // ============================================
-// В support.service.ts замените метод saveMessage:
 
   async saveMessage(
     chatSessionId: string,
@@ -215,7 +214,6 @@ export class SupportService {
       throw new NotFoundException(`ChatSession ${chatSessionId} not found`);
     }
 
-    // ✅ Добавляем files в metadata
     const messageMetadata = {
       ...metadata,
       files: files || [],
@@ -250,17 +248,20 @@ export class SupportService {
       userIdentifier,
     };
 
-    // ✅ WebSocket отправка с проверкой готовности Gateway
+    // ✅ ИСПРАВЛЕНО: WebSocket отправка ТОЛЬКО для AI и manager
     if (!this.gateway?.server) {
       console.warn('⚠️ Gateway not ready, delaying emit');
       setTimeout(() => this.saveMessage(chatSessionId, senderType, content, senderId, metadata, userIdentifier, files), 500);
-    } else {
+    } else if (senderType !== 'user') {  // ✅ ДОБАВЛЕНА ПРОВЕРКА
       try {
-        // Отправляем в комнату сессии (для support страницы и Chat.tsx)
+        // Отправляем только сообщения от AI и manager, НЕ от пользователя
         this.gateway.emitMessageToSession(chatSessionId, payload);
+        console.log(`📤 Emitted ${senderType} message to session ${chatSessionId}`);
       } catch (err) {
-        console.error('WS emit error:', err);
+        console.error('❌ WS emit error:', err);
       }
+    } else {
+      console.log(`🚫 Skipping WebSocket emit for user message (shown locally)`);
     }
 
     // ✅ Отправка в Telegram ТОЛЬКО для сообщений от AI и manager
@@ -276,10 +277,8 @@ export class SupportService {
 
       if (telegramService) {
         try {
-          // 1️⃣ Отправляем текст
           await telegramService.sendTelegramMessageForSession(session, content);
           
-          // 2️⃣ Отправляем файлы
           if (files && files.length > 0) {
             console.log(`📎 Sending ${files.length} file(s) to Telegram`);
             
