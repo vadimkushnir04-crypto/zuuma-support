@@ -144,7 +144,7 @@ const sendMessage = async () => {
       currentSessionId = `temp-${Date.now()}`;
       setChatSessionId(currentSessionId);
       
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));  // ✅ УВЕЛИЧЕНО до 200мс
       
       if (socketRef.current?.connected) {
         socketRef.current.emit('join', { sessionId: currentSessionId });
@@ -155,7 +155,7 @@ const sendMessage = async () => {
         });
         console.log('📌 Pre-joined to temp room:', currentSessionId);
         
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 500));  // ✅ УВЕЛИЧЕНО до 500мс
       }
     }
 
