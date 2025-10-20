@@ -4,12 +4,6 @@ import { useEffect, useState } from "react";
 import { User, Save, LogOut, Shield, Coins, Bot, Calendar, Crown, Check, Loader, CreditCard, AlertCircle } from "lucide-react";
 import { usePlans } from "../../hooks/usePlans";
 import { useTokens } from "../../hooks/useTokens";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Профиль",
-  description: "Управление профилем и подпиской ZUUMA",
-};
 
 interface UserProfile {
   id: string;
