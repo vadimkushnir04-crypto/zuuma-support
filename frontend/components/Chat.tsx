@@ -74,18 +74,23 @@ export default function Chat() {
 
   const isDuplicate = (newMessage: Message): boolean => {
     return messages.some(msg => {
+      // Проверка по ID
       if (msg.id === newMessage.id) return true;
       
       const timeDiff = Math.abs(msg.timestamp.getTime() - newMessage.timestamp.getTime());
       const sameContent = msg.text.trim() === newMessage.text.trim();
       const sameSender = msg.sender === newMessage.sender;
       
-      if (sameContent && sameSender && timeDiff < 2000) {
+      // ✅ ИЗМЕНЕНО: Увеличена задержка с 2с до 5с для пользовательских сообщений
+      const timeThreshold = newMessage.sender === 'user' ? 5000 : 2000;
+      
+      if (sameContent && sameSender && timeDiff < timeThreshold) {
         console.log('🚫 Duplicate detected:', {
           existingId: msg.id,
           newId: newMessage.id,
           text: newMessage.text.substring(0, 30),
-          timeDiff: `${timeDiff}ms`
+          timeDiff: `${timeDiff}ms`,
+          sender: newMessage.sender
         });
         return true;
       }
