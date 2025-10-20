@@ -1,9 +1,7 @@
 'use client';
 
-import '../styles/globals.css';
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import I18nProvider from "../components/I18nProvider";
 import { usePathname } from "next/navigation";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
@@ -11,7 +9,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const hideSidebar = pathname === "/";
 
   return (
-    <div>
+    <>
       <Header />
       <div style={{ display: 'flex', paddingTop: '54px' }}>
         {!hideSidebar && <Sidebar />}
@@ -26,6 +24,6 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           {children}
         </main>
       </div>
-    </div>
+    </>
   );
 }

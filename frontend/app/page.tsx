@@ -1,5 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, Database, Zap, MessageCircle, CheckCircle, Smile, Upload, Puzzle, ArrowRight, Sparkles, Users, BarChart3 } from "lucide-react";
+import { Bot, Database, Zap, MessageCircle, CheckCircle, Smile, Upload, Puzzle, ArrowRight } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Главная",
+  description: "AI-ассистенты для вашего бизнеса. Превратите свои документы в интеллектуальных помощников. Бесплатный тариф, интеграция с Telegram.",
+  openGraph: {
+    title: "Zuuma — AI Ассистенты для бизнеса",
+    description: "Создайте AI-ассистента за 5 минут. Обучение на ваших документах.",
+  },
+};
 
 export default function Home() {
   const workflowSteps = [
@@ -61,13 +71,11 @@ export default function Home() {
     }
   ];
 
-
   return (
     <div className="modern-home">
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-content">
-          
           <h1 className="hero-title">
             AI-ассистенты для вашего бизнеса
           </h1>
@@ -86,7 +94,6 @@ export default function Home() {
               Посмотреть документы
             </Link>
           </div>
-
         </div>
       </section>
 
@@ -101,7 +108,6 @@ export default function Home() {
                   <div className={`workflow-icon bg-gradient-to-r ${step.color}`}>
                     <IconComponent className="w-6 h-6 text-white" />
                   </div>
-                  
                 </div>
                 
                 <div className="workflow-content">
@@ -120,7 +126,6 @@ export default function Home() {
         </div>
       </section>
 
-
       {/* CTA Section */}
       <section className="cta-section">
         <div className="cta-content">
@@ -134,7 +139,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { AssistantLimit } from './assistant-limit.entity';
 import { Plan } from './plan.entity';
 import { AuthModule } from '../auth/auth.module';
 import { User } from '../entities/user.entity';
+import { PlansController } from './plans.controller';
 
 @Module({
   imports: [
@@ -20,7 +21,10 @@ import { User } from '../entities/user.entity';
     ]),
     AuthModule
   ],
-  controllers: [TokensController],
+    controllers: [
+    TokensController,
+    PlansController, // ✅ Добавили публичный контроллер
+  ],
   providers: [TokensService],
   exports: [TokensService]
 })

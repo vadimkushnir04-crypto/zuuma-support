@@ -3,7 +3,11 @@ import { TokensService } from './tokens.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
 
-@Controller('api/tokens')
+/**
+ * Контроллер для работы с токенами
+ * Требует авторизации для всех эндпоинтов
+ */
+@Controller('tokens')
 @UseGuards(JwtAuthGuard)
 export class TokensController {
   constructor(
@@ -11,6 +15,10 @@ export class TokensController {
     private authService: AuthService
   ) {}
 
+  /**
+   * Получить баланс токенов текущего пользователя
+   * GET /api/tokens
+   */
   @Get()
   async get(@Req() req: any) {
     const userId = req.user.id;
@@ -18,16 +26,18 @@ export class TokensController {
     return { balance };
   }
 
+  /**
+   * Пополнить токены (используется при оплате)
+   * POST /api/tokens/topup
+   */
   @Post('topup')
   async topUp(@Req() req: any, @Body() body: { amount: number, paymentMeta?: any }) {
-    // ✅ Исправлено: используем topUpTokens вместо topUp
     await this.tokensService.topUpTokens(
       req.user.id, 
       body.amount, 
       body.paymentMeta?.description || 'Ручное пополнение токенов'
     );
     
-    // Возвращаем обновленный баланс
     const balance = await this.tokensService.getBalance(req.user.id);
     
     return { 
@@ -37,28 +47,39 @@ export class TokensController {
     };
   }
 
+  /**
+   * Списать токены (используется при работе ассистента)
+   * POST /api/tokens/consume
+   */
   @Post('consume')
   async consume(@Req() req: any, @Body() body: { amount: number, assistantId?: string, meta?: any }) {
     const r = await this.tokensService.consumeTokens(req.user.id, body.amount, body.assistantId, body.meta);
     return r;
   }
 
+  /**
+   * Получить историю транзакций
+   * GET /api/tokens/transactions
+   */
   @Get('transactions')
   async transactions(@Req() req: any) {
     return this.tokensService.getTransactions(req.user.id);
   }
 
+  /**
+   * Сменить тарифный план (старый метод, оставлен для совместимости)
+   * POST /api/tokens/change-plan
+   */
   @Post('change-plan')
   async changePlan(@Req() req: any, @Body() body: { planSlug: string }) {
     const result = await this.tokensService.upgradePlan(req.user.id, body.planSlug);
     return result;
   }
 
-  @Get('plans')
-  async getPlans() {
-    return this.tokensService.getAllPlans();
-  }
-
+  /**
+   * Аналитика использования токенов за последние 30 дней
+   * GET /api/tokens/analytics
+   */
   @Get('analytics')
   async analytics(@Req() req: any) {
     const from = new Date(Date.now() - 30*24*3600*1000);

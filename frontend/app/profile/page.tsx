@@ -1,5 +1,5 @@
 "use client";
-
+//app/profile/page.tsx
 import { useEffect, useState } from "react";
 import { User, Save, LogOut, Shield, Coins, Bot, Calendar, Crown, Check, Loader, CreditCard, AlertCircle } from "lucide-react";
 import { usePlans } from "../../hooks/usePlans";

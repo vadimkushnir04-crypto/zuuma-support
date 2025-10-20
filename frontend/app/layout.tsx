@@ -4,33 +4,63 @@ import I18nProvider from "../components/I18nProvider";
 import '../styles/globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://zuuma.ru'),
   title: {
-    default: "ZUUMA — AI Ассистенты для бизнеса",
-    template: "%s | ZUUMA",
+    default: "Zuuma — AI Ассистенты для бизнеса",
+    template: "%s | Zuuma",
   },
-  description: "Создавайте умных AI-ассистентов для автоматизации поддержки клиентов. Интеграция с Telegram, обучение на ваших данных.",
-  keywords: ["AI ассистент", "чат-бот", "автоматизация поддержки", "Telegram бот", "YandexGPT"],
-  authors: [{ name: "ZUUMA" }],
-  creator: "ZUUMA",
+  description: "Создавайте умных AI-ассистентов для автоматизации поддержки клиентов. Интеграция с Telegram, обучение на ваших данных. От 0₽/месяц.",
+  keywords: [
+    "AI ассистент", 
+    "чат-бот", 
+    "автоматизация поддержки", 
+    "Telegram бот", 
+    "YandexGPT",
+    "RAG",
+    "векторная база данных",
+    "обучение чат-бота",
+    "бизнес автоматизация"
+  ],
+  authors: [{ name: "Zuuma", url: "https://zuuma.ru" }],
+  creator: "Zuuma",
+  publisher: "Zuuma",
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   openGraph: {
     type: "website",
     locale: "ru_RU",
     url: "https://zuuma.ru",
-    siteName: "zuuma",
-    title: "zuuma — AI Ассистенты для бизнеса",
-    description: "Создавайте умных AI-ассистентов за 5 минут",
+    siteName: "Zuuma",
+    title: "Zuuma — AI Ассистенты для бизнеса",
+    description: "Создавайте умных AI-ассистентов за 5 минут. Обучение на ваших документах, интеграция с Telegram.",
     images: [
       {
-        url: "https://zuuma.ru/og-image.png",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "ZUUMA AI Assistants",
+        alt: "Zuuma AI Assistants Platform",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Zuuma — AI Ассистенты для бизнеса",
+    description: "Создавайте умных AI-ассистентов за 5 минут",
+    images: ["/og-image.png"],
+  },
+  verification: {
+    // Добавишь позже после регистрации в Google Search Console
+    // google: 'your-verification-code',
+    // yandex: 'your-yandex-verification',
   },
 };
 
@@ -39,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ru">
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <link rel="canonical" href="https://zuuma.ru" />
       </head>
       <body
         style={{
