@@ -199,11 +199,14 @@ export default function ProfilePage() {
 
     const now = new Date();
     const refundDeadline = new Date(subscription.refundDeadline);
-    const canRefund = subscription.canRefund && now <= refundDeadline;
+    // ✅ НОВАЯ ПРОВЕРКА: canRefund только если токены НЕ использованы
+    const canRefund = subscription.canRefund && now <= refundDeadline && tokensUsed === 0;
 
     const message = canRefund
       ? 'Вы действительно хотите отменить подписку?\n\nВы сможете запросить возврат средств на следующем шаге.'
-      : 'Вы действительно хотите отменить подписку?\n\nВозврат средств недоступен, но токены останутся до конца периода.';
+      : tokensUsed > 0
+        ? `Вы действительно хотите отменить подписку?\n\nВозврат средств недоступен, так как вы использовали ${tokensUsed.toLocaleString()} токенов.\nТокены останутся активными до конца периода.`
+        : 'Вы действительно хотите отменить подписку?\n\nВозврат средств недоступен, но токены останутся до конца периода.';
 
     if (!confirm(message)) return;
 
@@ -550,11 +553,19 @@ export default function ProfilePage() {
                   <p style={{ margin: '4px 0 0 0', fontSize: 14, opacity: 0.8 }}>
                     Действует до {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
                   </p>
-                  {subscription.canRefund && new Date() <= new Date(subscription.refundDeadline) && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: 14, color: '#4CAF50' }}>
-                      ✅ Возврат доступен до {new Date(subscription.refundDeadline).toLocaleDateString('ru-RU')}
-                    </p>
-                  )}
+                    {subscription.canRefund && new Date() <= new Date(subscription.refundDeadline) && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: 14, color: tokensUsed > 0 ? '#ff6b6b' : '#de8434' }}>
+                        {tokensUsed > 0 ? (
+                          <>
+                            ❌ Возврат недоступен: использовано {tokensUsed.toLocaleString()} токенов
+                          </>
+                        ) : (
+                          <>
+                            ✅ Возврат доступен до {new Date(subscription.refundDeadline).toLocaleDateString('ru-RU')}
+                          </>
+                        )}
+                      </p>
+                    )}
                 </div>
                 <div>
                   <button
@@ -908,7 +919,7 @@ const styles = {
     boxShadow: '0 0 20px rgba(88, 101, 242, 0.3)',
   },
   currentCard: {
-    borderColor: '#4CAF50',
+    borderColor: '#de8434',
     background: 'rgba(76, 175, 80, 0.05)',
   },
   pricingBadge: {
@@ -927,7 +938,7 @@ const styles = {
     alignItems: 'center',
     gap: 6,
     padding: '6px 12px',
-    background: '#4CAF50',
+    background: '#de8434',
     borderRadius: 20,
     fontSize: 12,
     fontWeight: 600,
@@ -999,8 +1010,8 @@ const styles = {
   },
   currentPlanButton: {
     background: 'transparent',
-    borderColor: '#4CAF50',
-    color: '#4CAF50',
+    borderColor: '#de8434',
+    color: '#de8434',
     cursor: 'not-allowed',
     opacity: 0.7,
   },

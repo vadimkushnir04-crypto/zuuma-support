@@ -8,7 +8,7 @@ export default function OfferPage() {
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <FileText size={40} style={{ color: '#4CAF50' }} />
+        <FileText size={40} style={{ color: '#de8434' }} />
         <h1 style={styles.title}>Публичная оферта и реквизиты</h1>
         <p style={styles.subtitle}>
           Информация об услугах, ценах и условиях предоставления
@@ -24,15 +24,16 @@ export default function OfferPage() {
         
         <div style={styles.servicesGrid}>
           <div style={styles.serviceCard}>
-            <div style={styles.planBadge}>Базовый</div>
+            <div style={styles.planBadge}>Бесплатный</div>
             <h3 style={styles.serviceTitle}>Free Plan</h3>
             <div style={styles.servicePrice}>0 ₽<span style={styles.pricePeriod}> / месяц</span></div>
             <ul style={styles.serviceFeatures}>
               <li>✓ 100,000 токенов в месяц</li>
               <li>✓ 1 AI-ассистент</li>
+              <li>✓ Кастомизация интерфейса</li>
+              <li>✓ API доступ</li>
+              <li>✓ Telegram Bot интеграция</li>
               <li>✓ Интеграция в веб-виджет</li>
-              <li>✓ Базовая поддержка</li>
-              <li>✓ Обучение на документах</li>
             </ul>
             <div style={styles.serviceNote}>
               Идеально для тестирования платформы
@@ -40,16 +41,16 @@ export default function OfferPage() {
           </div>
 
           <div style={{...styles.serviceCard, ...styles.popularCard}}>
-            <div style={{...styles.planBadge, ...styles.popularBadge}}>Популярный</div>
+            <div style={{...styles.planBadge, ...styles.popularBadge}}>Базовый</div>
             <h3 style={styles.serviceTitle}>Pro Plan</h3>
             <div style={styles.servicePrice}>1,499 ₽<span style={styles.pricePeriod}> / месяц</span></div>
             <ul style={styles.serviceFeatures}>
               <li>✓ 1,500,000 токенов в месяц</li>
               <li>✓ До 10 AI-ассистентов</li>
-              <li>✓ Telegram Bot интеграция</li>
+              <li>✓ Кастомизация интерфейса</li>
               <li>✓ API доступ</li>
-              <li>✓ Расширенная аналитика</li>
-              <li>✓ Приоритетная поддержка</li>
+              <li>✓ Telegram Bot интеграция</li>
+              <li>✓ Интеграция в веб-виджет</li>
             </ul>
             <div style={styles.serviceNote}>
               Для малого и среднего бизнеса
@@ -63,10 +64,10 @@ export default function OfferPage() {
             <ul style={styles.serviceFeatures}>
               <li>✓ 5,000,000 токенов в месяц</li>
               <li>✓ До 50 AI-ассистентов</li>
-              <li>✓ Поддержка 24/7</li>
               <li>✓ Кастомизация интерфейса</li>
-              <li>✓ Персональный менеджер</li>
-              <li>✓ Расширенная интеграция</li>
+              <li>✓ API доступ</li>
+              <li>✓ Telegram Bot интеграция</li>
+              <li>✓ Интеграция в веб-виджет</li>
             </ul>
             <div style={styles.serviceNote}>
               Для крупного бизнеса и корпораций
@@ -173,7 +174,7 @@ export default function OfferPage() {
         </div>
         <div style={styles.contactsGrid}>
           <div style={styles.contactCard}>
-            <User size={20} style={{ color: '#4CAF50' }} />
+            <User size={20} style={{ color: '#de8434' }} />
             <div>
               <div style={styles.contactLabel}>Исполнитель</div>
               <div style={styles.contactValue}>Кушнир Вадим Олегович</div>
@@ -181,7 +182,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <FileText size={20} style={{ color: '#4CAF50' }} />
+            <FileText size={20} style={{ color: '#de8434' }} />
             <div>
               <div style={styles.contactLabel}>ИНН</div>
               <div style={styles.contactValue}>263516890557</div>
@@ -189,7 +190,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <Mail size={20} style={{ color: '#4CAF50' }} />
+            <Mail size={20} style={{ color: '#de8434' }} />
             <div>
               <div style={styles.contactLabel}>Email для связи</div>
               <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>
@@ -199,7 +200,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <Phone size={20} style={{ color: '#4CAF50' }} />
+            <Phone size={20} style={{ color: '#de8434' }} />
             <div>
               <div style={styles.contactLabel}>Телефон</div>
               <a href="tel:+79633873434" style={styles.contactLink}>
@@ -210,7 +211,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <MapPin size={20} style={{ color: '#4CAF50' }} />
+            <MapPin size={20} style={{ color: '#de8434' }} />
             <div>
               <div style={styles.contactLabel}>Официальный сайт</div>
               <a href="https://zuuma.ru" style={styles.contactLink} target="_blank" rel="noopener noreferrer">
@@ -220,7 +221,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <CreditCard size={20} style={{ color: '#4CAF50' }} />
+            <CreditCard size={20} style={{ color: '#de8434' }} />
             <div>
               <div style={styles.contactLabel}>Платёжная система</div>
               <div style={styles.contactValue}>ЮKassa (ООО «ЮМани»)</div>
@@ -310,7 +311,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '12px',
     marginBottom: '24px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   sectionTitle: {
     fontSize: '24px',
@@ -332,7 +333,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     transition: 'transform 0.2s, border-color 0.2s',
   },
   popularCard: {
-    borderColor: '#4CAF50',
+    borderColor: '#de8434',
     boxShadow: '0 0 20px rgba(76, 175, 80, 0.2)',
   },
   planBadge: {
@@ -347,7 +348,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '500',
   },
   popularBadge: {
-    background: '#4CAF50',
+    background: '#de8434',
     color: '#000',
   },
   serviceTitle: {
@@ -359,7 +360,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   servicePrice: {
     fontSize: '32px',
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#de8434',
     marginBottom: '20px',
   },
   pricePeriod: {
@@ -404,11 +405,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     marginTop: '24px',
     marginBottom: '12px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   highlightBox: {
     background: '#2A2A2A',
-    borderLeft: '4px solid #4CAF50',
+    borderLeft: '4px solid #de8434',
     padding: '16px 20px',
     marginTop: '20px',
     marginBottom: '20px',
@@ -425,7 +426,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '12px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   requisitesBox: {
     background: '#2A2A2A',
@@ -433,13 +434,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '20px',
     marginTop: '16px',
     marginBottom: '24px',
-    border: '1px solid #4CAF50',
+    border: '1px solid #de8434',
   },
   requisitesTitle: {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '16px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   requisitesGrid: {
     display: 'grid',
@@ -487,7 +488,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   contactLink: {
     fontSize: '16px',
-    color: '#4CAF50',
+    color: '#de8434',
     textDecoration: 'none',
     display: 'block',
   },

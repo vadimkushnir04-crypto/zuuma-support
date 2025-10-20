@@ -9,7 +9,6 @@ import { User } from '../entities/user.entity';
 import { Plan } from '../tokens/plan.entity';
 import { TokensService } from '../tokens/tokens.service';
 
-// Устанавливаем SDK ЮКасса: npm install @a2seven/yoo-checkout
 import { YooCheckout } from '@a2seven/yoo-checkout';
 
 @Injectable()
@@ -30,7 +29,6 @@ export class PaymentsService {
     private tokensService: TokensService,
     private dataSource: DataSource,
   ) {
-    // Инициализируем ЮКасса SDK
     const shopId = this.configService.get<string>('YOOKASSA_SHOP_ID');
     const secretKey = this.configService.get<string>('YOOKASSA_SECRET_KEY');
 
@@ -45,9 +43,6 @@ export class PaymentsService {
     }
   }
 
-  /**
-   * Создание платежа для подписки на план
-   */
   async createPayment(userId: string, planSlug: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
@@ -59,12 +54,10 @@ export class PaymentsService {
       throw new NotFoundException('Plan not found');
     }
 
-    // Проверяем что план платный
     if (parseInt(plan.price_cents) === 0) {
       throw new BadRequestException('Cannot create payment for free plan');
     }
 
-    // Создаем payment в БД
     const payment = this.paymentRepository.create({
       userId,
       planId: plan.id,
@@ -81,8 +74,6 @@ export class PaymentsService {
     const savedPayment = await this.paymentRepository.save(payment);
 
     try {
-      // Создаем платеж в ЮКасса
-      // ✅ Конвертируем центы в рубли (price_cents / 100)
       const amountInRubles = (parseInt(plan.price_cents) / 100).toFixed(2);
       
       const yooPayment = await this.yooKassa.createPayment({
@@ -104,7 +95,6 @@ export class PaymentsService {
         },
       });
 
-      // Обновляем payment данными от ЮКасса
       savedPayment.yookassaPaymentId = yooPayment.id;
       savedPayment.yookassaStatus = yooPayment.status;
       savedPayment.confirmationUrl = yooPayment.confirmation?.confirmation_url;
@@ -128,22 +118,17 @@ export class PaymentsService {
     }
   }
 
-  /**
-   * Webhook обработчик от ЮКасса
-   */
   async handleWebhook(webhookData: any) {
-    console.log('📥 Webhook received:', webhookData.event);
+    console.log('🔥 Webhook received:', webhookData.event);
     console.log('📦 Webhook data:', JSON.stringify(webhookData, null, 2));
 
     const eventType = webhookData.event;
 
-    // ✅ Обрабатываем refund.succeeded отдельно
     if (eventType === 'refund.succeeded') {
       console.log('💸 Refund webhook received, no action needed (already processed)');
-      return; // Возврат уже обработан в refundPayment()
+      return;
     }
 
-    // Обрабатываем платежи
     const yooPaymentId = webhookData.object?.id;
     if (!yooPaymentId) {
       console.error('❌ No payment ID in webhook');
@@ -159,7 +144,6 @@ export class PaymentsService {
 
     if (!payment) {
       console.error('❌ Payment not found:', yooPaymentId);
-      console.error('❌ Searched in DB for yookassaPaymentId:', yooPaymentId);
       return;
     }
 
@@ -170,18 +154,15 @@ export class PaymentsService {
       currentStatus: payment.yookassaStatus,
     });
 
-    // Обновляем статус платежа
     payment.yookassaStatus = webhookData.object.status;
     payment.paymentMethod = webhookData.object.payment_method?.type;
     await this.paymentRepository.save(payment);
 
     console.log('✅ Payment status updated to:', webhookData.object.status);
 
-    // Если платеж успешен - активируем подписку
     if (webhookData.object.status === 'succeeded') {
       console.log('🚀 Activating subscription...');
       
-      // ✅ ПРОВЕРКА: Подписка уже активирована?
       if (payment.subscriptionId) {
         console.log('⚠️ Subscription already exists:', payment.subscriptionId);
         console.log('✅ Webhook processed (duplicate, skipped)');
@@ -203,14 +184,10 @@ export class PaymentsService {
     });
   }
 
-  /**
-   * Активация подписки после успешного платежа
-   */
   private async activateSubscription(payment: Payment) {
-    console.log('🔄 Starting subscription activation for payment:', payment.id);
+    console.log('📄 Starting subscription activation for payment:', payment.id);
     
     const subscription = await this.dataSource.transaction(async (manager) => {
-      // Получаем план
       console.log('📦 Fetching plan:', payment.planId);
       const plan = await manager.findOne(Plan, { where: { id: payment.planId } });
       if (!plan) {
@@ -219,7 +196,6 @@ export class PaymentsService {
       }
       console.log('✅ Plan found:', { slug: plan.slug, title: plan.title });
 
-      // ✅ ОЧИСТКА: Отменяем старые активные подписки пользователя
       const oldSubscriptions = await manager.find(Subscription, {
         where: { userId: payment.userId, status: 'active' },
       });
@@ -233,10 +209,9 @@ export class PaymentsService {
         }
       }
 
-      // Создаем подписку
       const now = new Date();
       const expiresAt = new Date(now);
-      expiresAt.setMonth(expiresAt.getMonth() + 1); // +1 месяц
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
 
       const refundDeadline = new Date(now);
       refundDeadline.setDate(refundDeadline.getDate() + this.GRACE_PERIOD_DAYS);
@@ -262,28 +237,20 @@ export class PaymentsService {
       const savedSubscription = await manager.save(subscription);
       console.log('✅ Subscription created:', savedSubscription.id);
 
-      // Связываем payment с subscription
       payment.subscriptionId = savedSubscription.id;
       await manager.save(payment);
       console.log('✅ Payment linked to subscription');
 
-      // Обновляем пользователя
-      console.log('📝 Updating user:', payment.userId);
+      console.log('👤 Updating user:', payment.userId);
       const user = await manager.findOne(User, { where: { id: payment.userId } });
       if (user) {
         const oldPlan = user.plan;
-        const oldPlanId = user.plan_id;
         
-        // ✅ ОБНОВЛЯЕМ ОБА ПОЛЯ: plan (текстовое) и plan_id (UUID)
-        user.plan = plan.slug;  // <- Это поле читает фронтенд!
+        // ✅ ВАЖНО: При смене плана ВСЕГДА обнуляем tokens_used
+        user.plan = plan.slug;
         user.plan_id = plan.id;
-        
-        // ✅ ЗАМЕНЯЕМ лимит токенов (не складываем!)
         user.tokens_limit = parseInt(plan.monthly_tokens);
-        
-        // ✅ СБРАСЫВАЕМ использованные токены при смене плана
-        user.tokens_used = 0;
-        
+        user.tokens_used = 0; // ✅ СБРОС ТОКЕНОВ ПРИ АПГРЕЙДЕ
         user.assistants_limit = 
           plan.slug === 'free' ? 1 :
           plan.slug === 'pro' ? 10 :
@@ -291,14 +258,11 @@ export class PaymentsService {
 
         await manager.save(user);
         console.log('✅ User updated:', {
-          oldPlan: `${oldPlan} (${oldPlanId})`,
-          newPlan: `${plan.slug} (${plan.id})`,
+          oldPlan,
+          newPlan: plan.slug,
           newLimit: user.tokens_limit,
-          tokensReset: true,
+          tokensReset: true, // ✅ Подтверждаем сброс
         });
-
-        // ❌ НЕ НУЖНО добавлять токены - они уже установлены через tokens_limit!
-        // tokensToAdd = 0;
       } else {
         console.error('❌ User not found:', payment.userId);
       }
@@ -315,9 +279,6 @@ export class PaymentsService {
     return subscription;
   }
 
-  /**
-   * Отмена подписки
-   */
   async cancelSubscription(userId: string, subscriptionId: string) {
     const subscription = await this.subscriptionRepository.findOne({
       where: { id: subscriptionId, userId },
@@ -339,9 +300,6 @@ export class PaymentsService {
 
     await this.subscriptionRepository.save(subscription);
 
-    // ✅ НЕ возвращаем на Free сразу - токены активны до конца периода
-    // await this.revertToFreePlan(userId); <- Убрали!
-
     console.log('✅ Subscription cancelled:', subscriptionId);
     
     const expiresAt = subscription.expiresAt;
@@ -359,11 +317,12 @@ export class PaymentsService {
   }
 
   /**
-   * Возврат средств (только в течение grace period)
+   * ✅ КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверка использованных токенов перед возвратом
    */
   async refundPayment(userId: string, subscriptionId: string) {
     console.log('💸 Starting refund process:', { userId, subscriptionId });
     
+    // ✅ ШАГ 1: Проверяем подписку
     const subscription = await this.subscriptionRepository.findOne({
       where: { id: subscriptionId, userId },
     });
@@ -373,6 +332,7 @@ export class PaymentsService {
       throw new NotFoundException('Subscription not found');
     }
 
+    // ✅ ШАГ 2: Проверяем сроки возврата
     const now = new Date();
     console.log('🔍 Checking refund eligibility:', {
       canRefund: subscription.canRefund,
@@ -391,15 +351,41 @@ export class PaymentsService {
       );
     }
 
-    // Находим платеж
+    // ✅ ШАГ 3: КРИТИЧЕСКИ ВАЖНО - Проверяем использованные токены!
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const tokensUsed = Number(user.tokens_used || 0);
+    
+    console.log('🔍 Checking tokens usage:', {
+      userId,
+      tokensUsed,
+      tokensLimit: user.tokens_limit,
+    });
+
+    // ❌ БЛОКИРУЕМ ВОЗВРАТ если хоть 1 токен использован
+    if (tokensUsed > 0) {
+      console.error('❌ Refund blocked: tokens were used', {
+        tokensUsed,
+        message: 'Cannot refund when tokens have been used',
+      });
+      throw new BadRequestException(
+        `Возврат недоступен: вы уже использовали ${tokensUsed.toLocaleString()} токенов. ` +
+        `Возврат возможен только если токены не были использованы.`
+      );
+    }
+
+    console.log('✅ Tokens check passed: no tokens used');
+
+    // ✅ ШАГ 4: Находим платеж
     console.log('🔍 Looking for payment for subscription:', subscriptionId);
     
-    // ✅ Ищем payment связанный с этой подпиской ИЛИ с тем же пользователем и планом
     let payment = await this.paymentRepository.findOne({
       where: { subscriptionId: subscription.id },
     });
 
-    // Если не нашли по subscriptionId, ищем по userId и planId (на случай дублей)
     if (!payment) {
       console.log('🔍 Trying alternative search: userId + planId + recent');
       payment = await this.paymentRepository.findOne({
@@ -426,7 +412,6 @@ export class PaymentsService {
       id: payment.id,
       yookassaPaymentId: payment.yookassaPaymentId,
       amount: payment.amountCents,
-      subscriptionId: payment.subscriptionId,
     });
 
     try {
@@ -460,7 +445,7 @@ export class PaymentsService {
       await this.subscriptionRepository.save(subscription);
       console.log('✅ Subscription cancelled');
 
-      // Списываем токены и возвращаем к free плану
+      // Возвращаем к free плану
       console.log('🔄 Reverting to free plan...');
       await this.revertToFreePlan(userId);
 
@@ -477,16 +462,12 @@ export class PaymentsService {
       };
     } catch (error) {
       console.error('❌ Refund failed:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-      });
       throw new BadRequestException('Failed to process refund: ' + error.message);
     }
   }
 
   /**
-   * Возврат пользователя на Free план
+   * ✅ ИСПРАВЛЕНО: При возврате правильно обрабатываем токены
    */
   private async revertToFreePlan(userId: string) {
     const freePlan = await this.planRepository.findOne({ where: { slug: 'free' } });
@@ -495,11 +476,13 @@ export class PaymentsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return;
 
-    // ✅ Обновляем оба поля
-    user.plan = freePlan.slug;  // Текстовое поле
-    user.plan_id = freePlan.id;  // UUID поле
+    user.plan = freePlan.slug;
+    user.plan_id = freePlan.id;
     user.tokens_limit = parseInt(freePlan.monthly_tokens);
-    user.tokens_used = 0;  // Сбрасываем использованные токены
+    
+    // ✅ ИСПРАВЛЕНО: Не больше чем лимит Free плана
+    user.tokens_used = Math.min(Number(user.tokens_used || 0), user.tokens_limit);
+    
     user.assistants_limit = 1;
 
     await this.userRepository.save(user);
@@ -508,24 +491,36 @@ export class PaymentsService {
       userId,
       plan: user.plan,
       tokensLimit: user.tokens_limit,
+      tokensUsed: user.tokens_used,
     });
   }
 
   /**
-   * Получить активную подписку пользователя
+   * ✅ ОБНОВЛЕНО: Возвращаем info о токенах для фронтенда
    */
   async getActiveSubscription(userId: string) {
-    // ✅ Получаем самую свежую активную подписку
-    return this.subscriptionRepository.findOne({
+    const subscription = await this.subscriptionRepository.findOne({
       where: { userId, status: 'active' },
       relations: ['plan'],
       order: { createdAt: 'DESC' },
     });
+
+    if (!subscription) return null;
+
+    // ✅ Добавляем информацию о токенах
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const tokensUsed = Number(user?.tokens_used || 0);
+
+    // ✅ Возврат НЕ доступен если токены использованы
+    const canRefundWithTokens = subscription.canRefund && tokensUsed === 0;
+
+    return {
+      ...subscription,
+      tokensUsed, // ✅ Добавляем для фронтенда
+      canRefundWithTokens, // ✅ Реальная доступность возврата
+    };
   }
 
-  /**
-   * История платежей пользователя
-   */
   async getPaymentHistory(userId: string) {
     return this.paymentRepository.find({
       where: { userId },

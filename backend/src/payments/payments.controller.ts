@@ -46,15 +46,37 @@ export class PaymentsController {
 
   /**
    * Webhook от ЮКасса
-   * POST /payments/webhook
+   * POST /api/payments/webhook
+   * 
+   * ВАЖНО: Этот эндпоинт должен быть доступен без авторизации!
    */
   @Post('webhook')
-  async handleWebhook(@Body() webhookData: any) {
-    console.log('📥 Webhook received from YooKassa');
-    
-    await this.paymentsService.handleWebhook(webhookData);
-    
-    return { success: true };
+  async handleWebhook(
+    @Body() webhookData: any,
+    @Headers() headers: any
+  ) {
+    console.log('\n🔔 ==========================================');
+    console.log('📥 WEBHOOK RECEIVED FROM YOOKASSA');
+    console.log('🔔 ==========================================');
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.log('📦 Event:', webhookData.event);
+    console.log('🆔 Payment ID:', webhookData.object?.id);
+    console.log('💰 Amount:', webhookData.object?.amount?.value, webhookData.object?.amount?.currency);
+    console.log('📊 Status:', webhookData.object?.status);
+    console.log('🔑 Headers:', JSON.stringify(headers, null, 2));
+    console.log('📋 Full webhook data:', JSON.stringify(webhookData, null, 2));
+    console.log('🔔 ==========================================\n');
+
+    try {
+      await this.paymentsService.handleWebhook(webhookData);
+      console.log('✅ Webhook processed successfully\n');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Webhook processing failed:', error);
+      console.error('❌ Error stack:', error.stack);
+      // Всё равно возвращаем 200, чтобы ЮКасса не повторяла запрос
+      return { success: false, error: error.message };
+    }
   }
 
   /**
