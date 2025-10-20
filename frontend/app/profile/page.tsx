@@ -582,7 +582,7 @@ export default function ProfilePage() {
               <h2 style={styles.sectionTitle}>Тарифные планы</h2>
               <p style={styles.sectionDescription}>
                 Выберите тариф, который лучше всего подходит для ваших потребностей.<br/>
-                ✅ Возврат возможен в течение 7 дней после оплаты
+                ✅ Возврат возможен в течение 7 дней после оплаты и если токены не были использованы
               </p>
               
               <div style={styles.pricingGrid}>
