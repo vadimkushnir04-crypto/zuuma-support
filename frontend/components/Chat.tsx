@@ -111,66 +111,92 @@ export default function Chat() {
   };
 
 const sendMessage = async () => {
-    if (!input.trim() || isLoading || !selectedAssistantId) return;
+  if (!input.trim() || isLoading || !selectedAssistantId) return;
 
-    const messageText = input;
-    setInput("");
-    setIsLoading(true);
+  const messageText = input;
+  setInput("");
+  setIsLoading(true);
 
-    try {
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        throw new Error('Требуется авторизация');
-      }
-
-      const response = await fetch(`${API_BASE_URL}/chat/ask`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          message: messageText,
-          assistantId: selectedAssistantId,
-          conversationId: conversationId,
-          chatSessionId: chatSessionId,
-          userIdentifier: userIdentifier,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // ✅ ВАЖНО: Сохраняем chatSessionId
-        if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
-          setChatSessionId(data.chatSessionId);
-        }
-
-        if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
-          setIsLoading(false);
-        }
-        
-      } else {
-        if (response.status === 401) {
-          throw new Error('Сессия истекла. Пожалуйста, войдите снова');
-        }
-        throw new Error(`${t('errors.status')} ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Ошибка отправки сообщения:", error);
-      
-      const errorMessage: Message = {
-        id: `error-${Date.now()}`,
-        text: error instanceof Error ? error.message : t('errors.requestError'),
-        sender: "assistant",
-        timestamp: new Date(),
-      };
-
-      addMessageIfNotExists(errorMessage);
-      setIsLoading(false);
+  try {
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token) {
+      throw new Error('Требуется авторизация');
     }
-  };
+
+    // ✅ НОВОЕ: Если нет chatSessionId, создаём комнату заранее
+    let currentSessionId = chatSessionId;
+    
+    if (!currentSessionId) {
+      // Создаём временный ID для первого сообщения
+      currentSessionId = `temp-${Date.now()}`;
+      setChatSessionId(currentSessionId);
+      
+      // ✅ КРИТИЧЕСКИ ВАЖНО: Ждём, пока React обновит state
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Присоединяемся к комнате ДО отправки запроса
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('join', { sessionId: currentSessionId });
+        socketRef.current.emit('joinAssistant', {
+          assistantId: selectedAssistantId,
+          userIdentifier: userIdentifier,
+          sessionId: currentSessionId,
+        });
+        console.log('📌 Pre-joined to temp room:', currentSessionId);
+        
+        // Даём время на присоединение
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/chat/ask`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message: messageText,
+        assistantId: selectedAssistantId,
+        conversationId: conversationId,
+        chatSessionId: currentSessionId, // ✅ Используем текущий или временный ID
+        userIdentifier: userIdentifier,
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      // ✅ Обновляем на реальный ID если получили новый
+      if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
+        setChatSessionId(data.chatSessionId);
+      }
+
+      if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
+        setIsLoading(false);
+      }
+      
+    } else {
+      if (response.status === 401) {
+        throw new Error('Сессия истекла. Пожалуйста, войдите снова');
+      }
+      throw new Error(`${t('errors.status')} ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Ошибка отправки сообщения:", error);
+    
+    const errorMessage: Message = {
+      id: `error-${Date.now()}`,
+      text: error instanceof Error ? error.message : t('errors.requestError'),
+      sender: "assistant",
+      timestamp: new Date(),
+    };
+
+    addMessageIfNotExists(errorMessage);
+    setIsLoading(false);
+  }
+};
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
