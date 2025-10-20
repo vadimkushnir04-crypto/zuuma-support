@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { Bot, Database, Zap, MessageCircle, CheckCircle, Smile, Upload, Puzzle, ArrowRight, Sparkles, Users, BarChart3 } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "ZUUMA",
+  description: "Главная страница ZUUMA",
+};
 
 export default function Home() {
   const workflowSteps = [

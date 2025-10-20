@@ -24,6 +24,13 @@ import AuthGuard from '../../components/AuthGuard';
 import TopUpModal from '../../components/TopUpModal';
 import { useTokens } from '../../hooks/useTokens';
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Аналитика",
+  description: "Аналитика ZUUMA",
+};
+
 // Типы для данных
 interface UserStats {
   totalTokens: number;
