@@ -36,6 +36,7 @@ services:
       - postgres
       - qdrant
     environment:
+      - NODE_ENV=production
       - DATABASE_HOST=postgres  # ✅ Использовать имя сервиса
       - DATABASE_PORT=5432
       - DATABASE_NAME=${DATABASE_NAME}
