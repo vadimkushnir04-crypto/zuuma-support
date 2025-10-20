@@ -77,6 +77,21 @@ export class TokensController {
   }
 
   /**
+   * Синхронизация лимитов пользователя с тарифом
+   * GET /api/tokens/sync
+   */
+  @Get('sync')
+  async syncUserLimits(@Req() req: any) {
+    const userId = req.user.id;
+    const result = await this.tokensService.syncUserWithPlan(userId);
+    return { 
+      success: true, 
+      message: 'Лимиты синхронизированы',
+      ...result 
+    };
+  }
+
+  /**
    * Аналитика использования токенов за последние 30 дней
    * GET /api/tokens/analytics
    */

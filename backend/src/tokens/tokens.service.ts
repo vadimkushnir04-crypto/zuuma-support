@@ -149,6 +149,33 @@ export class TokensService {
     });
   }
 
+  async syncUserWithPlan(userId: string) {
+  const user = await this.userRepository.findOne({ where: { id: userId } });
+  if (!user) throw new BadRequestException('Пользователь не найден');
+
+  const plan = await this.dataSource.getRepository(Plan).findOne({ 
+    where: { slug: user.plan || 'free' } 
+  });
+  
+  if (!plan) throw new BadRequestException('План не найден');
+
+  // Синхронизируем лимиты
+  user.tokens_limit = parseInt(plan.monthly_tokens);
+  user.assistants_limit = 
+    plan.slug === 'free' ? 1 :
+    plan.slug === 'pro' ? 10 :
+    plan.slug === 'max' ? 50 : 1;
+
+  await this.userRepository.save(user);
+
+  return {
+    plan: user.plan,
+    tokensLimit: user.tokens_limit,
+    tokensUsed: user.tokens_used,
+    assistantsLimit: user.assistants_limit,
+  };
+}
+
   async upgradePlan(userId: string, newPlanSlug: string) {
     // ✅ Используем dataSource вместо planRepository
     const newPlan = await this.dataSource.getRepository(Plan).findOne({ 
