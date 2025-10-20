@@ -258,20 +258,6 @@ const sendMessage = async () => {
       setIsLoading(false);
     });
 
-    socket.on('message', (payload) => {
-      console.log('💬 Received message:', payload);
-      const newMessage: Message = {
-        id: payload.id || `msg-${Date.now()}`,
-        text: payload.content || payload.text || 'No content',
-        sender: payload.senderType === 'user' ? 'user' : 'assistant',
-        timestamp: new Date(payload.createdAt || Date.now()),
-        sources: payload.metadata?.sources || payload.sources,
-        files: payload.files || [],
-      };
-      addMessageIfNotExists(newMessage);
-      setIsLoading(false);
-    });
-
     socket.on('disconnect', (reason) => {
       console.log('❌ WebSocket disconnected:', reason);
       setIsLoading(false);
