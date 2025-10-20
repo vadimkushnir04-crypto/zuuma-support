@@ -115,6 +115,17 @@ const sendMessage = async () => {
 
   const messageText = input;
   setInput("");
+  
+  // ✅ ДОБАВЬТЕ ЭТО: Показываем своё сообщение сразу
+  const userMessage: Message = {
+    id: `user-${Date.now()}`,
+    text: messageText,
+    sender: "user",
+    timestamp: new Date(),
+  };
+  addMessageIfNotExists(userMessage);
+  
+  // Теперь включаем загрузку
   setIsLoading(true);
 
   try {
@@ -124,18 +135,14 @@ const sendMessage = async () => {
       throw new Error('Требуется авторизация');
     }
 
-    // ✅ НОВОЕ: Если нет chatSessionId, создаём комнату заранее
     let currentSessionId = chatSessionId;
     
     if (!currentSessionId) {
-      // Создаём временный ID для первого сообщения
       currentSessionId = `temp-${Date.now()}`;
       setChatSessionId(currentSessionId);
       
-      // ✅ КРИТИЧЕСКИ ВАЖНО: Ждём, пока React обновит state
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Присоединяемся к комнате ДО отправки запроса
       if (socketRef.current?.connected) {
         socketRef.current.emit('join', { sessionId: currentSessionId });
         socketRef.current.emit('joinAssistant', {
@@ -145,7 +152,6 @@ const sendMessage = async () => {
         });
         console.log('📌 Pre-joined to temp room:', currentSessionId);
         
-        // Даём время на присоединение
         await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
@@ -160,7 +166,7 @@ const sendMessage = async () => {
         message: messageText,
         assistantId: selectedAssistantId,
         conversationId: conversationId,
-        chatSessionId: currentSessionId, // ✅ Используем текущий или временный ID
+        chatSessionId: currentSessionId,
         userIdentifier: userIdentifier,
       }),
     });
@@ -168,7 +174,6 @@ const sendMessage = async () => {
     if (response.ok) {
       const data = await response.json();
       
-      // ✅ Обновляем на реальный ID если получили новый
       if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
         setChatSessionId(data.chatSessionId);
       }
