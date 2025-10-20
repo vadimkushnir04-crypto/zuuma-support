@@ -6,7 +6,7 @@ import '../styles/globals.css';
 export const metadata: Metadata = {
   metadataBase: new URL('https://zuuma.ru'),
   title: {
-    default: "Zuuma — AI Ассистенты для бизнеса",
+    default: "ZUUMA — AI Ассистенты для бизнеса",
     template: "%s | Zuuma",
   },
   description: "Создавайте умных AI-ассистентов для автоматизации поддержки клиентов. Интеграция с Telegram, обучение на ваших данных. От 0₽/месяц.",

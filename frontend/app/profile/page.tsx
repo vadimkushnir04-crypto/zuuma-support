@@ -310,30 +310,23 @@ export default function ProfilePage() {
     if (plan.slug === 'free') {
       features = [
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
-        `До ${plan.tokens_per_chat} токенов на чат`,
-        '',
         '1 ассистент',
-        'Интеграция в веб-виджет'
+        'Интеграция в веб-виджет',
+        'Интеграция в Telegram Bot',
       ];
     } else if (plan.slug === 'pro') {
       features = [
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
-        `До ${plan.tokens_per_chat} токенов на чат`,
         'Всё, что в Free, плюс:',
         'До 10 ассистентов',
         'API доступ',
-        'Telegram Bot',
-        'Расширенная аналитика'
+        'Кастомизация виджета в браузере',
       ];
     } else if (plan.slug === 'max') {
       features = [
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
-        `До ${plan.tokens_per_chat} токенов на чат`,
         'Всё, что в Pro, плюс:',
         'До 50 ассистентов',
-        'Приоритетная поддержка 24/7',
-        'Кастомизация',
-        'Персональный менеджер'
       ];
     }
 

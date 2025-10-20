@@ -365,15 +365,14 @@ export class PaymentsService {
       tokensLimit: user.tokens_limit,
     });
 
-    // ❌ БЛОКИРУЕМ ВОЗВРАТ если хоть 1 токен использован
-    if (tokensUsed > 0) {
-      console.error('❌ Refund blocked: tokens were used', {
-        tokensUsed,
-        message: 'Cannot refund when tokens have been used',
-      });
+
+
+    const REFUND_TOKENS_THRESHOLD = 50000; // 50k токенов
+
+    if (tokensUsed > REFUND_TOKENS_THRESHOLD) {
       throw new BadRequestException(
-        `Возврат недоступен: вы уже использовали ${tokensUsed.toLocaleString()} токенов. ` +
-        `Возврат возможен только если токены не были использованы.`
+        `Возврат недоступен: вы использовали ${tokensUsed.toLocaleString()} токенов. ` +
+        `Возврат доступен только если использовано менее ${REFUND_TOKENS_THRESHOLD.toLocaleString()} токенов.`
       );
     }
 

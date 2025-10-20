@@ -15,6 +15,9 @@ import {
   AssistantChatResponse,
 } from './assistants.types';
 
+import { BadRequestException } from '@nestjs/common';
+import { User } from '../entities/user.entity';
+
 import { PromptBuilderService } from './services/prompt-builder.service';
 
 // Хранилище истории (в production лучше использовать Redis)
@@ -57,6 +60,8 @@ export class AssistantsService {
     @InjectRepository(Assistant)
     private assistantRepository: Repository<Assistant>,
     private readonly knowledgeService: KnowledgeService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private readonly promptBuilder: PromptBuilderService
   ) {
     this.qdrant = new QdrantClient({
@@ -67,30 +72,73 @@ export class AssistantsService {
 
   // Создание нового ассистента
   async createAssistant(userId: string, dto: CreateAssistantDto): Promise<Assistant> {
-    const id = uuidv4();
-    const apiKey = this.generateApiKey();
-    const collectionName = `assistant_${id}`;
-
-    await this.ensureCollection(collectionName);
-
-    const assistant = this.assistantRepository.create({
-      id,
-      userId,
-      name: dto.name,
-      description: dto.description,
-      collectionName,
-      apiKey,
-      systemPrompt: dto.systemPrompt,
-      isActive: true,
-      trained: false,
-      settings: { ...defaultSettings, ...dto.settings },
-      totalQueries: 0,
-    });
-
-    const savedAssistant = await this.assistantRepository.save(assistant);
-    console.log(`✅ Создан ассистент: ${savedAssistant.name} (${id}) для пользователя ${userId}`);
-    return savedAssistant;
+  // ✅ ШАГ 1: Проверяем лимит ассистентов
+  const user = await this.userRepository.findOne({ where: { id: userId } });
+  if (!user) {
+    throw new BadRequestException('Пользователь не найден');
   }
+
+  // Получаем лимит из плана пользователя
+  const assistantsLimit = user.assistants_limit || 1;
+  
+  // Считаем текущие ассистенты
+  const currentCount = await this.assistantRepository.count({ 
+    where: { userId } 
+  });
+  
+  console.log('🔍 Checking assistants limit:', {
+    userId,
+    currentCount,
+    limit: assistantsLimit,
+    plan: user.plan,
+  });
+  
+  // ❌ БЛОКИРУЕМ если превышен лимит
+  if (currentCount >= assistantsLimit) {
+    // ✅ ИСПРАВЛЕНО: Добавили проверку на null
+    const planNames: Record<string, string> = {
+      'free': 'Free (1 ассистент)',
+      'pro': 'Pro (до 10 ассистентов)',
+      'max': 'Max (до 50 ассистентов)',
+    };
+    
+    const userPlan = user.plan || 'free'; // ✅ Защита от null
+    const planName = planNames[userPlan] || userPlan;
+    
+    throw new BadRequestException(
+      `Достигнут лимит ассистентов для тарифа ${planName}. ` +
+      `У вас уже ${currentCount} из ${assistantsLimit}. ` +
+      `Обновите тариф для создания большего количества ассистентов.`
+    );
+  }
+
+  // ✅ ШАГ 2: Создаём ассистента (старый код без изменений)
+  const id = uuidv4();
+  const apiKey = this.generateApiKey();
+  const collectionName = `assistant_${id}`;
+
+  await this.ensureCollection(collectionName);
+
+  const assistant = this.assistantRepository.create({
+    id,
+    userId,
+    name: dto.name,
+    description: dto.description,
+    collectionName,
+    apiKey,
+    systemPrompt: dto.systemPrompt,
+    isActive: true,
+    trained: false,
+    settings: { ...defaultSettings, ...dto.settings },
+    totalQueries: 0,
+  });
+
+  const savedAssistant = await this.assistantRepository.save(assistant);
+  console.log(`✅ Создан ассистент: ${savedAssistant.name} (${id}) для пользователя ${userId}`);
+  console.log(`📊 Ассистентов у пользователя: ${currentCount + 1} / ${assistantsLimit}`);
+  
+  return savedAssistant;
+}
 
   // Получение всех ассистентов пользователя
   async getAssistants(userId: string): Promise<AssistantListResponse> {
