@@ -1,4 +1,3 @@
-//useTokens
 import useSWR from 'swr';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
@@ -32,7 +31,8 @@ const fetcher = async (url: string) => {
 };
 
 export function useTokens() {
-  const { data, error, mutate } = useSWR('/api/tokens', fetcher, { 
+  // ✅ ИСПРАВЛЕНО: убрали /api/
+  const { data, error, mutate } = useSWR('/tokens', fetcher, { 
     refreshInterval: 15000,
     revalidateOnFocus: false
   });

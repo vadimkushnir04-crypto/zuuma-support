@@ -6,7 +6,7 @@ import Link from "next/link";
 import { UserIcon, Settings, Menu, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 interface UserInfo {
   id: string;
@@ -19,6 +19,7 @@ interface UserInfo {
 export default function Header() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const { t } = useTranslation("common");
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,6 +27,9 @@ export default function Header() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   const API_BASE_URL = "https://zuuma.ru/api";
+
+  // ✅ НОВОЕ: проверяем, на главной ли мы странице
+  const isHomePage = pathname === "/";
 
   useEffect(() => {
     setMounted(true);
@@ -97,7 +101,14 @@ export default function Header() {
   };
 
   return (
-    <header className="header">
+    <header 
+      className="header"
+      style={{
+        // ✅ ИСПРАВЛЕНИЕ: добавляем отступ слева на страницах с сайдбаром
+        paddingLeft: isHomePage ? "16px" : "276px", // 256px (sidebar) + 20px
+        transition: "padding-left 0.3s ease",
+      }}
+    >
       <div className="header-left">
         <button
           className="sidebar-toggle"
@@ -121,7 +132,6 @@ export default function Header() {
           />
           <span className="font-semibold text-lg tracking-tight">zuuma</span>
         </Link>
-
       </div>
 
       <div className="header-right">
