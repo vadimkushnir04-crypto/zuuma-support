@@ -30,8 +30,6 @@ export default function OfferPage() {
             <ul style={styles.serviceFeatures}>
               <li>✓ 100,000 токенов в месяц</li>
               <li>✓ 1 AI-ассистент</li>
-              <li>✓ Кастомизация интерфейса</li>
-              <li>✓ API доступ</li>
               <li>✓ Telegram Bot интеграция</li>
               <li>✓ Интеграция в веб-виджет</li>
             </ul>
