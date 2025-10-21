@@ -120,10 +120,10 @@ export default function CreateAssistantPage() {
           {/* Existing Assistants */}
           <div style={{ marginTop: 'var(--space-3xl)' }}>
             <div style={{ marginBottom: 'var(--space-xl)' }}>
-              <h2 style={{ fontSize: '1.5rem', margin: '10px' }}>
+              <h2 style={{ fontSize: '1.5rem', margin: '20px' }}>
                 Ваши ассистенты
               </h2>
-              <p style={{ color: 'var(--text-secondary)', margin: '10px' }}>
+              <p style={{ color: 'var(--text-secondary)', margin: '20px' }}>
                 {assistants.length > 0 
                   ? `У вас ${assistants.length} ${assistants.length === 1 ? 'ассистент' : 'ассистентов'}`
                   : 'Пока нет созданных ассистентов'

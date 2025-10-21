@@ -3221,6 +3221,7 @@ background: #111111;
   background: transparent;
   color: #e5e5e5;
   border-color: #374151;
+  margin: 10px;
 }
 
 .btn-outline:hover {
