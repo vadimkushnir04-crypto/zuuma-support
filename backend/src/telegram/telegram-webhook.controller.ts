@@ -16,15 +16,18 @@ export class TelegramWebhookController {
   ) {}
 
   // ✅ Webhook endpoint для каждого бота
-  @Post(':botToken')
+  @Post(':botId')
   async handleWebhook(
-    @Param('botToken') botToken: string,
+    @Param('botId') botId: string,
     @Body() update: any,
   ) {
-    console.log(`📨 Webhook received for bot: ${botToken.substring(0, 10)}...`);
+    console.log(`📨 Webhook received for bot ID: ${botId}`);
+    console.log(`📦 Update data:`, JSON.stringify(update, null, 2));
     
-    await this.webhookService.handleUpdate(botToken, update);
+    await this.webhookService.handleUpdate(botId, update);
     
     return { ok: true };
   }
+
+  
 }

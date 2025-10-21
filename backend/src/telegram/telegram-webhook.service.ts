@@ -47,20 +47,37 @@ export class TelegramWebhookService {
     private readonly supportService: SupportService,
   ) {}
 
-  async handleUpdate(botToken: string, update: TelegramUpdate): Promise<void> {
-    if (!update.message?.text) return;
+  async handleUpdate(botIdentifier: string, update: TelegramUpdate): Promise<void> {
+    console.log('📨 Processing update:', JSON.stringify(update, null, 2));
+    
+    if (!update.message?.text) {
+      console.log('⚠️ No text in message, skipping');
+      return;
+    }
 
     const message = update.message;
     const chatId = message.chat.id;
     const userId = message.from.id;
     const userMessage = message.text ?? '';
 
-    const bot = await this.findBotByToken(botToken);
-    if (!bot) return;
+    console.log(`💬 Message from user ${userId} in chat ${chatId}: "${userMessage}"`);
+
+    // ✅ ИСПРАВЛЕНО: Ищем бота по UUID (из webhook URL)
+    const bot = await this.botsRepository.findOne({ 
+      where: { id: botIdentifier } 
+    });
+    
+    if (!bot) {
+      console.error('❌ Bot not found by ID:', botIdentifier);
+      return;
+    }
+
+    console.log('✅ Bot found:', bot.botName, 'Assistant:', bot.assistantId);
 
     const decryptedToken = this.encryptionService.decrypt(bot.botToken);
     
     if (!userMessage.trim()) return;
+    
     await this.processTelegramMessage(bot, decryptedToken, chatId, userId, userMessage);
   }
 
