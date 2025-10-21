@@ -8,7 +8,7 @@ export default function OfferPage() {
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <FileText size={40} style={{ color: '#de8434' }} />
+        <FileText size={40} style={{ color: '#ffffffff' }} />
         <h1 style={styles.title}>Публичная оферта и реквизиты</h1>
         <p style={styles.subtitle}>
           Информация об услугах, ценах и условиях предоставления
@@ -311,7 +311,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '12px',
     marginBottom: '24px',
-    color: '#de8434',
+    color: '#ffffffff',
   },
   sectionTitle: {
     fontSize: '24px',
@@ -333,7 +333,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     transition: 'transform 0.2s, border-color 0.2s',
   },
   popularCard: {
-    borderColor: '#de8434',
+    borderColor: '#ffffffff',
     boxShadow: '0 0 20px rgba(76, 175, 80, 0.2)',
   },
   planBadge: {
@@ -348,7 +348,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '500',
   },
   popularBadge: {
-    background: '#de8434',
+    background: '#ffffffff',
     color: '#000',
   },
   serviceTitle: {
@@ -360,7 +360,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   servicePrice: {
     fontSize: '32px',
     fontWeight: 'bold',
-    color: '#de8434',
+    color: '#ffffffff',
     marginBottom: '20px',
   },
   pricePeriod: {
@@ -405,11 +405,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     marginTop: '24px',
     marginBottom: '12px',
-    color: '#de8434',
+    color: '#ffffffff',
   },
   highlightBox: {
     background: '#2A2A2A',
-    borderLeft: '4px solid #de8434',
+    borderLeft: '4px solid #ffffffff',
     padding: '16px 20px',
     marginTop: '20px',
     marginBottom: '20px',
@@ -426,7 +426,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '12px',
-    color: '#de8434',
+    color: '#ffffffff',
   },
   requisitesBox: {
     background: '#2A2A2A',
@@ -434,13 +434,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '20px',
     marginTop: '16px',
     marginBottom: '24px',
-    border: '1px solid #de8434',
+    border: '1px solid #ffffffff',
   },
   requisitesTitle: {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '16px',
-    color: '#de8434',
+    color: '#ffffffff',
   },
   requisitesGrid: {
     display: 'grid',
@@ -488,7 +488,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   contactLink: {
     fontSize: '16px',
-    color: '#de8434',
+    color: '#ffffffff',
     textDecoration: 'none',
     display: 'block',
   },
