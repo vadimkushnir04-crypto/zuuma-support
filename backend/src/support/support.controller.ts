@@ -24,6 +24,8 @@ import {
   EscalateChatDto,
 } from './dto/support.dto';
 
+import { In } from 'typeorm';
+
 @Controller('support')
 export class SupportController {
   constructor(
@@ -264,4 +266,48 @@ export class SupportController {
       );
     }
   }
+
+  @Get('sessions/by-identifier')
+  @UseGuards(JwtAuthGuard)
+  async getSessionByIdentifier(
+    @Query('assistantId') assistantId: string,
+    @Query('userIdentifier') userIdentifier: string,
+  ) {
+    if (!assistantId || !userIdentifier) {
+      throw new BadRequestException('assistantId and userIdentifier are required');
+    }
+
+    const session = await this.supportService.chatSessionRepo.findOne({
+      where: {
+        assistantId,
+        userIdentifier,
+        status: In(['ai', 'pending_human', 'human_active']),
+      },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (!session) {
+      return { session: null, messages: [] };
+    }
+
+    const messages = await this.supportService.getChatMessages(session.id);
+
+    return {
+      session: {
+        id: session.id,
+        assistantId: session.assistantId,
+        userIdentifier: session.userIdentifier,
+        status: session.status,
+        createdAt: session.createdAt,
+      },
+      messages: messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        senderType: msg.senderType,
+        createdAt: msg.createdAt,
+        metadata: msg.metadata,
+      })),
+    };
+  }
+
 }

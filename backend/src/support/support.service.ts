@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class SupportService {
   constructor(
     @InjectRepository(ChatSession)
-    private chatSessionRepo: Repository<ChatSession>,
+    public chatSessionRepo: Repository<ChatSession>,
     
     @InjectRepository(ChatMessage)
     private chatMessageRepo: Repository<ChatMessage>,
@@ -254,8 +254,16 @@ export class SupportService {
       setTimeout(() => this.saveMessage(chatSessionId, senderType, content, senderId, metadata, userIdentifier, files), 500);
     } else if (senderType !== 'user') {  // ✅ ДОБАВЛЕНА ПРОВЕРКА
       try {
-        // Отправляем только сообщения от AI и manager, НЕ от пользователя
+        // ✅ Отправляем в настоящую комнату
         this.gateway.emitMessageToSession(chatSessionId, payload);
+        
+        // ✅ ДОБАВЛЕНО: Если у клиента есть userIdentifier, отправляем в комнату assistant'а тоже
+        if (userIdentifier) {
+          const assistantRoom = `assistant:${session.assistantId}:${userIdentifier}`;
+          this.gateway.server.to(assistantRoom).emit('assistant:message', payload);
+          console.log(`📤 Also emitted to assistant room: ${assistantRoom}`);
+        }
+        
         console.log(`📤 Emitted ${senderType} message to session ${chatSessionId}`);
       } catch (err) {
         console.error('❌ WS emit error:', err);

@@ -43,6 +43,7 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
+
   // Инициализация при выборе ассистента
   useEffect(() => {
     if (selectedAssistantId) {
@@ -61,16 +62,82 @@ export default function Chat() {
       }
       setUserIdentifier(identifier);
       
+      // ✅ Загружаем историю чата
+      loadChatHistory(selectedAssistantId, identifier);
+    }
+  }, [selectedAssistantId, t]);
+
+    // ✅ НОВАЯ ФУНКЦИЯ: Загрузка истории сообщений
+  const loadChatHistory = async (assistantId: string, userIdent: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        // Если нет токена, показываем welcome сообщение
+        setMessages([{
+          id: `welcome-${Date.now()}`,
+          text: t('welcomeMessage'),
+          sender: "assistant",
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+
+      const res = await fetch(
+        `${API_BASE_URL}/support/sessions/by-identifier?assistantId=${assistantId}&userIdentifier=${userIdent}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        
+        if (data.session && data.messages && data.messages.length > 0) {
+          console.log('📜 Loaded chat history:', data.messages.length, 'messages');
+          
+          // Устанавливаем chatSessionId
+          setChatSessionId(data.session.id);
+          
+          // Преобразуем сообщения в нужный формат
+          const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+            id: msg.id,
+            text: msg.content,
+            sender: msg.senderType === 'user' ? 'user' : 'assistant',
+            timestamp: new Date(msg.createdAt),
+            sources: msg.metadata?.sources,
+            files: msg.metadata?.files || [],
+          }));
+          
+          setMessages(loadedMessages);
+        } else {
+          // Нет истории - показываем welcome
+          setMessages([{
+            id: `welcome-${Date.now()}`,
+            text: t('welcomeMessage'),
+            sender: "assistant",
+            timestamp: new Date(),
+          }]);
+        }
+      } else {
+        // Ошибка загрузки - показываем welcome
+        setMessages([{
+          id: `welcome-${Date.now()}`,
+          text: t('welcomeMessage'),
+          sender: "assistant",
+          timestamp: new Date(),
+        }]);
+      }
+    } catch (err) {
+      console.error('❌ Error loading chat history:', err);
+      // При ошибке показываем welcome
       setMessages([{
         id: `welcome-${Date.now()}`,
         text: t('welcomeMessage'),
         sender: "assistant",
         timestamp: new Date(),
       }]);
-      setConversationId(null);
-      setChatSessionId(null);
     }
-  }, [selectedAssistantId, t]);
+  };
 
   const isDuplicate = (newMessage: Message): boolean => {
     return messages.some(msg => {
