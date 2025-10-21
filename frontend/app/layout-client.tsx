@@ -2,6 +2,7 @@
 
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import AdminChatWidget from "../components/AdminChatWidget"; // ← ДОБАВЬ
 import { usePathname } from "next/navigation";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           {children}
         </main>
       </div>
+      <AdminChatWidget /> {/* ← ДОБАВЬ ЭТУ СТРОКУ */}
     </>
   );
 }

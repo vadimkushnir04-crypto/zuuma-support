@@ -15,7 +15,7 @@ export default function JsonConfigTutorial() {
 
   const basicConfig = `{
   "apiKey": "your_api_key_here",
-  "baseURL": "https://api.yourplatform.com/v1",
+  "baseURL": "https://zuuma.ru/api//chat/ask",
   "timeout": 30000,
   "retries": 3,
   "chatConfig": {
@@ -33,7 +33,7 @@ export default function JsonConfigTutorial() {
 
   const advancedConfig = `{
   "apiKey": "\${CHATBOT_API_KEY}",
-  "baseURL": "\${CHATBOT_BASE_URL:-https://api.yourplatform.com/v1}",
+  "baseURL": "\${CHATBOT_BASE_URL:-https://zuuma.ru/api//chat/ask}",
   "environment": "\${NODE_ENV:-development}",
   
   "chatConfig": {
@@ -169,7 +169,7 @@ module.exports = { sendConfiguredMessage, config };`;
   "environments": {
     "development": {
       "apiKey": "dev_api_key_here",
-      "baseURL": "https://dev-api.yourplatform.com/v1",
+      "baseURL": "https://dev-zuuma.ru/api//chat/ask",
       "chatConfig": {
         "temperature": 0.9,
         "debug": true
@@ -183,7 +183,7 @@ module.exports = { sendConfiguredMessage, config };`;
     
     "staging": {
       "apiKey": "STAGING_API_KEY_FROM_ENV",
-      "baseURL": "https://staging-api.yourplatform.com/v1",
+      "baseURL": "https://staging-zuuma.ru/api//chat/ask",
       "chatConfig": {
         "temperature": 0.8
       },
@@ -197,7 +197,7 @@ module.exports = { sendConfiguredMessage, config };`;
     
     "production": {
       "apiKey": "PRODUCTION_API_KEY_FROM_ENV",
-      "baseURL": "https://api.yourplatform.com/v1",
+      "baseURL": "https://zuuma.ru/api//chat/ask",
       "chatConfig": {
         "temperature": 0.7,
         "systemPrompt": "Ты профессиональный ассистент. Всегда проверяй факты."

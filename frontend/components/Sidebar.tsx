@@ -80,18 +80,17 @@ export default function Sidebar() {
       href: "/tutorials",
     },
 
-    // Новая ссылка на страницу оферты
+    // ссылка на страницу оферты
     {
       title: "Условия и политика",
       icon: <FileText size={20} />,
       href: "/offer",
     },
 
-    // Вторая ссылка для будущего функционала
     {
       title: "Получить помощь",
       icon: <LifeBuoy size={20} />,
-      href: "/help", // пока страница не создана
+      href: "/help",
     },
   ];
 

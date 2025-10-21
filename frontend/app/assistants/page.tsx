@@ -12,7 +12,11 @@ import {
   Eye,
   FileText,
   BarChart3,
-  Zap  
+  Zap,
+  Download,
+  ChevronDown,
+  ChevronUp
+
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
@@ -74,8 +78,6 @@ interface AssistantFunction {
   description: string;
   is_active: boolean;
 }
-
-type Language = "widget" | "javascript" | "nodejs" | "python" | "curl" | "json";
 
 interface Notification {
   type: "success" | "error";
@@ -408,204 +410,40 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
   onFunctions,
   formatDate,
 }) => {
-  // Локальное состояние для выбора языка в интеграции
-  const [selectedLanguage, setSelectedLanguage] = useState<"widget" | "javascript" | "nodejs" | "python" | "curl" | "json">("widget");
+  const [isCodeExpanded, setIsCodeExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Функция для получения кода интеграции
-  const getIntegrationCode = (lang: string, assistant: Assistant): string => {
-    const apiExamples = {
-  widget: `<!-- Добавьте этот код перед закрывающим тегом </body> -->
-  <script>
-    window.chatConfig = {
-      apiKey: '${assistant.apiKey}',
-      serverUrl: '${API_BASE_URL}',
-      theme: '${assistant.settings?.theme || "light"}',
-      assistantName: '${assistant.name}',
-      customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
-      primaryColor: '${assistant.settings?.primaryColor || "#667eea"}',
-      assistantId: '${assistant.id}'
-    };
-  </script>
-  <script src="https://zuuma.ru/chat-widget.js"></script>`,
+  const activeFunctions = functions.filter(f => f.is_active);
 
-      javascript: `// JavaScript (browser)
-async function initChatWidget() {
-  // Загружаем виджет
-  const script = document.createElement('script');
-  script.src = 'https://zuuma.ru/chat-widget.js';
-  
-  // Конфигурация
+  // HTML код виджета
+  const widgetCode = `<!-- Добавьте этот код перед закрывающим тегом </body> -->
+<script>
   window.chatConfig = {
-      apiKey: '${assistant.apiKey}',
-      serverUrl: '${API_BASE_URL}',
-      theme: '${assistant.settings?.theme || "light"}',
-      assistantName: '${assistant.name}',
-      customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
-      assistantId: '${assistant.id}'
+    apiKey: '${assistant.apiKey}',
+    serverUrl: '${API_BASE_URL}',
+    theme: '${assistant.settings?.theme || "light"}',
+    assistantName: '${assistant.name}',
+    customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
+    primaryColor: '${assistant.settings?.primaryColor || "#667eea"}',
+    assistantId: '${assistant.id}'
   };
-  
-  document.head.appendChild(script);
-}
+</script>
+<script src="https://zuuma.ru/chat-widget.js"></script>`;
 
-// Вызов API напрямую
-async function sendMessage(message, conversationId = null) {
-  const response = await fetch('${API_BASE_URL}/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ${assistant.apiKey}'
-    },
-    body: JSON.stringify({
-      message: message,
-      conversationId: conversationId
-    })
-  });
-  
-  const data = await response.json();
-  return data;
-}`,
-
-      nodejs: `// Node.js
-const axios = require('axios');
-
-class ChatAssistant {
-  constructor() {
-    this.apiKey = '${assistant.apiKey}';
-    this.baseURL = '${API_BASE_URL}';
-  }
-
-  async sendMessage(message, conversationId = null) {
+  // Функция копирования
+  const copyToClipboard = async (text: string) => {
     try {
-      const response = await axios.post(\`\${this.baseURL}/chat\`, {
-        message,
-        conversationId
-      }, {
-        headers: {
-          'Authorization': \`Bearer \${this.apiKey}\`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      return response.data;
-    } catch (error) {
-      console.error('Chat API Error:', error.response?.data || error.message);
-      throw error;
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Ошибка копирования:", err);
     }
-  }
-
-  async getAssistantInfo() {
-    const response = await axios.get(\`\${this.baseURL}/chat/info\`, {
-      headers: { 'Authorization': \`Bearer \${this.apiKey}\` }
-    });
-    return response.data;
-  }
-}
-
-// Использование
-const assistant = new ChatAssistant();
-const result = await assistant.sendMessage('Привет!');
-console.log(result);`,
-
-      python: `# Python
-import requests
-import json
-
-class ChatAssistant:
-    def __init__(self):
-        self.api_key = '${assistant.apiKey}'
-        self.base_url = '${API_BASE_URL}'
-        self.headers = {
-            'Authorization': f'Bearer {self.api_key}',
-            'Content-Type': 'application/json'
-        }
-    
-    def send_message(self, message, conversation_id=None):
-        """Отправить сообщение ассистенту"""
-        url = f'{self.base_url}/chat'
-        payload = {
-            'message': message,
-            'conversationId': conversation_id
-        }
-        
-        try:
-            response = requests.post(url, headers=self.headers, json=payload)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            print(f'Error: {e}')
-            return None
-    
-    def get_assistant_info(self):
-        """Получить информацию об ассистенте"""
-        url = f'{self.base_url}/chat/info'
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
-
-# Использование
-assistant = ChatAssistant()
-result = assistant.send_message('Привет!')
-print(result)`,
-
-      curl: `# cURL примеры
-
-# Отправить сообщение
-curl -X POST "${API_BASE_URL}/chat" \\
-  -H "Authorization: Bearer ${assistant.apiKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "message": "Привет!",
-    "conversationId": null
-  }'
-
-# Получить информацию об ассистенте
-curl -X GET "${API_BASE_URL}/chat/info" \\
-  -H "Authorization: Bearer ${assistant.apiKey}"
-
-# Получить историю разговора
-curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
-  -H "Authorization: Bearer ${assistant.apiKey}"`,
-
-      json: `{
-  "apiKey": "${assistant.apiKey}",
-  "serverUrl": "${API_BASE_URL}",
-  "assistantConfig": {
-    "name": "${assistant.name}",
-    "description": "${assistant.description || ''}",
-    "isActive": ${assistant.isActive},
-    "theme": "${assistant.settings?.theme || 'light'}",
-    "customGreeting": "${assistant.settings?.customGreeting || 'Здравствуйте! Чем могу помочь?'}",
-    "primaryColor": "${assistant.settings?.primaryColor || '#667eea'}"
-  },
-  "endpoints": {
-    "chat": "${API_BASE_URL}/chat",
-    "info": "${API_BASE_URL}/chat/info",
-    "history": "${API_BASE_URL}/chat/history/{conversationId}"
-  },
-  "widgetScript": "https://zuuma.ru/chat-widget.js"
-}`
-    };
-
-    return apiExamples[lang as keyof typeof apiExamples] || apiExamples.widget;
   };
 
-  // Функция для получения подсказок
-  const getHelpText = (lang: string): string => {
-    const helpTexts = {
-      widget: "Вставьте код перед закрывающим тегом </body> на вашем сайте. Виджет автоматически появится в правом нижнем углу.",
-      javascript: "Используйте для интеграции в браузерные приложения. Можете загрузить виджет или вызывать API напрямую.",
-      nodejs: "Серверное решение для Node.js приложений. Установите axios: npm install axios",
-      python: "Для Python приложений. Установите requests: pip install requests",
-      curl: "Для тестирования API из командной строки или создания собственных HTTP-клиентов.",
-      json: "Конфигурационный файл с настройками ассистента для использования в любых приложениях."
-    };
-
-    return helpTexts[lang as keyof typeof helpTexts] || helpTexts.widget;
-  };
-
-  // Функция для создания тестового HTML файла
-  const createTestHtml = (assistant: Assistant): string => {
-    return `<!DOCTYPE html>
+  // Создание тестового HTML файла
+  const downloadTestHtml = () => {
+    const testHtml = `<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -689,56 +527,60 @@ curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
     <script src="https://zuuma.ru/chat-widget.js"></script>
 </body>
 </html>`;
-  };
 
-  // Функция копирования с уведомлением (локальная версия)
-  const copyToClipboard = async (text: string, codeType?: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log(`${codeType || "Код"} скопирован в буфер обмена`);
-    } catch (err) {
-      console.error("Ошибка копирования:", err);
-    }
+    const blob = new Blob([testHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `test-widget-${assistant.name.toLowerCase().replace(/\s+/g, '-')}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-
-  const activeFunctions = functions.filter(f => f.is_active);
 
   return (
-    <div className="assistant-card" style={{ border: "2px solid #444444", borderRadius: 15, padding: 20 }}>
-      <div className="assistant-card-header" style={{ display: "flex", justifyContent: "space-between", gap: 20 }}>
-        <div className="assistant-card-info" style={{ display: "flex", gap: 12 }}>
-          <div className="assistant-card-icon" style={{ display: "flex", alignItems: "center" }}>
+    <div style={{ 
+      border: "1px solid #e5e7eb", 
+      borderRadius: 12, 
+      padding: 20,
+      background: "white",
+      marginBottom: 16
+    }}>
+      {/* Шапка карточки */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 12, flex: 1 }}>
+          <div style={{ color: "#667eea" }}>
             <Bot size={28} />
           </div>
-          <div>
-            <h3 className="assistant-card-name" style={{ margin: 0 }}>{assistant.name}</h3>
-            {assistant.description && <p className="assistant-card-desc" style={{ margin: "4px 0 0 0", color: "#6b7280" }}>{assistant.description}</p>}
-            <div className="assistant-card-meta" style={{ marginTop: 8, fontSize: 12, color: "#6b7280", display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>{assistant.name}</h3>
+            {assistant.description && (
+              <p style={{ margin: "4px 0 0 0", color: "#6b7280", fontSize: 14 }}>{assistant.description}</p>
+            )}
+            <div style={{ marginTop: 8, fontSize: 12, color: "#9ca3af", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <span>Создан: {formatDate(assistant.createdAt)}</span>
-              {stats?.lastUsed && <span>Последнее использование: {formatDate(stats.lastUsed ?? undefined)}</span>}
-              <span className={`assistant-card-status ${assistant.isActive ? "active" : "inactive"}`} style={{ 
-                padding: "2px 6px", 
-                borderRadius: "4px",
-                fontSize: "10px",
+              {stats?.lastUsed && <span>Последнее использование: {formatDate(stats.lastUsed)}</span>}
+              <span style={{ 
+                padding: "2px 8px", 
+                borderRadius: 12,
+                fontSize: 11,
                 fontWeight: 600,
                 backgroundColor: assistant.isActive ? "#10b981" : "#6b7280",
                 color: "white"
               }}>
                 {assistant.isActive ? "Активен" : "Отключен"}
               </span>
-              {/* Индикатор API функций */}
               {activeFunctions.length > 0 && (
                 <span 
                   style={{ 
-                    padding: "2px 6px", 
-                    borderRadius: "4px",
-                    fontSize: "10px",
+                    padding: "2px 8px", 
+                    borderRadius: 12,
+                    fontSize: 11,
                     fontWeight: 600,
                     backgroundColor: "#f59e0b",
                     color: "white",
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    gap: "2px"
+                    gap: 4
                   }}
                   title={`API функции: ${activeFunctions.map(f => f.name).join(', ')}`}
                 >
@@ -750,200 +592,297 @@ curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
           </div>
         </div>
 
-        <div className="assistant-card-actions" style={{ display: "flex", gap: 6 }}>
-          <button onClick={onEdit} className="assistant-btn" title="Настройки">
+        {/* Кнопки действий */}
+        <div style={{ display: "flex", gap: 6 }}>
+          <button 
+            onClick={onEdit}
+            style={{
+              padding: 8,
+              border: "1px solid #e5e7eb",
+              borderRadius: 6,
+              background: "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            title="Настройки"
+          >
             <Settings size={16} />
           </button>
           <button 
             onClick={onFunctions}
-            className="assistant-btn" 
-            title="API Функции"
             style={{
-              backgroundColor: activeFunctions.length > 0 ? "#f59e0b" : undefined
+              padding: 8,
+              border: "1px solid #e5e7eb",
+              borderRadius: 6,
+              background: activeFunctions.length > 0 ? "#fef3c7" : "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
             }}
+            title="API Функции"
           >
             <Zap size={16} />
           </button>
-          <button onClick={onRegenerateKey} className="assistant-btn" title="Обновить ключ">
+          <button 
+            onClick={onRegenerateKey}
+            style={{
+              padding: 8,
+              border: "1px solid #e5e7eb",
+              borderRadius: 6,
+              background: "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            title="Обновить ключ"
+          >
             <RefreshCw size={16} />
           </button>
-          <button onClick={onDelete} className="assistant-btn delete" title="Удалить">
+          <button 
+            onClick={onDelete}
+            style={{
+              padding: 8,
+              border: "1px solid #fee2e2",
+              borderRadius: 6,
+              background: "white",
+              color: "#dc2626",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            title="Удалить"
+          >
             <Trash2 size={16} />
           </button>
         </div>
       </div>
 
+      {/* Статистика */}
       {stats && (
-        <div className="assistant-stats" style={{ display: "flex", gap: 12, marginTop: 12 }}>
-          <div className="assistant-stat" style={{ textAlign: "center" }}>
-            <div className="assistant-stat-value" style={{ fontWeight: 600 }}>{stats.totalQueries}</div>
-            <div className="assistant-stat-title" style={{ fontSize: 12 }}>Запросов</div>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", 
+          gap: 12, 
+          marginBottom: 16,
+          padding: 16,
+          background: "#f9fafb",
+          borderRadius: 8
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600, fontSize: 20, color: "#1f2937" }}>{stats.totalQueries}</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>Запросов</div>
           </div>
-          <div className="assistant-stat" style={{ textAlign: "center" }}>
-            <div className="assistant-stat-value" style={{ fontWeight: 600 }}>{stats.totalDocuments}</div>
-            <div className="assistant-stat-title" style={{ fontSize: 12 }}>Документов</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600, fontSize: 20, color: "#1f2937" }}>{stats.totalDocuments}</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>Документов</div>
           </div>
-          <div className="assistant-stat" style={{ textAlign: "center" }}>
-            <div className="assistant-stat-value" style={{ fontWeight: 600 }}>{activeFunctions.length}</div>
-            <div className="assistant-stat-title" style={{ fontSize: 12 }}>API функций</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 600, fontSize: 20, color: "#1f2937" }}>{activeFunctions.length}</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>API функций</div>
           </div>
-          <div className="assistant-stat" style={{ textAlign: "center" }}>
-            <div className="assistant-stat-value" style={{ fontWeight: 600 }}>{assistant.isActive ? "Online" : "Offline"}</div>
-            <div className="assistant-stat-title" style={{ fontSize: 12 }}>Статус</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ 
+              fontWeight: 600, 
+              fontSize: 14, 
+              color: assistant.isActive ? "#10b981" : "#6b7280" 
+            }}>
+              {assistant.isActive ? "Online" : "Offline"}
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>Статус</div>
           </div>
         </div>
       )}
 
-      {/* API key block */}
-      <div className="api-key-block" style={{ marginTop: 12 }}>
-        <div className="api-key-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <label className="api-key-label" style={{ fontSize: 12 }}>API ключ</label>
-          <button onClick={onToggleApiKey} className="api-key-toggle" style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <Eye size={14} /> {isApiKeyVisible ? "Скрыть" : "Показать"}
+      {/* API ключ */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <label style={{ fontSize: 12, fontWeight: 500, color: "#6b7280" }}>API ключ</label>
+          <button 
+            onClick={onToggleApiKey}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 12,
+              color: "#667eea",
+              display: "flex",
+              alignItems: "center",
+              gap: 4
+            }}
+          >
+            <Eye size={14} />
+            {isApiKeyVisible ? "Скрыть" : "Показать"}
           </button>
         </div>
-        <div className="api-key-row" style={{ display: "flex", gap: 8, marginTop: 6 }}>
+        <div style={{ display: "flex", gap: 8 }}>
           <input
             type="text"
             value={isApiKeyVisible ? assistant.apiKey : "••••••••••••••••"}
             readOnly
-            className="api-key-input"
-            style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #444444" }}
+            style={{ 
+              flex: 1, 
+              padding: "8px 12px", 
+              borderRadius: 6, 
+              border: "1px solid #e5e7eb",
+              fontSize: 14,
+              fontFamily: "monospace"
+            }}
           />
-          <button onClick={onCopyApiKey} className="api-key-copy" title="Копировать">
+          <button 
+            onClick={onCopyApiKey}
+            style={{
+              padding: "8px 12px",
+              border: "1px solid #e5e7eb",
+              borderRadius: 6,
+              background: "white",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center"
+            }}
+            title="Копировать"
+          >
             <Copy size={16} />
           </button>
         </div>
-        <p className="api-key-hint" style={{ marginTop: 8, fontSize: 12, color: "#E0E0E0" }}>
-          Используйте этот ключ для интеграции ассистента на вашем сайте
+        <p style={{ marginTop: 8, fontSize: 12, color: "#9ca3af" }}>
+          Используйте этот ключ для интеграции ассистента
         </p>
       </div>
 
-      {/* Integration code */}
-      <details className="integration-details" style={{ marginTop: 12 }}>
-        <summary className="integration-summary" style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <FileText size={14} /> Код для интеграции на сайт
-        </summary>
-        <div className="integration-code-block" style={{ marginTop: 8 }}>
-          {/* Language selector */}
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 12, display: "block", marginBottom: 6, color: "#E0E0E0" }}>
-              Выберите язык программирования:
-            </label>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {(["widget", "javascript", "nodejs", "python", "curl", "json"] as const).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSelectedLanguage(lang);
-                  }}
-                  className={`lang-btn ${selectedLanguage === lang ? "active" : ""}`}
-                  style={{
-                    padding: "4px 8px",
-                    fontSize: "12px",
-                    borderRadius: 4,
-                    border: selectedLanguage === lang ? "1px solid #667eea" : "1px solid #444444",
-                    background: selectedLanguage === lang ? "#667eea" : "transparent",
-                    color: selectedLanguage === lang ? "#fff" : "#E0E0E0",
-                    cursor: "pointer",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  {lang === "widget" ? "HTML Widget" : 
-                   lang === "json" ? "JSON Config" : 
-                   lang.charAt(0).toUpperCase() + lang.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Выдвигающаяся секция с кодом */}
+      <div style={{ borderTop: "1px solid #e5e7eb" }}>
+        <button
+          onClick={() => setIsCodeExpanded(!isCodeExpanded)}
+          style={{
+            width: "100%",
+            padding: "12px 0",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            fontSize: 14,
+            fontWeight: 500,
+            color: "#1f2937"
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <FileText size={16} color="#667eea" />
+            Код для интеграции на сайт (HTML виджет)
+          </span>
+          {isCodeExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+        </button>
 
-          {/* Code display */}
-          <pre style={{ 
-            whiteSpace: "pre-wrap", 
-            padding: 12, 
-            borderRadius: 6, 
-            background: "#121212", 
-            border: "1px solid #444444",
-            fontSize: "12px",
-            lineHeight: "1.4",
-            maxHeight: "300px",
-            overflow: "auto"
-          }}>
-            <code style={{ color: "#E0E0E0" }}>
-              {getIntegrationCode(selectedLanguage, assistant)}
-            </code>
-          </pre>
-
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                copyToClipboard(getIntegrationCode(selectedLanguage, assistant), `${selectedLanguage} код`);
-              }}
-              className="integration-copy-btn"
-              style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-                borderRadius: 4,
-                border: "1px solid #444444",
-                background: "#333",
-                color: "#E0E0E0",
-                cursor: "pointer"
-              }}
-            >
-              <Copy size={12} style={{ marginRight: 4 }} />
-              Копировать код
-            </button>
-            
-            {selectedLanguage === "widget" && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const testHtml = createTestHtml(assistant);
-                  const blob = new Blob([testHtml], { type: 'text/html' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `test-widget-${assistant.name.toLowerCase().replace(/\s+/g, '-')}.html`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                  copyToClipboard("", "Тестовый файл скачан");
-                }}
-                className="integration-copy-btn"
-                style={{
-                  padding: "6px 12px",
-                  fontSize: "12px",
+        {isCodeExpanded && (
+          <div style={{ paddingTop: 16, paddingBottom: 8 }}>
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center",
+              marginBottom: 12
+            }}>
+              <p style={{ 
+                margin: 0, 
+                color: "#6b7280", 
+                fontSize: 13 
+              }}>
+                Вставьте код перед закрывающим тегом <code style={{ 
+                  background: "#f3f4f6", 
+                  padding: "2px 6px", 
                   borderRadius: 4,
-                  border: "1px solid #10b981",
-                  background: "#10b981",
-                  color: "#fff",
-                  cursor: "pointer"
+                  fontSize: 12
+                }}>&lt;/body&gt;</code>
+              </p>
+            </div>
+
+            <pre style={{
+              background: "#1e293b",
+              color: "#e2e8f0",
+              padding: 16,
+              borderRadius: 8,
+              overflow: "auto",
+              fontSize: 13,
+              lineHeight: 1.5,
+              margin: 0
+            }}>
+              <code>{widgetCode}</code>
+            </pre>
+
+            {/* Кнопки действий */}
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <button
+                onClick={() => copyToClipboard(widgetCode)}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  borderRadius: 6,
+                  border: "none",
+                  background: copied ? "#10b981" : "#667eea",
+                  color: "white",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontWeight: 500,
+                  transition: "all 0.2s"
                 }}
               >
+                <Copy size={14} />
+                {copied ? "Скопировано!" : "Копировать код"}
+              </button>
+              
+              <button
+                onClick={downloadTestHtml}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  borderRadius: 6,
+                  border: "1px solid #10b981",
+                  background: "white",
+                  color: "#10b981",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontWeight: 500
+                }}
+              >
+                <Download size={14} />
                 Скачать тест HTML
               </button>
-            )}
-          </div>
+            </div>
 
-          {/* Helpful info */}
-          <div style={{ 
-            marginTop: 12, 
-            padding: 8, 
-            background: "rgba(16, 185, 129, 0.1)", 
-            border: "1px solid rgba(16, 185, 129, 0.3)", 
-            borderRadius: 4,
-            fontSize: "11px",
-            color: "#10b981"
-          }}>
-            {getHelpText(selectedLanguage)}
+            {/* Подсказка */}
+            <div style={{ 
+              marginTop: 16, 
+              padding: 12, 
+              background: "#eff6ff", 
+              border: "1px solid #bfdbfe",
+              borderRadius: 6,
+              fontSize: 13,
+              color: "#1e40af"
+            }}>
+              💡 <strong>Для продвинутой интеграции</strong> (Node.js, Python, cURL, JSON) перейдите в раздел{' '}
+              <a 
+                href="/integrations" 
+                style={{ 
+                  color: "#2563eb", 
+                  textDecoration: "underline",
+                  fontWeight: 500
+                }}
+              >
+                Интеграции
+              </a>
+            </div>
           </div>
-        </div>
-      </details>
+        )}
+      </div>
     </div>
   );
 };

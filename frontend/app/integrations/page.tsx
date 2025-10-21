@@ -19,7 +19,12 @@ import {
   Save,
   TrendingUp,
   Users,
-  MessageSquare
+  MessageSquare,
+  FileCode,
+  Terminal,
+  Book,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import { useIntegrations } from '../../hooks/useIntegrations';
 import { useAssistants } from '../../hooks/useAssistants';
@@ -33,6 +38,9 @@ export default function IntegrationsPage() {
   const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationType | null>(null);
+  const [showDocsModal, setShowDocsModal] = useState(false);
+  const [selectedDocs, setSelectedDocs] = useState<string>('');
+  const [copiedCode, setCopiedCode] = useState<string>('');
 
   const {
     integrations,
@@ -44,6 +52,8 @@ export default function IntegrationsPage() {
   } = useIntegrations();
 
   const { assistants } = useAssistants();
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
 
   const formatIntegrationDate = (int: IntegrationType) => {
     const raw = (int as any).created ?? (int as any).createdAt ?? (int as any).created_at ?? null;
@@ -140,6 +150,149 @@ export default function IntegrationsPage() {
     }
   };
 
+  const openDocs = (type: string) => {
+    setSelectedDocs(type);
+    setShowDocsModal(true);
+  };
+
+  const copyCode = (code: string, type: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(type);
+    setTimeout(() => setCopiedCode(''), 2000);
+  };
+
+  const getCodeExample = (lang: string, apiKey: string = 'YOUR_API_KEY') => {
+    const examples: Record<string, string> = {
+      javascript: `// JavaScript (Browser)
+const API_URL = '${API_BASE_URL}';
+const API_KEY = '${apiKey}';
+
+async function sendMessage(message, conversationId = null) {
+  const response = await fetch(\`\${API_URL}/chat\`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': \`Bearer \${API_KEY}\`
+    },
+    body: JSON.stringify({
+      message: message,
+      conversationId: conversationId
+    })
+  });
+  
+  const data = await response.json();
+  return data;
+}
+
+// Использование
+const result = await sendMessage('Привет!');
+console.log(result);`,
+
+      nodejs: `// Node.js
+const axios = require('axios');
+
+const API_URL = '${API_BASE_URL}';
+const API_KEY = '${apiKey}';
+
+class ChatAssistant {
+  async sendMessage(message, conversationId = null) {
+    try {
+      const response = await axios.post(\`\${API_URL}/chat\`, {
+        message,
+        conversationId
+      }, {
+        headers: {
+          'Authorization': \`Bearer \${API_KEY}\`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Chat API Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async getAssistantInfo() {
+    const response = await axios.get(\`\${API_URL}/chat/info\`, {
+      headers: { 'Authorization': \`Bearer \${API_KEY}\` }
+    });
+    return response.data;
+  }
+}
+
+// Использование
+const assistant = new ChatAssistant();
+const result = await assistant.sendMessage('Привет!');
+console.log(result);`,
+
+      python: `# Python
+import requests
+import json
+
+API_URL = '${API_BASE_URL}'
+API_KEY = '${apiKey}'
+
+class ChatAssistant:
+    def __init__(self):
+        self.api_url = API_URL
+        self.headers = {
+            'Authorization': f'Bearer {API_KEY}',
+            'Content-Type': 'application/json'
+        }
+    
+    def send_message(self, message, conversation_id=None):
+        """Отправить сообщение ассистенту"""
+        url = f'{self.api_url}/chat'
+        payload = {
+            'message': message,
+            'conversationId': conversation_id
+        }
+        
+        try:
+            response = requests.post(url, headers=self.headers, json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            print(f'Error: {e}')
+            return None
+    
+    def get_assistant_info(self):
+        """Получить информацию об ассистенте"""
+        url = f'{self.api_url}/chat/info'
+        response = requests.get(url, headers=self.headers)
+        response.raise_for_status()
+        return response.json()
+
+# Использование
+assistant = ChatAssistant()
+result = assistant.send_message('Привет!')
+print(result)`,
+
+      curl: `# cURL примеры
+
+# Отправить сообщение
+curl -X POST "${API_BASE_URL}/chat" \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "message": "Привет!",
+    "conversationId": null
+  }'
+
+# Получить информацию об ассистенте
+curl -X GET "${API_BASE_URL}/chat/info" \\
+  -H "Authorization: Bearer ${apiKey}"
+
+# Получить историю разговора
+curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
+  -H "Authorization: Bearer ${apiKey}"`
+    };
+
+    return examples[lang] || '';
+  };
+
   const integrationTypes = [
     {
       id: 'telegram',
@@ -150,18 +303,20 @@ export default function IntegrationsPage() {
       badge: 'Популярно'
     },
     {
-      id: 'widget',
-      title: 'Веб-виджет',
-      description: 'Встройте чат-бота на ваш сайт',
-      icon: <Globe size={24} />,
-      color: '#888888'
-    },
-    {
       id: 'api',
       title: 'REST API',
       description: 'Интегрируйте через API в ваше приложение',
       icon: <Code2 size={24} />,
-      color: '#10b981'
+      color: '#10b981',
+      badge: null
+    },
+    {
+      id: 'widget',
+      title: 'Веб-виджет',
+      description: 'Встройте чат-бота на ваш сайт',
+      icon: <Globe size={24} />,
+      color: '#888888',
+      badge: null
     },
     {
       id: 'whatsapp',
@@ -170,6 +325,41 @@ export default function IntegrationsPage() {
       icon: <Smartphone size={24} />,
       color: '#25d366',
       badge: 'Скоро'
+    }
+  ];
+
+  const apiDocumentation = [
+    {
+      id: 'javascript',
+      title: 'JavaScript',
+      description: 'Для браузерных приложений и веб-сайтов',
+      icon: <FileCode size={32} />,
+      color: '#f7df1e',
+      difficulty: 'Легко'
+    },
+    {
+      id: 'nodejs',
+      title: 'Node.js',
+      description: 'Серверная интеграция для Node.js приложений',
+      icon: <Terminal size={32} />,
+      color: '#68a063',
+      difficulty: 'Средне'
+    },
+    {
+      id: 'python',
+      title: 'Python',
+      description: 'Для Python приложений и скриптов',
+      icon: <Code2 size={32} />,
+      color: '#3776ab',
+      difficulty: 'Легко'
+    },
+    {
+      id: 'curl',
+      title: 'cURL',
+      description: 'Тестирование API из командной строки',
+      icon: <Terminal size={32} />,
+      color: '#073642',
+      difficulty: 'Легко'
     }
   ];
 
@@ -223,123 +413,123 @@ export default function IntegrationsPage() {
           ))}
         </div>
 
-        <div className="integrations-section">
-          <div className="section-header">
-            <h2>Активные интеграции</h2>
-            <button
-              className="btn-primary"
-              onClick={() => setShowCreateModal(true)}
-              disabled={activeTab === 'whatsapp'}
-            >
-              <Plus size={16} />
-              Создать интеграцию
-            </button>
-          </div>
+        {/* TELEGRAM TAB */}
+        {activeTab === 'telegram' && (
+          <div className="integrations-section">
+            <div className="section-header">
+              <h2>Активные интеграции</h2>
+              <button
+                className="btn-primary"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <Plus size={16} />
+                Создать интеграцию
+              </button>
+            </div>
 
-          <div className="integrations-list">
-            {integrations
-              .filter(int => (int.type ?? 'telegram') === activeTab)
-              .map((integration) => (
-                <div key={integration.id} className="integration-card">
-                  <div className="integration-info">
-                    <div className="integration-header">
-                      <h4>{integration.name}</h4>
-                      <div className={`status-badge ${integration.status}`}>
-                        {integration.status === 'active' ? 'Активен' :
-                          integration.status === 'creating' ? 'Создается...' :
-                            integration.status === 'pending' ? 'Настраивается...' : 'Остановлен'}
+            <div className="integrations-list">
+              {integrations
+                .filter(int => (int.type ?? 'telegram') === activeTab)
+                .map((integration) => (
+                  <div key={integration.id} className="integration-card">
+                    <div className="integration-info">
+                      <div className="integration-header">
+                        <h4>{integration.name}</h4>
+                        <div className={`status-badge ${integration.status}`}>
+                          {integration.status === 'active' ? 'Активен' :
+                            integration.status === 'creating' ? 'Создается...' :
+                              integration.status === 'pending' ? 'Настраивается...' : 'Остановлен'}
+                        </div>
                       </div>
+
+                      <p>
+                        Ассистент: <strong>
+                          {integration.assistantName ||
+                            (integration as any).assistant?.name ||
+                            integration.assistant ||
+                            integration.assistantId ||
+                            'Не указан'}
+                        </strong>
+                      </p>
+
+                      {integration.type === 'telegram' && integration.config?.telegramUrl && (
+                        <div className="telegram-info-block">
+                          <p>Username: @{integration.config.telegramUsername}</p>
+                          <p>Команды: {integration.config.commands?.join(', ') || '/start'}</p>
+                          <a
+                            href={integration.config.telegramUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="telegram-link"
+                          >
+                            <MessageCircle size={16} />
+                            Открыть бота
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
+                      )}
+
+                      <p className="creation-date">
+                        Создан: {formatIntegrationDate(integration as IntegrationType)}
+                      </p>
                     </div>
 
-                    <p>
-                      Ассистент: <strong>
-                        {integration.assistantName ||
-                          (integration as any).assistant?.name ||
-                          integration.assistant ||
-                          integration.assistantId ||
-                          'Не указан'}
-                      </strong>
-                    </p>
-
-                    {integration.type === 'telegram' && integration.config?.telegramUrl && (
-                      <div className="telegram-info-block">
-                        <p>Username: @{integration.config.telegramUsername}</p>
-                        <p>Команды: {integration.config.commands?.join(', ') || '/start'}</p>
-                        <a                                         // ← ДОБАВЬТЕ 
-                          href={integration.config.telegramUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="telegram-link"
+                    <div className="integration-actions">
+                      {integration.type === 'telegram' && integration.config?.telegramToken && (
+                        <button
+                          className="btn-icon"
+                          title="Скопировать токен"
+                          onClick={() => navigator.clipboard.writeText(integration.config!.telegramToken!)}
                         >
-                          <MessageCircle size={16} />
-                          Открыть бота
-                          <ExternalLink size={14} />
-                        </a>
-                      </div>
-                    )}
+                          <Copy size={16} />
+                        </button>
+                      )}
 
-                    <p className="creation-date">
-                      Создан: {formatIntegrationDate(integration as IntegrationType)}
-                    </p>
-                  </div>
-
-                  <div className="integration-actions">
-                    {integration.type === 'telegram' && integration.config?.telegramToken && (
                       <button
                         className="btn-icon"
-                        title="Скопировать токен"
-                        onClick={() => navigator.clipboard.writeText(integration.config!.telegramToken!)}
+                        title="Аналитика"
+                        onClick={() => openAnalytics(integration)}
                       >
-                        <Copy size={16} />
+                        <Eye size={16} />
                       </button>
-                    )}
 
-                    <button 
-                      className="btn-icon" 
-                      title="Аналитика"
-                      onClick={() => openAnalytics(integration)}
-                    >
-                      <Eye size={16} />
-                    </button>
+                      <button
+                        className="btn-icon"
+                        title="Настройки"
+                        onClick={() => openSettings(integration)}
+                      >
+                        <Settings size={16} />
+                      </button>
 
-                    <button 
-                      className="btn-icon" 
-                      title="Настройки"
-                      onClick={() => openSettings(integration)}
-                    >
-                      <Settings size={16} />
-                    </button>
+                      <button
+                        className="btn-icon"
+                        onClick={() => handleToggleIntegration(integration.id)}
+                        title={integration.status === 'active' ? 'Остановить' : 'Запустить'}
+                        disabled={integration.status === 'creating' || isProcessing(integration.id)}
+                      >
+                        {isProcessing(integration.id) ? <span className="btn-loader" /> :
+                          (integration.status === 'active' ? <Pause size={16} /> : <Play size={16} />)}
+                      </button>
 
-                    <button
-                      className="btn-icon"
-                      onClick={() => handleToggleIntegration(integration.id)}
-                      title={integration.status === 'active' ? 'Остановить' : 'Запустить'}
-                      disabled={integration.status === 'creating' || isProcessing(integration.id)}
-                    >
-                      {isProcessing(integration.id) ? <span className="btn-loader" /> :
-                        (integration.status === 'active' ? <Pause size={16} /> : <Play size={16} />)}
-                    </button>
-
-                    <button
-                      className="btn-icon danger"
-                      onClick={() => handleDeleteIntegration(integration.id)}
-                      title="Удалить"
-                      disabled={integration.status === 'creating' || isProcessing(integration.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      <button
+                        className="btn-icon danger"
+                        onClick={() => handleDeleteIntegration(integration.id)}
+                        title="Удалить"
+                        disabled={integration.status === 'creating' || isProcessing(integration.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
 
-            {integrations.filter(int => (int.type ?? 'telegram') === activeTab).length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  {integrationTypes.find(t => t.id === activeTab)?.icon}
-                </div>
-                <h3>Нет интеграций</h3>
-                <p>Создайте свою первую интеграцию типа {integrationTypes.find(t => t.id === activeTab)?.title}</p>
-                {activeTab !== 'whatsapp' && (
+              {integrations.filter(int => (int.type ?? 'telegram') === activeTab).length === 0 && (
+                <div className="empty-state">
+                  <div className="empty-icon">
+                    <MessageCircle size={48} />
+                  </div>
+                  <h3>Нет интеграций</h3>
+                  <p>Создайте свою первую интеграцию Telegram Bot</p>
                   <button
                     className="btn-primary"
                     onClick={() => setShowCreateModal(true)}
@@ -347,12 +537,105 @@ export default function IntegrationsPage() {
                     <Plus size={16} />
                     Создать интеграцию
                   </button>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
+        {/* API TAB */}
+        {activeTab === 'api' && (
+          <div className="integrations-section">
+            <div className="section-header">
+              <h2>REST API Документация</h2>
+            </div>
+            <p className="section-description">
+              Выберите язык программирования для просмотра примеров интеграции
+            </p>
+
+            <div className="api-docs-grid">
+              {apiDocumentation.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="api-doc-card"
+                  onClick={() => openDocs(doc.id)}
+                >
+                  <div className="doc-icon" style={{ color: doc.color }}>
+                    {doc.icon}
+                  </div>
+                  <h3>{doc.title}</h3>
+                  <p>{doc.description}</p>
+                  <div className="doc-footer">
+                    <span className="difficulty-badge">{doc.difficulty}</span>
+                    <ChevronRight size={20} color="#667eea" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="api-info-block">
+              <h3>
+                <Book size={20} />
+                Основная информация
+              </h3>
+              <div className="api-info-content">
+                <div className="info-item">
+                  <strong>Base URL:</strong>
+                  <code>{API_BASE_URL}</code>
+                </div>
+                <div className="info-item">
+                  <strong>Аутентификация:</strong> Bearer Token (API ключ вашего ассистента)
+                </div>
+                <div className="info-item">
+                  <strong>Content-Type:</strong> application/json
+                </div>
+              </div>
+
+              <h4>Основные эндпоинты:</h4>
+              <ul className="endpoints-list">
+                <li><code>POST /chat</code> - Отправить сообщение ассистенту</li>
+                <li><code>GET /chat/info</code> - Получить информацию об ассистенте</li>
+                <li><code>GET /chat/history/:id</code> - Получить историю разговора</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* WIDGET TAB */}
+        {activeTab === 'widget' && (
+          <div className="integrations-section">
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Globe size={48} />
+              </div>
+              <h3>Веб-виджет</h3>
+              <p>
+                HTML код виджета доступен на странице каждого ассистента.
+                <br />
+                Перейдите в раздел "Ассистенты" и откройте секцию "Код для интеграции".
+              </p>
+              <a href="/assistants" className="btn-primary">
+                Перейти к ассистентам
+                <ChevronRight size={16} />
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* WHATSAPP TAB */}
+        {activeTab === 'whatsapp' && (
+          <div className="integrations-section">
+            <div className="empty-state">
+              <div className="empty-icon">
+                <Smartphone size={48} />
+              </div>
+              <h3>WhatsApp Business</h3>
+              <p>Интеграция с WhatsApp Business API скоро будет доступна</p>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: Create Telegram Bot */}
         {showCreateModal && (
           <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
             <div className="modal telegram-modal large" onClick={(e) => e.stopPropagation()}>
@@ -370,15 +653,104 @@ export default function IntegrationsPage() {
               </div>
 
               <div className="modal-content-integration">
-                {activeTab === 'telegram' ? (
-                  <ManualBotConnection
-                    assistants={assistants.filter(a => a.trained)}
-                    onBotCreated={handleBotCreated}
-                  />
-                ) : (
-                  <div className="other-integration">
-                    <p>Создание интеграции типа "{integrationTypes.find(t => t.id === activeTab)?.title}" пока не реализовано.</p>
-                    <p>Эта функциональность будет добавлена в следующих версиях.</p>
+                <ManualBotConnection
+                  assistants={assistants.filter(a => a.trained)}
+                  onBotCreated={handleBotCreated}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: API Documentation */}
+        {showDocsModal && (
+          <div className="modal-overlay" onClick={() => setShowDocsModal(false)}>
+            <div className="modal docs-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>
+                  {apiDocumentation.find(d => d.id === selectedDocs)?.title} - Примеры кода
+                </h3>
+                <button
+                  className="modal-close"
+                  onClick={() => setShowDocsModal(false)}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="modal-content">
+                <div className="docs-tip">
+                  💡 <strong>Важно:</strong> Замените <code>YOUR_API_KEY</code> на API ключ вашего ассистента
+                </div>
+
+                <div className="code-section">
+                  <div className="code-header">
+                    <h4>Пример кода:</h4>
+                    <button
+                      className={`btn-copy ${copiedCode === selectedDocs ? 'copied' : ''}`}
+                      onClick={() => copyCode(getCodeExample(selectedDocs), selectedDocs)}
+                    >
+                      {copiedCode === selectedDocs ? (
+                        <>
+                          <Check size={16} />
+                          Скопировано!
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} />
+                          Копировать код
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <pre className="code-block">
+                    <code>{getCodeExample(selectedDocs)}</code>
+                  </pre>
+                </div>
+
+                <div className="params-section">
+                  <h4>Параметры запроса:</h4>
+                  <table className="params-table">
+                    <thead>
+                      <tr>
+                        <th>Параметр</th>
+                        <th>Тип</th>
+                        <th>Описание</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><code>message</code></td>
+                        <td>string</td>
+                        <td>Текст сообщения пользователя</td>
+                      </tr>
+                      <tr>
+                        <td><code>conversationId</code></td>
+                        <td>string | null</td>
+                        <td>ID разговора для продолжения диалога</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="response-section">
+                  <h4>Ответ сервера:</h4>
+                  <pre className="code-block">
+                    <code>{`{
+  "response": "Ответ ассистента",
+  "conversationId": "conv_abc123",
+  "timestamp": "2025-10-21T12:00:00Z"
+}`}</code>
+                  </pre>
+                </div>
+
+                {(selectedDocs === 'nodejs' || selectedDocs === 'python') && (
+                  <div className="install-section">
+                    <h4>📦 Установка зависимостей:</h4>
+                    <code className="install-command">
+                      {selectedDocs === 'nodejs' ? 'npm install axios' : 'pip install requests'}
+                    </code>
                   </div>
                 )}
               </div>
@@ -386,6 +758,7 @@ export default function IntegrationsPage() {
           </div>
         )}
 
+        {/* MODAL: Analytics */}
         {showAnalyticsModal && selectedIntegration && (
           <div className="modal-overlay" onClick={() => setShowAnalyticsModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -425,14 +798,14 @@ export default function IntegrationsPage() {
                     <div>
                       <h4>Последнее сообщение</h4>
                       <p className="stat-value" style={{ fontSize: '0.9rem' }}>
-                        {(selectedIntegration as any).lastMessageAt 
+                        {(selectedIntegration as any).lastMessageAt
                           ? new Date((selectedIntegration as any).lastMessageAt).toLocaleString('ru-RU', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
                           : 'Нет данных'}
                       </p>
                     </div>
@@ -451,6 +824,7 @@ export default function IntegrationsPage() {
           </div>
         )}
 
+        {/* MODAL: Settings */}
         {showSettingsModal && selectedIntegration && (
           <div className="modal-overlay" onClick={() => setShowSettingsModal(false)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -471,7 +845,7 @@ export default function IntegrationsPage() {
                 <div className="modal-content-integration">
                   <div className="form-group">
                     <label>Название интеграции</label>
-                    <input 
+                    <input
                       type="text"
                       name="name"
                       defaultValue={selectedIntegration.name}
@@ -482,7 +856,7 @@ export default function IntegrationsPage() {
 
                   <div className="form-group">
                     <label>Ассистент</label>
-                    <select 
+                    <select
                       name="assistantId"
                       defaultValue={selectedIntegration.assistantId || selectedIntegration.assistant}
                       required
@@ -497,7 +871,7 @@ export default function IntegrationsPage() {
                     <>
                       <div className="form-group">
                         <label>Команды бота</label>
-                        <input 
+                        <input
                           type="text"
                           name="commands"
                           defaultValue={selectedIntegration.config?.commands?.join(', ') || '/start, /help'}
@@ -508,8 +882,8 @@ export default function IntegrationsPage() {
 
                       <div className="form-group">
                         <label>URL бота</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={selectedIntegration.config?.telegramUrl || ''}
                           disabled
                           style={{ opacity: 0.6, cursor: 'not-allowed' }}
@@ -519,14 +893,14 @@ export default function IntegrationsPage() {
                   )}
 
                   <div className="modal-actions">
-                    <button 
+                    <button
                       type="button"
                       className="btn-secondary"
                       onClick={() => setShowSettingsModal(false)}
                     >
                       Отмена
                     </button>
-                    <button 
+                    <button
                       type="submit"
                       className="btn-primary"
                     >

@@ -22,7 +22,7 @@ export default function HtmlWidgetTutorial() {
     <h1>Добро пожаловать на сайт!</h1>
     
     <!-- Виджет ассистента -->
-    <script src="https://widget.yourplatform.com/embed.js"></script>
+    <script src="https://zuuma.ru/chat-widget.js"></script>
     <script>
         ChatWidget.init({
             apiKey: 'your_api_key_here',

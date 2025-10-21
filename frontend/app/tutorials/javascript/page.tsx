@@ -22,7 +22,7 @@ npm install chatbot-sdk-js`;
   const basicExample = `// Инициализация бота
 const chatBot = new ChatBot({
     apiKey: 'your_api_key_here',
-    baseURL: 'https://api.yourplatform.com/v1'
+    baseURL: 'https://zuuma.ru/api//chat/ask'
 });
 
 // Отправка сообщения

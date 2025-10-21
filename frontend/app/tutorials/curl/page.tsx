@@ -13,7 +13,7 @@ export default function CurlTutorial() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const basicExample = `curl -X POST https://api.yourplatform.com/v1/chat \\
+  const basicExample = `curl -X POST https://zuuma.ru/api/chat/ask \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer your_api_key_here" \\
   -d '{
@@ -31,7 +31,7 @@ export default function CurlTutorial() {
   }
 }`;
 
-  const ragExample = `curl -X POST https://api.yourplatform.com/v1/chat \\
+  const ragExample = `curl -X POST https://zuuma.ru/api/chat/ask \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer your_api_key_here" \\
   -d '{
@@ -45,17 +45,17 @@ export default function CurlTutorial() {
     }
   }'`;
 
-  const uploadExample = `curl -X POST https://api.yourplatform.com/v1/documents/upload \\
+  const uploadExample = `curl -X POST https://zuuma.ru/api/v1/documents/upload \\
   -H "Authorization: Bearer your_api_key_here" \\
   -F "document=@/path/to/your/document.pdf" \\
   -F "metadata={\"category\":\"documentation\",\"version\":\"1.0\"}" \\
   -F "chunk_size=1000" \\
   -F "overlap=200"`;
 
-  const historyExample = `curl -X GET "https://api.yourplatform.com/v1/sessions/sess_1234567890/history?limit=10" \\
+  const historyExample = `curl -X GET "https://zuuma.ru/api/v1/sessions/sess_1234567890/history?limit=10" \\
   -H "Authorization: Bearer your_api_key_here"`;
 
-  const sessionExample = `curl -X POST https://api.yourplatform.com/v1/sessions \\
+  const sessionExample = `curl -X POST https://zuuma.ru/api/v1/sessions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer your_api_key_here" \\
   -d '{
@@ -70,7 +70,7 @@ export default function CurlTutorial() {
 
 # Настройки
 API_KEY="your_api_key_here"
-BASE_URL="https://api.yourplatform.com/v1"
+BASE_URL="https://zuuma.ru/api/v1"
 USER_ID="bash_user"
 
 # Функция для отправки сообщения
@@ -329,7 +329,7 @@ done`;
               <div>Описание</div>
             </div>
             <div className="tutorial-table-row">
-              <div><code>/v1/chat</code></div>
+              <div><code>/chat/ask</code></div>
               <div>POST</div>
               <div>Отправка сообщения боту</div>
             </div>
