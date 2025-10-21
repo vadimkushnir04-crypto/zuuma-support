@@ -3435,6 +3435,14 @@ background: #111111;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   position: relative;
 }
+.modal-content-integration{
+  background: #121212;
+  border-radius: 8px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
 
 .modal-header {
   padding: 20px;

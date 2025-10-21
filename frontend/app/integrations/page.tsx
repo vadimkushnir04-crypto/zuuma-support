@@ -369,7 +369,7 @@ export default function IntegrationsPage() {
                 </button>
               </div>
 
-              <div className="modal-content">
+              <div className="modal-content-integration">
                 {activeTab === 'telegram' ? (
                   <ManualBotConnection
                     assistants={assistants.filter(a => a.trained)}
@@ -402,7 +402,7 @@ export default function IntegrationsPage() {
                 </button>
               </div>
 
-              <div className="modal-content">
+              <div className="modal-content-integration">
                 <div className="analytics-stats">
                   <div className="stat-card">
                     <MessageSquare size={32} />
@@ -468,7 +468,7 @@ export default function IntegrationsPage() {
               </div>
 
               <form onSubmit={handleSaveSettings}>
-                <div className="modal-content">
+                <div className="modal-content-integration">
                   <div className="form-group">
                     <label>Название интеграции</label>
                     <input 
