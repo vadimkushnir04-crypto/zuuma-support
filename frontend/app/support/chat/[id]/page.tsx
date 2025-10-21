@@ -252,7 +252,7 @@ export default function ChatDetailPage() {
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-secondary)'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1200px', margin: '10px' }}>
           <div className="flex items-center justify-between">
             <div>
               <button
