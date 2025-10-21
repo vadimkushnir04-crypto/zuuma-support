@@ -91,38 +91,18 @@ export default function CreateAssistantPage() {
                   height: '80px',
                   background: 'var(--accent-light)',
                   borderRadius: 'var(--radius-xl)',
-                  marginBottom: 'var(--space-lg)'
+                  margin: '20px'
                 }}>
                   <Sparkles size={40} color="var(--accent)" />
                 </div>
                 
-                <h2 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-md)' }}>
+                <h2 style={{ fontSize: '1.5rem', margin: '10px' }}>
                   Создать с нуля
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
                   Полная кастомизация: настройте личность, поведение и специализацию 
                   ассистента под ваши конкретные задачи
                 </p>
-              </div>
-
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 'var(--space-lg)',
-                marginBottom: 'var(--space-xl)'
-              }}>
-                <div className="flex items-center gap-md">
-                  <CheckCircle size={20} color="var(--success)" />
-                  <span style={{ color: 'var(--text-secondary)' }}>Любая специализация</span>
-                </div>
-                <div className="flex items-center gap-md">
-                  <CheckCircle size={20} color="var(--success)" />
-                  <span style={{ color: 'var(--text-secondary)' }}>Настройка личности</span>
-                </div>
-                <div className="flex items-center gap-md">
-                  <CheckCircle size={20} color="var(--success)" />
-                  <span style={{ color: 'var(--text-secondary)' }}>Гибкие промпты</span>
-                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -143,7 +123,7 @@ export default function CreateAssistantPage() {
               <h2 style={{ fontSize: '1.5rem', margin: '10px' }}>
                 Ваши ассистенты
               </h2>
-              <p style={{ color: 'var(--text-secondary)' }}>
+              <p style={{ color: 'var(--text-secondary)', margin: '10px' }}>
                 {assistants.length > 0 
                   ? `У вас ${assistants.length} ${assistants.length === 1 ? 'ассистент' : 'ассистентов'}`
                   : 'Пока нет созданных ассистентов'

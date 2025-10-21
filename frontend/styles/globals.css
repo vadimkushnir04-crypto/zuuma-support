@@ -236,7 +236,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   border-radius: 0.5rem; 
   padding: 1.5rem;
   box-shadow: 0 10px 15px -3px var(--shadow);
-  margin: 10px;
+  margin: 20px;
 }
 
 .card-title, .card-subtitle {
