@@ -29,7 +29,7 @@ export class TelegramBot {
   assistantId: string;
 
   // Encrypted token
-  @Column({ name: 'bot_token', type: 'varchar', length: 255 })
+  @Column({ name: 'bot_token', type: 'varchar', length: 500 })
   botToken: string;
 
   @Column({ name: 'bot_username', type: 'varchar', length: 255, unique: true })
