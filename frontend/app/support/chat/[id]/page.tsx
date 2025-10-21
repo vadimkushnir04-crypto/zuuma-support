@@ -302,7 +302,7 @@ export default function ChatDetailPage() {
         padding: 'var(--space-xl)',
         background: 'var(--bg-main)'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
+        <div style={{ maxWidth: '1200px', margin: '10px', display: 'flex', flexDirection: 'column', gap: 'var(--space-lg)' }}>
           {messages.map((msg) => {
             const config = getSenderConfig(msg.senderType);
             const Icon = config.icon;
