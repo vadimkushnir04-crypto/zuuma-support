@@ -97,7 +97,7 @@ export default function SupportPage() {
         <div className="dashboard-header">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Поддержка</h1>
           <p className="text-gray-600">
-            Управление чатами и эскалацией на живых операторов
+            Управление чатами и эскалацией на живых операторов, здесь вы можете вступить в переписку с вашим клиентом в экстренной ситуации
           </p>
         </div>
 

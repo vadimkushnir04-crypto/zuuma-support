@@ -13,10 +13,12 @@ import { Assistant } from './entities/assistant.entity';
 import { GlobalFunction } from './entities/global-function.entity';
 import { AuthModule } from '../auth/auth.module';
 import { KnowledgeModule } from '../knowledge/knowledge.module';
+import { User } from '../entities/user.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Assistant, GlobalFunction]),
+    TypeOrmModule.forFeature([User]),
     AuthModule,
     forwardRef(() => KnowledgeModule),
   ],
