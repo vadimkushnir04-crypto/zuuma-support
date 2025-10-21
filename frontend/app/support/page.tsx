@@ -1,8 +1,8 @@
 'use client';
 
-// frontend/app/support/page.tsx
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { MessageSquare, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface ChatSession {
   id: string;
@@ -33,7 +33,7 @@ export default function SupportPage() {
       const token = localStorage.getItem('auth_token');
 
       if (!token) {
-        console.warn('⛔ Нет токена — пользователь не авторизован');
+        console.warn('Нет токена – пользователь не авторизован');
         setLoading(false);
         return;
       }
@@ -62,128 +62,232 @@ export default function SupportPage() {
 
   const getUrgencyColor = (urgency?: string) => {
     switch (urgency) {
-      case 'high': return 'text-red-600';
-      case 'medium': return 'text-yellow-600';
-      case 'low': return 'text-green-600';
-      default: return 'text-gray-600';
+      case 'high': return 'var(--error)';
+      case 'medium': return 'var(--warning)';
+      case 'low': return 'var(--success)';
+      default: return 'var(--text-secondary)';
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      ai: 'bg-blue-100 text-blue-800',
-      pending_human: 'bg-yellow-100 text-yellow-800',
-      human_active: 'bg-green-100 text-green-800',
-      resolved: 'bg-gray-100 text-gray-800',
+  const getStatusConfig = (status: string) => {
+    const configs = {
+      ai: { 
+        label: 'AI', 
+        class: 'badge-info',
+        icon: MessageSquare 
+      },
+      pending_human: { 
+        label: 'Ожидает', 
+        class: 'badge-warning',
+        icon: Clock 
+      },
+      human_active: { 
+        label: 'Активен', 
+        class: 'badge-success',
+        icon: CheckCircle 
+      },
+      resolved: { 
+        label: 'Решен', 
+        class: 'badge',
+        icon: CheckCircle 
+      },
     };
     
-    const labels = {
-      ai: 'AI',
-      pending_human: 'Ожидает',
-      human_active: 'Активен',
-      resolved: 'Решен',
-    };
-
-    return (
-      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${badges[status as keyof typeof badges]}`}>
-        {labels[status as keyof typeof labels]}
-      </span>
-    );
+    return configs[status as keyof typeof configs] || configs.ai;
   };
 
+  const filterButtons = [
+    { key: 'all', label: 'Все' },
+    { key: 'pending', label: 'Ожидают' },
+    { key: 'active', label: 'Активные' },
+    { key: 'resolved', label: 'Решенные' }
+  ];
+
   return (
-    <div className="dashboard">
-      <div className="max-w-7xl mx-auto">
-        <div className="dashboard-header">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Поддержка</h1>
-          <p className="text-gray-600">
-            Управление чатами и эскалацией на живых операторов, здесь вы можете вступить в переписку с вашим клиентом в экстренной ситуации
-          </p>
+  <div className="new-design-system">
+    <div className="page-container">
+      <div className="page-content">
+        {/* Page Header */}
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Поддержка</h1>
+            <p className="page-subtitle">
+              Управление чатами и эскалацией на живых операторов
+            </p>
+          </div>
         </div>
 
-        {/* Фильтры */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="flex gap-2">
-            {['all', 'pending', 'active', 'resolved'].map((f) => (
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 mb-xl">
+          <div className="card">
+            <div className="flex items-center gap-md">
+              <MessageSquare size={24} color="var(--info)" />
+              <div>
+                <div className="text-small text-muted">Всего чатов</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: 'var(--space-xs)' }}>
+                  {sessions.length}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="card">
+            <div className="flex items-center gap-md">
+              <Clock size={24} color="var(--warning)" />
+              <div>
+                <div className="text-small text-muted">Ожидают</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: 'var(--space-xs)' }}>
+                  {sessions.filter(s => s.status === 'pending_human').length}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="card">
+            <div className="flex items-center gap-md">
+              <CheckCircle size={24} color="var(--success)" />
+              <div>
+                <div className="text-small text-muted">Активные</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: 'var(--space-xs)' }}>
+                  {sessions.filter(s => s.status === 'human_active').length}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="card">
+            <div className="flex items-center gap-md">
+              <AlertCircle size={24} color="var(--accent)" />
+              <div>
+                <div className="text-small text-muted">Решенные</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: 'var(--space-xs)' }}>
+                  {sessions.filter(s => s.status === 'resolved').length}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="card mb-xl">
+          <div className="flex gap-md">
+            {filterButtons.map((btn) => (
               <button
-                key={f}
-                onClick={() => setFilter(f as any)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  filter === f
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                key={btn.key}
+                onClick={() => setFilter(btn.key as any)}
+                className={filter === btn.key ? 'btn btn-primary' : 'btn btn-outline'}
               >
-                {f === 'all' && 'Все'}
-                {f === 'pending' && 'Ожидают'}
-                {f === 'active' && 'Активные'}
-                {f === 'resolved' && 'Решенные'}
+                {btn.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Список чатов */}
-        <div className="bg-white rounded-lg shadow">
+        {/* Chat Sessions List */}
+        <div className="card">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Загрузка...</div>
+            <div className="loading">
+              <div className="spinner"></div>
+              <span style={{ marginLeft: 'var(--space-md)' }}>Загрузка...</span>
+            </div>
           ) : sessions.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              Нет чатов для отображения
+            <div className="empty-state">
+              <MessageSquare size={48} />
+              <h3>Нет чатов для отображения</h3>
+              <p>Чаты появятся здесь, когда пользователи обратятся в поддержку</p>
             </div>
           ) : (
-            <div className="divide-y">
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="p-4 hover:bg-gray-50 transition flex flex-col gap-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {getStatusBadge(session.status)}
-                      <span className="text-sm text-gray-500">
-                        {session.integrationType}
-                      </span>
-                      {session.escalationUrgency && (
-                        <span
-                          className={`text-sm font-semibold ${getUrgencyColor(
-                            session.escalationUrgency
-                          )}`}
-                        >
-                          {session.escalationUrgency.toUpperCase()}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+              {sessions.map((session) => {
+                const statusConfig = getStatusConfig(session.status);
+                const StatusIcon = statusConfig.icon;
+                
+                return (
+                  <div
+                    key={session.id}
+                    className="card card-elevated"
+                    style={{ 
+                      cursor: 'pointer',
+                      transition: 'all var(--transition)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'var(--shadow)';
+                    }}
+                    onClick={() => router.push(`/support/chat/${session.id}`)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-lg" style={{ flex: 1 }}>
+                        {/* Status Badge */}
+                        <div className={`badge ${statusConfig.class}`}>
+                          <StatusIcon size={14} />
+                          {statusConfig.label}
+                        </div>
+
+                        {/* Integration Type */}
+                        <span className="badge">
+                          {session.integrationType}
                         </span>
-                      )}
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {new Date(session.createdAt).toLocaleString('ru-RU')}
-                    </span>
-                  </div>
 
-                  {session.escalationReason && (
-                    <p className="text-sm text-gray-700">
-                      <span className="font-semibold">Причина:</span>{' '}
-                      {session.escalationReason}
-                    </p>
-                  )}
+                        {/* Urgency Badge */}
+                        {session.escalationUrgency && (
+                          <span 
+                            className="badge"
+                            style={{ 
+                              color: getUrgencyColor(session.escalationUrgency),
+                              borderColor: getUrgencyColor(session.escalationUrgency)
+                            }}
+                          >
+                            {session.escalationUrgency.toUpperCase()}
+                          </span>
+                        )}
 
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex gap-4">
-                      <span>ID: {session.id.slice(0, 8)}...</span>
-                      <span>User: {session.userIdentifier.slice(0, 20)}</span>
+                        {/* User Info */}
+                        <div style={{ flex: 1 }}>
+                          <div className="text-small text-muted">
+                            User: {session.userIdentifier.slice(0, 30)}
+                          </div>
+                          {session.escalationReason && (
+                            <div className="text-small" style={{ marginTop: 'var(--space-xs)' }}>
+                              <span style={{ fontWeight: 500 }}>Причина:</span> {session.escalationReason}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Date & Action */}
+                      <div className="flex items-center gap-lg">
+                        <span className="text-small text-muted">
+                          {new Date(session.createdAt).toLocaleString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/support/chat/${session.id}`);
+                          }}
+                          className="btn btn-primary btn-sm"
+                        >
+                          Открыть
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => router.push(`/support/chat/${session.id}`)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition"
-                    >
-                      Перейти к чату
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </div>
     </div>
+  </div>
   );
 }

@@ -1,8 +1,7 @@
-// app/assistants/create/page.tsx
-
 "use client";
+
 import React, { useState, useEffect } from "react";
-import { Plus, Bot, Loader2, Sparkles, Zap, Users, ArrowLeft, CheckCircle } from "lucide-react";
+import { Plus, Bot, Loader2, CheckCircle, Users, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import AuthGuard from '../../../components/AuthGuard';
 
@@ -10,7 +9,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
 
 export default function CreateAssistantPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [notification, setNotification] = useState<{
     type: "success" | "error";
     message: string;
@@ -47,7 +45,7 @@ export default function CreateAssistantPage() {
       const data = await res.json();
       setAssistants(data.data.assistants || []);
     } catch (err) {
-      setError("Не удалось загрузить ассистентов. Проверьте сервер.");
+      setError("Не удалось загрузить ассистентов");
     } finally {
       setLoadingAssistants(false);
     }
@@ -57,140 +55,163 @@ export default function CreateAssistantPage() {
     loadAssistants();
   }, []);
 
-  const demoOptions = [
-    {
-      title: "Банковский консультант",
-      description: "Помогает с услугами банка, кредитами и картами",
-      icon: "💰",
-      color: "from-green-500 to-green-600"
-    },
-    {
-      title: "HR-ассистент", 
-      description: "Отвечает на вопросы сотрудников о политиках компании",
-      icon: "👥",
-      color: "from-blue-500 to-blue-600"
-    },
-    {
-      title: "Техподдержка",
-      description: "Решает технические вопросы и проблемы пользователей",
-      icon: "🔧",
-      color: "from-purple-500 to-purple-600"
-    }
-  ];
-
   return (
-   <AuthGuard requireAuth={true}>
-    <div className="create-page">
-      {notification && (
-        <div className={`notification ${notification.type === "success" ? "notification-success" : "notification-error"}`}>
-          {notification.message}
-        </div>
-      )}
-
-      {/* Creation Options */}
-      <div className="creation-section">
-        <div className="creation-grid">
-          {/* Create from scratch */}
-          <div className="creation-card featured">
-            <div className="creation-card-header">
-              <div className="creation-icon custom">
-                <Plus className="w-8 h-8" />
-              </div>
-            </div>
-            
-            <div className="creation-content">
-              <h3 className="creation-title">Создать с нуля</h3>
-              <p className="creation-description">
-                Полная кастомизация: настройте личность, поведение и специализацию 
-                ассистента под ваши конкретные задачи
-              </p>
-              
-              <div className="creation-features">
-                <div className="feature-item">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Любая специализация</span>
-                </div>
-                <div className="feature-item">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Настройка личности</span>
-                </div>
-                <div className="feature-item">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Гибкие промпты</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="creation-button primary"
-              >
-                <Plus className="w-5 h-5" />
-                Начать создание
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Existing Assistants */}
-      <div className="assistants-section">
-        <div className="section-header">
-          <h2 className="section-title">Ваши ассистенты</h2>
-          <p className="section-subtitle">
-            {assistants.length > 0 
-              ? `У вас ${assistants.length} ${assistants.length === 1 ? 'ассистент' : 'ассистентов'}`
-              : 'Пока нет созданных ассистентов'
-            }
-          </p>
-        </div>
-
-        <div className="assistants-display">
-          {loadingAssistants ? (
-            <div className="loading-state">
-              <Loader2 className="w-8 h-8 animate-spin" />
-              <span>Загрузка ассистентов...</span>
-            </div>
-          ) : error ? (
-            <div className="error-state">
-              <span>{error}</span>
-            </div>
-          ) : assistants.length === 0 ? (
-            <div className="empty-state">
-              <Users className="w-12 h-12" />
-              <h3>Нет ассистентов</h3>
-              <p>Создайте своего первого ассистента, чтобы начать работу</p>
-            </div>
-          ) : (
-            <div className="assistants-grid">
-              {assistants.map((assistant) => (
-                <div
-                  key={assistant.id}
-                  onClick={() => router.push("/assistants")}
-                  className="assistant-card"
-                >
-                  <div className="assistant-icon">
-                    <Bot className="w-5 h-5" />
-                  </div>
-                  <span className="assistant-name">{assistant.name}</span>
-                </div>
-              ))}
+    <AuthGuard requireAuth={true}>
+    <div className="new-design-system">
+      <div className="page-container">
+        <div className="page-content">
+          {/* Notification */}
+          {notification && (
+            <div className={`notification ${notification.type === "success" ? "notification-success" : "notification-error"}`}>
+              {notification.message}
             </div>
           )}
-        </div>
-      </div>
 
-      {showCreateModal && (
-        <CreateAssistantModal
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={(message) => {
-            showNotification("success", message);
-            setShowCreateModal(false);
-            loadAssistants();
-          }}
-        />
-      )}
+          {/* Page Header */}
+          <div className="page-header">
+            <div className="page-header-content">
+              <div>
+                <h1 className="page-title">Создать ассистента</h1>
+                <p className="page-subtitle">
+                  Настройте AI ассистента под конкретные задачи вашего бизнеса
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Create Section */}
+          <div className="grid grid-cols-1" style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div className="card" style={{ background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%)' }}>
+              <div style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
+                <div style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  width: '80px',
+                  height: '80px',
+                  background: 'var(--accent-light)',
+                  borderRadius: 'var(--radius-xl)',
+                  marginBottom: 'var(--space-lg)'
+                }}>
+                  <Sparkles size={40} color="var(--accent)" />
+                </div>
+                
+                <h2 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-md)' }}>
+                  Создать с нуля
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                  Полная кастомизация: настройте личность, поведение и специализацию 
+                  ассистента под ваши конкретные задачи
+                </p>
+              </div>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 'var(--space-lg)',
+                marginBottom: 'var(--space-xl)'
+              }}>
+                <div className="flex items-center gap-md">
+                  <CheckCircle size={20} color="var(--success)" />
+                  <span style={{ color: 'var(--text-secondary)' }}>Любая специализация</span>
+                </div>
+                <div className="flex items-center gap-md">
+                  <CheckCircle size={20} color="var(--success)" />
+                  <span style={{ color: 'var(--text-secondary)' }}>Настройка личности</span>
+                </div>
+                <div className="flex items-center gap-md">
+                  <CheckCircle size={20} color="var(--success)" />
+                  <span style={{ color: 'var(--text-secondary)' }}>Гибкие промпты</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="btn btn-primary btn-lg"
+                >
+                  <Plus size={20} />
+                  Начать создание
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Existing Assistants */}
+          <div style={{ marginTop: 'var(--space-3xl)' }}>
+            <div style={{ marginBottom: 'var(--space-xl)' }}>
+              <h2 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-xs)' }}>
+                Ваши ассистенты
+              </h2>
+              <p style={{ color: 'var(--text-secondary)' }}>
+                {assistants.length > 0 
+                  ? `У вас ${assistants.length} ${assistants.length === 1 ? 'ассистент' : 'ассистентов'}`
+                  : 'Пока нет созданных ассистентов'
+                }
+              </p>
+            </div>
+
+            {loadingAssistants ? (
+              <div className="loading">
+                <div className="spinner"></div>
+                <span style={{ marginLeft: 'var(--space-md)' }}>Загрузка ассистентов...</span>
+              </div>
+            ) : error ? (
+              <div className="empty-state">
+                <span style={{ color: 'var(--error)' }}>{error}</span>
+              </div>
+            ) : assistants.length === 0 ? (
+              <div className="empty-state">
+                <Users size={48} />
+                <h3>Нет ассистентов</h3>
+                <p>Создайте своего первого ассистента, чтобы начать работу</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3">
+                {assistants.map((assistant) => (
+                  <div
+                    key={assistant.id}
+                    onClick={() => router.push("/assistants")}
+                    className="card"
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="flex items-center gap-md">
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: 'var(--radius-lg)',
+                        background: 'var(--accent-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Bot size={24} color="var(--accent)" />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <h4>{assistant.name}</h4>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Create Modal */}
+        {showCreateModal && (
+          <CreateAssistantModal
+            onClose={() => setShowCreateModal(false)}
+            onSuccess={(message) => {
+              showNotification("success", message);
+              setShowCreateModal(false);
+              loadAssistants();
+            }}
+          />
+        )}
+      </div>
     </div>
-   </AuthGuard>
+    </AuthGuard>
   );
 }
 
@@ -223,7 +244,6 @@ const CreateAssistantModal = ({
         return;
       }
 
-      // ✅ ИЗМЕНЕНО: убрали companyId из body
       const response = await fetch(`${API_BASE_URL}/assistants`, {
         method: "POST",
         headers: { 
@@ -250,85 +270,90 @@ const CreateAssistantModal = ({
   };
 
   return (
+    <div className="new-design-system">
     <>
       <div className="modal-overlay" onClick={onClose}></div>
       <div className="modal-container">
         <div className="modal-header">
-          <h2 className="modal-title">
-            <Plus className="w-5 h-5" />
-            Создать нового ассистента
-          </h2>
-          <p className="modal-description">
-            Настройте AI ассистента для конкретного направления бизнеса
-          </p>
+          <div className="flex items-center gap-md">
+            <Plus size={24} />
+            <div>
+              <h2 className="modal-title">Создать нового ассистента</h2>
+              <p className="modal-description">
+                Настройте AI ассистента для конкретного направления бизнеса
+              </p>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-field">
-            <label className="form-label">Название ассистента *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, name: e.target.value }))
-              }
-              className="form-input"
-              placeholder="Банковский помощник"
-              required
-            />
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="form-group">
+              <label className="form-label">Название ассистента *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+                className="form-input"
+                placeholder="Банковский помощник"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Описание</label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                className="form-input"
+                placeholder="Помогает клиентам с банковскими услугами"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Системный промпт</label>
+              <textarea
+                value={formData.systemPrompt}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    systemPrompt: e.target.value,
+                  }))
+                }
+                className="form-textarea"
+                placeholder="Вы - профессиональный консультант банка. Отвечайте вежливо и помогайте клиентам..."
+              />
+              <span className="form-help-text">
+                Определяет личность и стиль общения ассистента
+              </span>
+            </div>
           </div>
 
-          <div className="form-field">
-            <label className="form-label">Описание</label>
-            <input
-              type="text"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              className="form-input"
-              placeholder="Помогает клиентам с банковскими услугами"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Системный промпт</label>
-            <textarea
-              value={formData.systemPrompt}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  systemPrompt: e.target.value,
-                }))
-              }
-              className="form-textarea"
-              placeholder="Вы - профессиональный консультант банка. Отвечайте вежливо и помогайте клиентам..."
-            />
-            <p className="form-help-text">
-              Определяет личность и стиль общения ассистента
-            </p>
-          </div>
-
-          <div className="modal-actions">
-            <button type="button" onClick={onClose} className="btn-cancel">
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn btn-outline">
               Отмена
             </button>
             <button
               type="submit"
               disabled={loading || !formData.name.trim()}
-              className="btn-submit"
+              className="btn btn-primary"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="spinner" size={16} />
                   Создание...
                 </>
               ) : (
                 <>
-                  <Plus className="w-4 h-4" />
+                  <Plus size={16} />
                   Создать ассистента
                 </>
               )}
@@ -337,5 +362,6 @@ const CreateAssistantModal = ({
         </form>
       </div>
     </>
+  </div>
   );
 };
