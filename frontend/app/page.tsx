@@ -23,7 +23,7 @@ export default function Home() {
     { 
       id: 2, 
       title: "2. Загрузите данные", 
-      description: "Текст/MD/PDF/и другие. Также можете добавить API запросы",
+      description: "Текст/MD/PDF. Также можете добавить API запросы к вашей базе данных",
       icon: Upload,
       color: "from-green-500 to-green-600"
     },
