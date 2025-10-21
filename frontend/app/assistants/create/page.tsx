@@ -140,7 +140,7 @@ export default function CreateAssistantPage() {
           {/* Existing Assistants */}
           <div style={{ marginTop: 'var(--space-3xl)' }}>
             <div style={{ marginBottom: 'var(--space-xl)' }}>
-              <h2 style={{ fontSize: '1.5rem', marginBottom: 'var(--space-xs)' }}>
+              <h2 style={{ fontSize: '1.5rem', margin: 'var(--space-xs)' }}>
                 Ваши ассистенты
               </h2>
               <p style={{ color: 'var(--text-secondary)' }}>
