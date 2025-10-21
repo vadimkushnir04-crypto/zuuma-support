@@ -346,7 +346,6 @@
 }
 
 .new-design-system .page-content {
-  max-width: 1400px;
   margin: 0 auto;
   padding: var(--ds-space-2xl) var(--ds-space-xl);
 }
