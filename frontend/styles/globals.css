@@ -5269,8 +5269,8 @@ body.sidebar-open .sidebar {
 
 /* Layout adjustment */
 .page-content {
-  margin-left: 280px;
-  margin-top: 60px;
+  margin-left: 10px;
+  margin-right: 10px;
   min-height: calc(100vh - 60px);
 }
 
