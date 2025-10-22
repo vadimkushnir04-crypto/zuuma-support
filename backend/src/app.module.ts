@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { SupportModule } from './support/support.module';
+import { AuditLogModule } from './common/audit-log.module';
 
 // ✅ Импортируем модули (правильная архитектура)
 
@@ -37,7 +38,7 @@ import { PaymentsModule } from './payments/payments.module';
     TelegramModule,
     SupportModule,
     PaymentsModule,
-
+    AuditLogModule,
   ],
   controllers: [
     FilesController

@@ -14,13 +14,13 @@ export default function AdminChatWidget() {
 
     // Загружаем виджет поддержки для админов
     (window as any).chatConfig = {
-      assistantId: '73486773-bc62-4be6-9e64-c72816baab6f', // ← ID твоего support-ассистента
+      apiKey: process.env.NEXT_PUBLIC_SUPPORT_API_KEY, // ← API ключ вашего ассистента
       serverUrl: 'https://zuuma.ru/api',
       theme: 'dark',
       assistantName: 'Поддержка',
       customGreeting: 'Здравствуйте, вам нужна помощь?',
       primaryColor: '#de8434',
-      accentColor: '#1A1A2E'
+      assistantId: '73486773-bc62-4be6-9e64-c72816baab6f' // ← ID оставляем для идентификации
     };
 
     const script = document.createElement('script');

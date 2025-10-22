@@ -2,97 +2,131 @@ import {
   Controller, 
   Post, 
   Get, 
-  Req, 
-  Res, 
   Put, 
   Body, 
   HttpException, 
   HttpStatus, 
   Headers, 
-  UnauthorizedException, 
-  UseGuards 
+  UnauthorizedException,
+  Req,
+  UseGuards
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { AuthGuard } from '@nestjs/passport';
-import type { Request, Response } from 'express';
+import { AuditLogService } from '../common/audit-log.service';
+import { AuditAction } from '../common/entities/audit-log.entity';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly auditLogService: AuditLogService,
+  ) {}
 
-  // ==================== Google OAuth ====================
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req: Request) {
-    // Инициирует OAuth flow, редирект на Google
+  @Post('register')
+  async register(
+    @Body() body: { email: string; password: string; fullName?: string },
+    @Req() req: any,
+  ) {
+    const ipAddress = this.getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+
+    try {
+      const result = await this.authService.register(body.email, body.password, body.fullName);
+      
+      // Логируем регистрацию
+      await this.auditLogService.log({
+        userId: result.user.id,
+        action: AuditAction.LOGIN, // Используем LOGIN как регистрацию тоже
+        details: {
+          type: 'registration',
+          email: body.email,
+        },
+        ipAddress,
+        userAgent,
+        status: 'success',
+      });
+
+      return { success: true, ...result };
+    } catch (err) {
+      // Логируем неудачную попытку регистрации
+      await this.auditLogService.log({
+        userId: 'anonymous',
+        action: AuditAction.LOGIN,
+        details: {
+          type: 'registration_failed',
+          email: body.email,
+        },
+        ipAddress,
+        userAgent,
+        status: 'failure',
+        errorMessage: err.message,
+      });
+
+      throw new HttpException(
+        { success: false, error: err.message }, 
+        HttpStatus.BAD_REQUEST
+      );
+    }
   }
 
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
-    const { token, user } = req.user;
-    
-    // Редирект на фронтенд с токеном
-    const frontendUrl = process.env.FRONTEND_URL;
-    res.redirect(
-      `${frontendUrl}?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`
-    );
+  @Post('login')
+  async login(
+    @Body() body: { email: string; password: string },
+    @Req() req: any,
+  ) {
+    const ipAddress = this.getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+
+    try {
+      const result = await this.authService.login(body.email, body.password);
+      
+      // Логируем успешный вход
+      await this.auditLogService.log({
+        userId: result.user.id,
+        action: AuditAction.LOGIN,
+        details: {
+          type: 'login',
+          email: body.email,
+        },
+        ipAddress,
+        userAgent,
+        status: 'success',
+      });
+
+      return { success: true, ...result };
+    } catch (err) {
+      // Логируем неудачную попытку входа
+      await this.auditLogService.log({
+        userId: 'anonymous',
+        action: AuditAction.LOGIN,
+        details: {
+          type: 'login_failed',
+          email: body.email,
+        },
+        ipAddress,
+        userAgent,
+        status: 'failure',
+        errorMessage: err.message,
+      });
+
+      throw new HttpException(
+        { success: false, error: err.message }, 
+        HttpStatus.UNAUTHORIZED
+      );
+    }
   }
 
-  // ==================== GitHub OAuth (подготовка) ====================
-  // Раскомментируйте когда добавите GitHub стратегию
-  /*
-  @Get('github')
-  @UseGuards(AuthGuard('github'))
-  async githubAuth(@Req() req: Request) {
-    // Инициирует OAuth flow
-  }
-
-  @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
-  async githubAuthRedirect(@Req() req: any, @Res() res: Response) {
-    const { token, user } = req.user;
-    
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    res.redirect(
-      `${frontendUrl}?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`
-    );
-  }
-  */
-
-  // ==================== Telegram Auth (подготовка) ====================
-  /*
-  @Post('telegram')
-  async telegramAuth(@Body() body: {
-    id: string;
-    first_name: string;
-    last_name?: string;
-    username?: string;
-    photo_url?: string;
-    auth_date: number;
-    hash: string;
-  }) {
-    // Верифицируем данные от Telegram Widget
-    // TODO: Добавить проверку hash
-    
-    const result = await this.authService.validateTelegramUser({
-      telegramId: body.id,
-      firstName: body.first_name,
-      lastName: body.last_name,
-      username: body.username,
-      photoUrl: body.photo_url,
-    });
-    
-    return { success: true, ...result };
-  }
-  */
-
-  // ==================== Email/Password Auth (удалено - только OAuth) ====================
-  // Методы register() и login() удалены, так как используется только OAuth
-
-  // ==================== Profile Management ====================
   @Get('profile')
-  async getProfile(@Headers('authorization') authHeader: string) {
+  @UseGuards(JwtAuthGuard)
+  async getProfile(
+    @Headers('authorization') authHeader: string,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id;
+    const ipAddress = this.getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+
     try {
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         throw new UnauthorizedException('Токен не предоставлен');
@@ -100,6 +134,17 @@ export class AuthController {
       
       const token = authHeader.substring(7);
       const userProfile = await this.authService.getProfile(token);
+
+      // Логируем просмотр профиля (опционально, можно убрать если слишком много логов)
+      // await this.auditLogService.log({
+      //   userId,
+      //   action: AuditAction.PROFILE_UPDATED,
+      //   details: { type: 'profile_view' },
+      //   ipAddress,
+      //   userAgent,
+      //   status: 'success',
+      // });
+
       return { success: true, user: userProfile };
     } catch (err) {
       throw new HttpException(
@@ -110,20 +155,88 @@ export class AuthController {
   }
 
   @Put('profile')
-  async updateProfile(@Headers('authorization') authHeader: string, @Body() body: { fullName?: string }) {
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(
+    @Headers('authorization') authHeader: string, 
+    @Body() body: { companyId?: string; fullName?: string; email?: string },
+    @Req() req: any,
+  ) {
+    const userId = req.user.id;
+    const ipAddress = this.getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+
     try {
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         throw new UnauthorizedException('Токен не предоставлен');
       }
       
       const token = authHeader.substring(7);
-      const updatedUser = await this.authService.updateProfile(token, body.fullName);
+      const updatedUser = await this.authService.updateProfile(token, body.companyId);
+
+      // Логируем обновление профиля
+      await this.auditLogService.log({
+        userId,
+        action: AuditAction.PROFILE_UPDATED,
+        details: {
+          type: 'profile_update',
+          changes: body,
+        },
+        ipAddress,
+        userAgent,
+        status: 'success',
+      });
+
       return { success: true, user: updatedUser };
     } catch (err) {
+      await this.auditLogService.log({
+        userId,
+        action: AuditAction.PROFILE_UPDATED,
+        details: {
+          type: 'profile_update_failed',
+          changes: body,
+        },
+        ipAddress,
+        userAgent,
+        status: 'failure',
+        errorMessage: err.message,
+      });
+
       throw new HttpException(
         { success: false, error: err.message }, 
         HttpStatus.BAD_REQUEST
       );
     }
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@Req() req: any) {
+    const userId = req.user.id;
+    const ipAddress = this.getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+
+    // Логируем выход
+    await this.auditLogService.log({
+      userId,
+      action: AuditAction.LOGOUT,
+      details: {
+        type: 'logout',
+      },
+      ipAddress,
+      userAgent,
+      status: 'success',
+    });
+
+    return { success: true, message: 'Logged out successfully' };
+  }
+
+  private getClientIp(req: any): string {
+    return (
+      req.headers['x-forwarded-for']?.split(',')[0] ||
+      req.headers['x-real-ip'] ||
+      req.connection?.remoteAddress ||
+      req.socket?.remoteAddress ||
+      'unknown'
+    );
   }
 }

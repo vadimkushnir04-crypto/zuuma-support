@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -250,4 +251,89 @@ export class AuthService {
     console.log('🔑 Generating token with payload:', payload);
     return this.jwtService.sign(payload);
   }
+
+  // Регистрация
+async register(email: string, password: string, fullName?: string, ipAddress?: string) {
+  const existingUser = await this.userRepository.findOne({ where: { email } });
+  if (existingUser) {
+    throw new Error('Email уже зарегистрирован');
+  }
+
+  if (password.length < 8) {
+    throw new Error('Пароль должен содержать минимум 8 символов');
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = this.userRepository.create({
+    email,
+    password: hashedPassword,
+    full_name: fullName || null,
+    provider: 'local',
+    consent_given_at: new Date(),
+    consent_ip_address: ipAddress || null,
+    agreed_to_data_transfer: false,
+    last_login_at: new Date(),
+  });
+
+  const savedUser = await this.userRepository.save(user);
+  const token = this.generateToken(savedUser.id, savedUser.email);
+
+  return {
+    user: {
+      id: savedUser.id,
+      email: savedUser.email,
+      fullName: savedUser.full_name,
+      avatarUrl: savedUser.avatar_url,
+      plan: savedUser.plan,
+      tokensUsed: savedUser.tokens_used,
+      tokensLimit: savedUser.tokens_limit,
+      assistantsLimit: savedUser.assistants_limit,
+      createdAt: savedUser.created_at?.toISOString(),
+    },
+    token,
+  };
+}
+
+// Вход
+async login(email: string, password: string, ipAddress?: string) {
+  const user = await this.userRepository.findOne({
+    where: { email },
+    select: ['id', 'email', 'password', 'full_name', 'avatar_url', 'provider', 'plan', 'tokens_used', 'tokens_limit', 'assistants_limit', 'created_at'],
+  });
+
+  if (!user) {
+    throw new Error('Неверный email или пароль');
+  }
+
+  if (user.provider !== 'local' || !user.password) {
+    throw new Error('Этот email зарегистрирован через Google');
+  }
+
+  const isValidPassword = await bcrypt.compare(password, user.password);
+  if (!isValidPassword) {
+    throw new Error('Неверный email или пароль');
+  }
+
+  user.last_login_at = new Date();
+  await this.userRepository.save(user);
+
+  const token = this.generateToken(user.id, user.email);
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      avatarUrl: user.avatar_url,
+      plan: user.plan,
+      tokensUsed: user.tokens_used,
+      tokensLimit: user.tokens_limit,
+      assistantsLimit: user.assistants_limit,
+      createdAt: user.created_at?.toISOString(),
+    },
+    token,
+  };
+}
+
 }

@@ -247,8 +247,7 @@ export class PaymentsService {
         const oldPlan = user.plan;
         
         // ✅ ВАЖНО: При смене плана ВСЕГДА обнуляем tokens_used
-        user.plan = plan.slug;
-        user.plan_id = plan.id;
+        user.plan = plan.slug as 'free' | 'pro' | 'max';
         user.tokens_limit = parseInt(plan.monthly_tokens);
         user.tokens_used = 0; // ✅ СБРОС ТОКЕНОВ ПРИ АПГРЕЙДЕ
         user.assistants_limit = 
@@ -475,8 +474,7 @@ export class PaymentsService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) return;
 
-    user.plan = freePlan.slug;
-    user.plan_id = freePlan.id;
+    user.plan = freePlan.slug as 'free' | 'pro' | 'max';
     user.tokens_limit = parseInt(freePlan.monthly_tokens);
     
     // ✅ ИСПРАВЛЕНО: Не больше чем лимит Free плана

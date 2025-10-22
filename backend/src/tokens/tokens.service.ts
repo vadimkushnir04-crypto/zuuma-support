@@ -195,8 +195,7 @@ export class TokensService {
     }
 
     // ✅ Обновляем ОБА поля
-    user.plan = newPlan.slug;
-    user.plan_id = newPlan.id;
+    user.plan = newPlan.slug as 'free' | 'pro' | 'max';
     user.tokens_limit = parseInt(newPlan.monthly_tokens);
     user.tokens_used = 0;
     user.assistants_limit = 

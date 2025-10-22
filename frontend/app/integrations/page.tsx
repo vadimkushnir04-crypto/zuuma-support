@@ -545,60 +545,88 @@ curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
 
         {/* API TAB */}
         {activeTab === 'api' && (
-          <div className="integrations-section">
-            <div className="section-header">
-              <h2>REST API Документация</h2>
-            </div>
-            <p className="section-description">
-              Выберите язык программирования для просмотра примеров интеграции
-            </p>
+          <>
+            {/* Модальное окно выбора языка - сразу показываем при входе на таб */}
+            <div className="modal-overlay active">
+              <div className="modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <h3 className="modal-title">
+                    📚 Выберите язык программирования
+                  </h3>
+                  <button
+                    className="modal-close"
+                    onClick={() => setActiveTab('telegram')}
+                  >
+                    ×
+                  </button>
+                </div>
 
-            <div className="api-docs-grid">
-              {apiDocumentation.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="api-doc-card"
-                  onClick={() => openDocs(doc.id)}
-                >
-                  <div className="doc-icon" style={{ color: doc.color }}>
-                    {doc.icon}
-                  </div>
-                  <h3>{doc.title}</h3>
-                  <p>{doc.description}</p>
-                  <div className="doc-footer">
-                    <span className="difficulty-badge">{doc.difficulty}</span>
-                    <ChevronRight size={20} color="#667eea" />
-                  </div>
-                </div>
-              ))}
-            </div>
+                <div className="modal-body">
+                  <p className="section-description">
+                    Мы подготовили примеры интеграции для популярных языков программирования.
+                    Выберите нужный язык, чтобы посмотреть готовые примеры кода и инструкции.
+                  </p>
 
-            <div className="api-info-block">
-              <h3>
-                <Book size={20} />
-                Основная информация
-              </h3>
-              <div className="api-info-content">
-                <div className="info-item">
-                  <strong>Base URL:</strong>
-                  <code>{API_BASE_URL}</code>
-                </div>
-                <div className="info-item">
-                  <strong>Аутентификация:</strong> Bearer Token (API ключ вашего ассистента)
-                </div>
-                <div className="info-item">
-                  <strong>Content-Type:</strong> application/json
+                  <div className="language-grid">
+                    {apiDocumentation.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="language-card"
+                        style={{ '--accent-color': doc.color } as React.CSSProperties}
+                        onClick={() => openDocs(doc.id)}
+                      >
+                        <div className="language-icon" style={{ background: doc.color }}>
+                          {doc.id === 'javascript' ? 'JS' :
+                          doc.id === 'nodejs' ? '⚡' :
+                          doc.id === 'python' ? '🐍' : '💻'}
+                        </div>
+                        <div className="language-name">{doc.title}</div>
+                        <div className="language-description">{doc.description}</div>
+                        <span className="difficulty-badge">{doc.difficulty}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Info Block */}
+                  <div className="info-block">
+                    <h4>
+                      📖 Основная информация
+                    </h4>
+                    <div className="info-item">
+                      <strong>Base URL:</strong>
+                      <code>{API_BASE_URL}</code>
+                    </div>
+                    <div className="info-item">
+                      <strong>Аутентификация:</strong> Bearer Token (API ключ вашего ассистента)
+                    </div>
+                    <div className="info-item">
+                      <strong>Content-Type:</strong> application/json
+                    </div>
+                  </div>
+
+                  <div className="info-block" style={{ marginTop: 20 }}>
+                    <h4>
+                      🔌 Основные эндпоинты
+                    </h4>
+                    <ul className="endpoints-list">
+                      <li>
+                        <code>POST /chat</code>
+                        <span>— Отправить сообщение ассистенту</span>
+                      </li>
+                      <li>
+                        <code>GET /chat/info</code>
+                        <span>— Получить информацию об ассистенте</span>
+                      </li>
+                      <li>
+                        <code>GET /chat/history/:id</code>
+                        <span>— Получить историю разговора</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
-
-              <h4>Основные эндпоинты:</h4>
-              <ul className="endpoints-list">
-                <li><code>POST /chat</code> - Отправить сообщение ассистенту</li>
-                <li><code>GET /chat/info</code> - Получить информацию об ассистенте</li>
-                <li><code>GET /chat/history/:id</code> - Получить историю разговора</li>
-              </ul>
             </div>
-          </div>
+          </>
         )}
 
         {/* WIDGET TAB */}

@@ -1,14 +1,12 @@
-"use client";
-
 import React from "react";
-import { FileText, Package, Truck, ShieldCheck, Mail, Phone, MapPin, User, CreditCard } from "lucide-react";
+import { FileText, Package, Truck, ShieldCheck, Mail, Phone, MapPin, User, CreditCard, AlertTriangle } from "lucide-react";
 
 export default function OfferPage() {
   return (
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <FileText size={40} style={{ color: '#ffffffff' }} />
+        <FileText size={40} style={{ color: '#fff' }} />
         <h1 style={styles.title}>Публичная оферта и реквизиты</h1>
         <p style={styles.subtitle}>
           Информация об услугах, ценах и условиях предоставления
@@ -164,15 +162,112 @@ export default function OfferPage() {
         </div>
       </section>
 
-      {/* 4. Контактная информация */}
+      {/* 4. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ - КРИТИЧНО! */}
+      <section style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <AlertTriangle size={24} style={{ color: '#ff6b6b' }} />
+          <h2 style={styles.sectionTitle}>4. Отказ от ответственности</h2>
+        </div>
+        <div style={{...styles.textBlock, borderLeft: '4px solid #ff6b6b'}}>
+          <div style={styles.warningBox}>
+            <p style={{margin: '0 0 16px 0', fontSize: '16px', fontWeight: 'bold', color: '#ff6b6b'}}>
+              ⚠️ ВАЖНАЯ ИНФОРМАЦИЯ ОБ ОТВЕТСТВЕННОСТИ
+            </p>
+          </div>
+
+          <p style={styles.paragraph}>
+            Платформа Zuuma предоставляет инструменты для создания AI-ассистентов. 
+            <strong> Пользователь самостоятельно несет полную ответственность за:</strong>
+          </p>
+
+          <h4 style={styles.subheading}>4.1. Ответственность за API-функции</h4>
+          <ul style={styles.list}>
+            <li><strong>Создание и настройка:</strong> Пользователь самостоятельно создает, настраивает и управляет API-функциями.</li>
+            <li><strong>Содержимое кода:</strong> Платформа НЕ контролирует и НЕ проверяет код пользовательских функций.</li>
+            <li><strong>Последствия выполнения:</strong> Платформа НЕ несет ответственности за последствия выполнения функций, включая:
+              <ul style={{marginTop: '8px', paddingLeft: '20px'}}>
+                <li>Удаление данных из баз данных (DELETE, DROP, TRUNCATE)</li>
+                <li>Изменение структуры баз данных (ALTER TABLE)</li>
+                <li>Любые другие операции с данными пользователя</li>
+              </ul>
+            </li>
+            <li><strong>Обязанность тестирования:</strong> Пользователь ОБЯЗАН тестировать функции перед использованием в продакшене.</li>
+          </ul>
+
+          <div style={styles.dangerBox}>
+            <p style={{margin: 0}}>
+              🔴 <strong>КРИТИЧНО:</strong> Если вы создаете функцию с операциями DELETE, DROP или другими 
+              деструктивными командами — вы делаете это на свой страх и риск. Платформа НЕ предупреждает 
+              об опасных операциях и НЕ может их заблокировать.
+            </p>
+          </div>
+
+          <h4 style={styles.subheading}>4.2. Ответственность за действия AI</h4>
+          <ul style={styles.list}>
+            <li>AI-ассистенты генерируют контент на основе данных, предоставленных пользователем</li>
+            <li>Платформа НЕ гарантирует точность, полноту или актуальность ответов AI</li>
+            <li>Пользователь обязан проверять информацию, полученную от AI-ассистента</li>
+            <li>Платформа НЕ несет ответственности за решения, принятые на основе ответов AI</li>
+          </ul>
+
+          <h4 style={styles.subheading}>4.3. Ответственность за данные</h4>
+          <ul style={styles.list}>
+            <li>Пользователь несет полную ответственность за содержимое загружаемых документов</li>
+            <li>Платформа НЕ проверяет и НЕ модерирует загружаемые документы</li>
+            <li>Удаление данных является необратимым процессом</li>
+            <li>Пользователь обязан самостоятельно создавать резервные копии важных данных</li>
+            <li>Платформа НЕ несет ответственности за утерю данных по любым причинам</li>
+          </ul>
+
+          <h4 style={styles.subheading}>4.4. Ответственность за интеграции</h4>
+          <ul style={styles.list}>
+            <li>Подключение сторонних сервисов (Telegram, внешние API) осуществляется на риск пользователя</li>
+            <li>Платформа НЕ контролирует действия интегрированных сервисов</li>
+            <li>Пользователь обязан соблюдать условия использования сторонних сервисов</li>
+          </ul>
+
+          <h4 style={styles.subheading}>4.5. Ограничение ответственности</h4>
+          <div style={styles.limitBox}>
+            <p style={{margin: '0 0 12px 0', fontWeight: 'bold'}}>
+              Максимальная ответственность платформы ограничена:
+            </p>
+            <ul style={{margin: 0, paddingLeft: '20px'}}>
+              <li>Стоимостью подписки пользователя за текущий месяц</li>
+              <li>Платформа НЕ возмещает упущенную выгоду</li>
+              <li>Платформа НЕ возмещает косвенные убытки</li>
+              <li>Платформа НЕ несет ответственности за действия третьих лиц</li>
+            </ul>
+          </div>
+
+          <h4 style={styles.subheading}>4.6. Логирование действий</h4>
+          <p style={styles.paragraph}>
+            Для защиты обеих сторон платформа ведет полный журнал действий пользователя, включая:
+          </p>
+          <ul style={styles.list}>
+            <li>Создание, изменение и удаление API-функций (с сохранением кода)</li>
+            <li>Выполнение API-функций с записью параметров и результатов</li>
+            <li>Все действия в личном кабинете с IP-адресом и временем</li>
+            <li>Эти данные могут быть использованы в качестве доказательств в спорных ситуациях</li>
+          </ul>
+
+          <div style={styles.highlightBox}>
+            <p style={{margin: 0}}>
+              📋 <strong>Важно:</strong> Используя платформу, вы подтверждаете, что ознакомились с данным 
+              отказом от ответственности и принимаете все связанные с этим риски.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. Контактная информация */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
           <Mail size={24} />
-          <h2 style={styles.sectionTitle}>4. Контактная информация</h2>
+          <h2 style={styles.sectionTitle}>5. Контактная информация</h2>
         </div>
         <div style={styles.contactsGrid}>
           <div style={styles.contactCard}>
-            <User size={20} style={{ color: '#de8434' }} />
+            <User size={20} style={{ color: '#4CAF50' }} />
             <div>
               <div style={styles.contactLabel}>Исполнитель</div>
               <div style={styles.contactValue}>Кушнир Вадим Олегович</div>
@@ -180,7 +275,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <FileText size={20} style={{ color: '#de8434' }} />
+            <FileText size={20} style={{ color: '#4CAF50' }} />
             <div>
               <div style={styles.contactLabel}>ИНН</div>
               <div style={styles.contactValue}>263516890557</div>
@@ -188,7 +283,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <Mail size={20} style={{ color: '#de8434' }} />
+            <Mail size={20} style={{ color: '#4CAF50' }} />
             <div>
               <div style={styles.contactLabel}>Email для связи</div>
               <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>
@@ -198,7 +293,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <Phone size={20} style={{ color: '#de8434' }} />
+            <Phone size={20} style={{ color: '#4CAF50' }} />
             <div>
               <div style={styles.contactLabel}>Телефон</div>
               <a href="tel:+79633873434" style={styles.contactLink}>
@@ -209,7 +304,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <MapPin size={20} style={{ color: '#de8434' }} />
+            <MapPin size={20} style={{ color: '#4CAF50' }} />
             <div>
               <div style={styles.contactLabel}>Официальный сайт</div>
               <a href="https://zuuma.ru" style={styles.contactLink} target="_blank" rel="noopener noreferrer">
@@ -219,7 +314,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <CreditCard size={20} style={{ color: '#de8434' }} />
+            <CreditCard size={20} style={{ color: '#4CAF50' }} />
             <div>
               <div style={styles.contactLabel}>Платёжная система</div>
               <div style={styles.contactValue}>ЮKassa (ООО «ЮМани»)</div>
@@ -236,11 +331,11 @@ export default function OfferPage() {
         </div>
       </section>
 
-      {/* 5. Способы оплаты */}
+      {/* 6. Способы оплаты */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
           <CreditCard size={24} />
-          <h2 style={styles.sectionTitle}>5. Способы оплаты</h2>
+          <h2 style={styles.sectionTitle}>6. Способы оплаты</h2>
         </div>
         <div style={styles.textBlock}>
           <p style={styles.paragraph}>
@@ -266,7 +361,7 @@ export default function OfferPage() {
       {/* Footer note */}
       <div style={styles.footerNote}>
         <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>
-          Дата публикации оферты: 19 октября 2025 года
+          Дата публикации оферты: 21 октября 2025 года
         </p>
         <p style={{margin: 0, fontSize: '12px', color: '#999'}}>
           Совершая оплату, вы подтверждаете, что ознакомились с условиями оферты и согласны с ними.
@@ -285,7 +380,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#E0E0E0',
   },
   header: {
-    textAlign: 'center' as const,
+    textAlign: 'center',
     marginBottom: '60px',
     paddingBottom: '30px',
     borderBottom: '1px solid #333',
@@ -309,7 +404,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '12px',
     marginBottom: '24px',
-    color: '#ffffffff',
+    color: '#fff',
   },
   sectionTitle: {
     fontSize: '24px',
@@ -327,15 +422,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '12px',
     padding: '28px 24px',
     border: '1px solid #333',
-    position: 'relative' as const,
+    position: 'relative',
     transition: 'transform 0.2s, border-color 0.2s',
   },
   popularCard: {
-    borderColor: '#ffffffff',
+    borderColor: '#4CAF50',
     boxShadow: '0 0 20px rgba(76, 175, 80, 0.2)',
   },
   planBadge: {
-    position: 'absolute' as const,
+    position: 'absolute',
     top: '12px',
     right: '12px',
     background: '#333',
@@ -346,7 +441,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '500',
   },
   popularBadge: {
-    background: '#ffffffff',
+    background: '#4CAF50',
     color: '#000',
   },
   serviceTitle: {
@@ -358,7 +453,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   servicePrice: {
     fontSize: '32px',
     fontWeight: 'bold',
-    color: '#ffffffff',
+    color: '#4CAF50',
     marginBottom: '20px',
   },
   pricePeriod: {
@@ -376,7 +471,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   serviceNote: {
     fontSize: '13px',
     color: '#999',
-    fontStyle: 'italic' as const,
+    fontStyle: 'italic',
     marginTop: '12px',
     paddingTop: '12px',
     borderTop: '1px solid #333',
@@ -403,15 +498,37 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     marginTop: '24px',
     marginBottom: '12px',
-    color: '#ffffffff',
+    color: '#4CAF50',
   },
   highlightBox: {
     background: '#2A2A2A',
-    borderLeft: '4px solid #ffffffff',
+    borderLeft: '4px solid #4CAF50',
     padding: '16px 20px',
     marginTop: '20px',
     marginBottom: '20px',
     borderRadius: '4px',
+  },
+  warningBox: {
+    background: '#2A1515',
+    borderLeft: '4px solid #ff6b6b',
+    padding: '16px 20px',
+    marginBottom: '20px',
+    borderRadius: '4px',
+  },
+  dangerBox: {
+    background: '#2A1515',
+    border: '2px solid #ff6b6b',
+    padding: '16px 20px',
+    marginTop: '16px',
+    marginBottom: '16px',
+    borderRadius: '8px',
+  },
+  limitBox: {
+    background: '#2A2A2A',
+    border: '1px solid #555',
+    padding: '16px 20px',
+    marginTop: '12px',
+    borderRadius: '8px',
   },
   infoBox: {
     background: '#1E1E1E',
@@ -424,7 +541,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '12px',
-    color: '#ffffffff',
+    color: '#4CAF50',
   },
   requisitesBox: {
     background: '#2A2A2A',
@@ -432,13 +549,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '20px',
     marginTop: '16px',
     marginBottom: '24px',
-    border: '1px solid #ffffffff',
+    border: '1px solid #4CAF50',
   },
   requisitesTitle: {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '16px',
-    color: '#ffffffff',
+    color: '#4CAF50',
   },
   requisitesGrid: {
     display: 'grid',
@@ -486,7 +603,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   contactLink: {
     fontSize: '16px',
-    color: '#ffffffff',
+    color: '#4CAF50',
     textDecoration: 'none',
     display: 'block',
   },
@@ -496,7 +613,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: '4px',
   },
   footerNote: {
-    textAlign: 'center' as const,
+    textAlign: 'center',
     marginTop: '60px',
     paddingTop: '30px',
     borderTop: '1px solid #333',

@@ -8,18 +8,18 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     ports:
-      - "127.0.0.1:5432:5432"  # ✅ Хорошо
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - app_network  # ✅ Исправлена опечатка
+      - app_network
 
   qdrant:
     image: qdrant/qdrant:latest
     container_name: support_qdrant
     restart: always
     ports:
-      - "127.0.0.1:6333:6333"  # ✅ Привязка к localhost
+      - "127.0.0.1:6333:6333"
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
@@ -31,18 +31,17 @@ services:
       dockerfile: Dockerfile
     container_name: support_backend
     restart: always
-    # ✅ Убраны ports - доступ только через nginx
     depends_on:
       - postgres
       - qdrant
     environment:
       - NODE_ENV=production
-      - DATABASE_HOST=postgres  # ✅ Использовать имя сервиса
+      - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
       - DATABASE_NAME=${DATABASE_NAME}
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-      - QDRANT_URL=http://qdrant:6333  # ✅ ДОБАВЛЕНО!
+      - QDRANT_URL=http://qdrant:6333
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - YOOKASSA_SHOP_ID=${YOOKASSA_SHOP_ID}
@@ -55,6 +54,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - SENTRY_DSN=${SENTRY_DSN}
     networks:
       - app_network
 
@@ -64,11 +64,12 @@ services:
       dockerfile: Dockerfile
     container_name: support_frontend
     restart: always
-    # ✅ Убраны ports - доступ только через nginx
     depends_on:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_UMAMI_WEBSITE_ID=${NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+      - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
     networks:
       - app_network
 
@@ -88,10 +89,63 @@ services:
     networks:
       - app_network
 
+  # Umami для веб-аналитики
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: support_umami
+    restart: always
+    ports:
+      - "127.0.0.1:3002:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_SECRET}
+      TRACKER_SCRIPT_NAME: analytics
+    depends_on:
+      - umami-db
+    networks:
+      - app_network
+
+  umami-db:
+    image: postgres:15-alpine
+    container_name: support_umami_db
+    restart: always
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - umami_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # Grafana для бизнес-метрик
+  grafana:
+    image: grafana/grafana:latest
+    container_name: support_grafana
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_SERVER_ROOT_URL=https://zuuma.ru/grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - postgres
+    networks:
+      - app_network
+
 volumes:
   postgres_data:
     driver: local
   qdrant_data:
+    driver: local
+  umami_data:
+    driver: local
+  grafana_data:
     driver: local
 
 networks:
