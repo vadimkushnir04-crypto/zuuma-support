@@ -37,11 +37,11 @@ export default function OfferPage() {
           </div>
 
           <div style={{...styles.serviceCard, ...styles.popularCard}}>
-            <div style={{...styles.planBadge, ...styles.popularBadge}}>Базовый</div>
+            <div style={{...styles.planBadge, ...styles.popularBadge}}>Популярный</div>
             <h3 style={styles.serviceTitle}>Pro Plan</h3>
-            <div style={styles.servicePrice}>1,499 ₽<span style={styles.pricePeriod}> / месяц</span></div>
+            <div style={styles.servicePrice}>990 ₽<span style={styles.pricePeriod}> / месяц</span></div>
             <ul style={styles.serviceFeatures}>
-              <li>✓ 1,500,000 токенов в месяц</li>
+              <li>✓ <strong>2,000,000 токенов</strong> в месяц</li>
               <li>✓ До 10 AI-ассистентов</li>
               <li>✓ Кастомизация интерфейса</li>
               <li>✓ API доступ</li>
@@ -56,10 +56,11 @@ export default function OfferPage() {
           <div style={styles.serviceCard}>
             <div style={styles.planBadge}>Максимум</div>
             <h3 style={styles.serviceTitle}>Max Plan</h3>
-            <div style={styles.servicePrice}>4,990 ₽<span style={styles.pricePeriod}> / месяц</span></div>
+            <div style={styles.servicePrice}>2,990 ₽<span style={styles.pricePeriod}> / месяц</span></div>
             <ul style={styles.serviceFeatures}>
-              <li>✓ 5,000,000 токенов в месяц</li>
+              <li>✓ <strong>6,000,000 токенов</strong> в месяц</li>
               <li>✓ До 50 AI-ассистентов</li>
+              <li>✓ Приоритетная поддержка</li>
               <li>✓ Кастомизация интерфейса</li>
               <li>✓ API доступ</li>
               <li>✓ Telegram Bot интеграция</li>
@@ -75,7 +76,7 @@ export default function OfferPage() {
           <h4 style={styles.infoTitle}>Что входит в услугу:</h4>
           <ul style={styles.list}>
             <li>Доступ к платформе Zuuma для создания AI-ассистентов</li>
-            <li>Обучение ассистентов на ваших документах (PDF, TXT, MD и др.)</li>
+            <li>Обучение ассистентов на ваших документах (TXT)</li>
             <li>Векторная база данных для хранения знаний</li>
             <li>Интеграция с Telegram ботами</li>
             <li>API для интеграции с вашими системами</li>
@@ -92,10 +93,10 @@ export default function OfferPage() {
         </div>
         <div style={styles.textBlock}>
           <p style={styles.paragraph}>
-            После оплаты подписки вы <strong>немедленно получаете доступ</strong> к платформе Zuuma:
+            После оплаты подписки вы <strong>получаете доступ</strong> к платформе Zuuma:
           </p>
           <ul style={styles.list}>
-            <li>Активация происходит автоматически в течение 1 минуты после оплаты</li>
+            <li>Активация происходит автоматически</li>
             <li>Доступ к функциям согласно выбранному тарифу</li>
             <li>Токены зачисляются на ваш баланс автоматически</li>
             <li>Возможность создания AI-ассистентов и обучения их на документах</li>
@@ -325,8 +326,6 @@ export default function OfferPage() {
         <div style={styles.infoBox}>
           <p style={{margin: 0}}>
             📧 <strong>По всем вопросам</strong> пишите на email: <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>delovoi.acount@gmail.com</a>
-            <br/>
-            Мы отвечаем в течение 24 часов в рабочие дни.
           </p>
         </div>
       </section>

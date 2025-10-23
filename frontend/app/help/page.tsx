@@ -66,7 +66,7 @@ export default function HelpPage() {
           padding: '24px', 
           border: '1px solid #e5e7eb', 
           borderRadius: '12px',
-          background: 'white'
+          background: '#2a2a2a'
         }}>
           <MessageCircle size={32} style={{ color: '#10b981', marginBottom: '16px' }} />
           <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>Чат с поддержкой</h3>
@@ -77,7 +77,7 @@ export default function HelpPage() {
             onClick={() => (window as any).ChatWidget?.open()}
             style={{
               padding: '10px 20px',
-              background: '#10b981',
+              background: '#2a2a2a',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -94,7 +94,7 @@ export default function HelpPage() {
           padding: '24px', 
           border: '1px solid #e5e7eb', 
           borderRadius: '12px',
-          background: 'white'
+          background: '#2a2a2a'
         }}>
           <FileText size={32} style={{ color: '#3b82f6', marginBottom: '16px' }} />
           <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>База знаний</h3>
@@ -106,7 +106,7 @@ export default function HelpPage() {
             style={{
               display: 'inline-block',
               padding: '10px 20px',
-              background: '#3b82f6',
+              background: '#2a2a2a',
               color: 'white',
               textDecoration: 'none',
               borderRadius: '8px',
@@ -122,7 +122,7 @@ export default function HelpPage() {
           padding: '24px', 
           border: '1px solid #e5e7eb', 
           borderRadius: '12px',
-          background: 'white'
+          background: '#2a2a2a'
         }}>
           <Mail size={32} style={{ color: '#8b5cf6', marginBottom: '16px' }} />
           <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>Email поддержка</h3>
@@ -130,11 +130,11 @@ export default function HelpPage() {
             Напишите нам на почту, мы ответим в течение 24 часов
           </p>
           <a 
-            href="mailto:support@zuuma.ru"
+            href="mailto:delovoi.acount@gmail.com"
             style={{
               display: 'inline-block',
               padding: '10px 20px',
-              background: '#8b5cf6',
+              background: '#2a2a2a',
               color: 'white',
               textDecoration: 'none',
               borderRadius: '8px',
@@ -142,7 +142,7 @@ export default function HelpPage() {
               fontWeight: '500'
             }}
           >
-            support@zuuma.ru
+            delovoi.acount@gmail.com
           </a>
         </div>
       </div>
@@ -156,7 +156,7 @@ export default function HelpPage() {
           border: '1px solid #e5e7eb', 
           borderRadius: '8px',
           marginBottom: '12px',
-          background: 'white',
+          background: '#2a2a2a',
           cursor: 'pointer'
         }}>
           <summary style={{ fontWeight: '600', fontSize: '16px' }}>
@@ -173,7 +173,7 @@ export default function HelpPage() {
           border: '1px solid #e5e7eb', 
           borderRadius: '8px',
           marginBottom: '12px',
-          background: 'white',
+          background: '#2a2a2a',
           cursor: 'pointer'
         }}>
           <summary style={{ fontWeight: '600', fontSize: '16px' }}>
@@ -191,7 +191,7 @@ export default function HelpPage() {
           border: '1px solid #e5e7eb', 
           borderRadius: '8px',
           marginBottom: '12px',
-          background: 'white',
+          background: '#2a2a2a',
           cursor: 'pointer'
         }}>
           <summary style={{ fontWeight: '600', fontSize: '16px' }}>
@@ -208,7 +208,7 @@ export default function HelpPage() {
           border: '1px solid #e5e7eb', 
           borderRadius: '8px',
           marginBottom: '12px',
-          background: 'white',
+          background: '#2a2a2a',
           cursor: 'pointer'
         }}>
           <summary style={{ fontWeight: '600', fontSize: '16px' }}>
@@ -224,7 +224,7 @@ export default function HelpPage() {
           padding: '16px', 
           border: '1px solid #e5e7eb', 
           borderRadius: '8px',
-          background: 'white',
+          background: '#2a2a2a',
           cursor: 'pointer'
         }}>
           <summary style={{ fontWeight: '600', fontSize: '16px' }}>

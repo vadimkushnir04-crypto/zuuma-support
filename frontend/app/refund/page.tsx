@@ -158,8 +158,11 @@ export default function RefundPolicyPage() {
 
           <div style={styles.highlightBox}>
             <p style={{margin: 0}}>
-              💳 <strong>Пример:</strong> Вы оплатили Pro Plan за 1,499 ₽. Комиссия ЮKassa составила ~30 ₽. 
-              При возврате вы получите 1,469 ₽.
+              💳 <strong>Пример:</strong> Вы оплатили Pro Plan за 990 ₽. 
+              При возврате вы получите полную сумму — 990 ₽.
+            </p>
+            <p style={{margin: '10px 0 0 0', fontSize: '13px', color: '#888'}}>
+              Комиссия платежной системы оплачивается компанией.
             </p>
           </div>
         </div>
