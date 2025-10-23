@@ -1,3 +1,4 @@
+// backend/src/auth/auth.controller.ts
 import { 
   Controller, 
   Post, 
@@ -32,15 +33,22 @@ export class AuthController {
     const userAgent = req.headers['user-agent'] || '';
 
     try {
-      const result = await this.authService.register(body.email, body.password, body.fullName);
+      // ✅ ИСПРАВЛЕНО: передаем ipAddress в метод register
+      const result = await this.authService.register(
+        body.email, 
+        body.password, 
+        body.fullName, 
+        ipAddress
+      );
       
       // Логируем регистрацию
       await this.auditLogService.log({
         userId: result.user.id,
-        action: AuditAction.LOGIN, // Используем LOGIN как регистрацию тоже
+        action: AuditAction.LOGIN,
         details: {
           type: 'registration',
           email: body.email,
+          fullName: body.fullName,
         },
         ipAddress,
         userAgent,
@@ -79,7 +87,8 @@ export class AuthController {
     const userAgent = req.headers['user-agent'] || '';
 
     try {
-      const result = await this.authService.login(body.email, body.password);
+      // ✅ ИСПРАВЛЕНО: передаем ipAddress в метод login
+      const result = await this.authService.login(body.email, body.password, ipAddress);
       
       // Логируем успешный вход
       await this.auditLogService.log({
@@ -124,8 +133,6 @@ export class AuthController {
     @Req() req: any,
   ) {
     const userId = req.user.id;
-    const ipAddress = this.getClientIp(req);
-    const userAgent = req.headers['user-agent'] || '';
 
     try {
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -134,16 +141,6 @@ export class AuthController {
       
       const token = authHeader.substring(7);
       const userProfile = await this.authService.getProfile(token);
-
-      // Логируем просмотр профиля (опционально, можно убрать если слишком много логов)
-      // await this.auditLogService.log({
-      //   userId,
-      //   action: AuditAction.PROFILE_UPDATED,
-      //   details: { type: 'profile_view' },
-      //   ipAddress,
-      //   userAgent,
-      //   status: 'success',
-      // });
 
       return { success: true, user: userProfile };
     } catch (err) {
@@ -158,7 +155,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async updateProfile(
     @Headers('authorization') authHeader: string, 
-    @Body() body: { companyId?: string; fullName?: string; email?: string },
+    @Body() body: { fullName?: string },
     @Req() req: any,
   ) {
     const userId = req.user.id;
@@ -171,7 +168,8 @@ export class AuthController {
       }
       
       const token = authHeader.substring(7);
-      const updatedUser = await this.authService.updateProfile(token, body.companyId);
+      // ✅ ИСПРАВЛЕНО: передаем fullName вместо companyId
+      const updatedUser = await this.authService.updateProfile(token, body.fullName);
 
       // Логируем обновление профиля
       await this.auditLogService.log({
@@ -229,6 +227,10 @@ export class AuthController {
 
     return { success: true, message: 'Logged out successfully' };
   }
+
+  // ============================================
+  // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+  // ============================================
 
   private getClientIp(req: any): string {
     return (

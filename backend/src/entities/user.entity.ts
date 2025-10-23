@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-
-import { OneToMany } from 'typeorm';
+// backend/src/entities/user.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Assistant } from '../assistants/entities/assistant.entity';
 
 @Entity('users')
@@ -14,38 +13,38 @@ export class User {
   @OneToMany(() => Assistant, (assistant) => assistant.user)
   assistants: Assistant[];
 
-  // Для локальной регистрации (Email + пароль)
-  @Column({ nullable: true, select: false })
+  // ✅ ИСПРАВЛЕНО: Для локальной регистрации (Email + пароль)
+  @Column({ type: 'varchar', length: 255, nullable: true, select: false })
   password: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   full_name: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 500, nullable: true })
   avatar_url: string | null;
 
   // Откуда пришел пользователь
-  @Column({ default: 'local' })
+  @Column({ type: 'varchar', length: 20, default: 'local' })
   provider: 'local' | 'google' | 'yandex' | 'vk';
 
-  // OAuth IDs (ИСПРАВЛЕНО: убрал sparse)
-  @Column({ nullable: true, unique: true })
+  // OAuth IDs
+  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   google_id: string | null;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   yandex_id: string | null;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   vk_id: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   telegram_id: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   github_id: string | null;
 
   // Подписка и токены
-  @Column({ default: 'free' })
+  @Column({ type: 'varchar', length: 20, default: 'free' })
   plan: 'free' | 'pro' | 'max';
 
   @Column({ type: 'bigint', default: 0 })
@@ -61,17 +60,17 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   consent_given_at: Date | null;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   agreed_to_data_transfer: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 45, nullable: true })
   consent_ip_address: string | null;
 
   // Подтверждение email
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   email_verified: boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   email_verification_token: string | null;
 
   // Даты
