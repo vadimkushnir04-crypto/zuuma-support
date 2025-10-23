@@ -301,6 +301,29 @@ export default function Header() {
               </div>
             )}
 
+            {/* Согласие (ПЕРЕНЕСЕНО ВВЕРХ) */}
+            <div style={modalStyles.consents}>
+              <label style={modalStyles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  required
+                  style={modalStyles.checkbox}
+                />
+                <span style={modalStyles.checkboxText}>
+                  Я принимаю{' '}
+                  <a href="/terms" target="_blank" style={modalStyles.link}>
+                    Пользовательское соглашение
+                  </a>
+                  {' '}и{' '}
+                  <a href="/privacy" target="_blank" style={modalStyles.link}>
+                    Политику конфиденциальности
+                  </a>
+                </span>
+              </label>
+            </div>
+
             {/* Форма Email/Password */}
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>
@@ -345,7 +368,15 @@ export default function Header() {
                 />
               </div>
 
-              <button onClick={handleEmailAuth} style={modalStyles.submitButton}>
+              <button 
+                onClick={handleEmailAuth} 
+                disabled={!agreedToTerms}
+                style={{
+                  ...modalStyles.submitButton,
+                  opacity: !agreedToTerms ? 0.5 : 1,
+                  cursor: !agreedToTerms ? 'not-allowed' : 'pointer',
+                }}
+              >
                 {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
               </button>
             </div>
@@ -367,6 +398,19 @@ export default function Header() {
                 </p>
               </div>
 
+              {/* Дополнительное согласие для Google */}
+              <label style={{...modalStyles.checkboxLabel, marginBottom: '12px'}}>
+                <input
+                  type="checkbox"
+                  checked={agreedToDataTransfer}
+                  onChange={(e) => setAgreedToDataTransfer(e.target.checked)}
+                  style={modalStyles.checkbox}
+                />
+                <span style={modalStyles.checkboxText}>
+                  Согласие на трансграничную передачу данных
+                </span>
+              </label>
+
               <button 
                 onClick={handleGoogleLogin}
                 disabled={!agreedToTerms || !agreedToDataTransfer}
@@ -376,7 +420,6 @@ export default function Header() {
                   cursor: (!agreedToTerms || !agreedToDataTransfer) ? 'not-allowed' : 'pointer',
                 }}
               >
-                {/* Google Icon - используем inline SVG без тега svg */}
                 <span style={{ 
                   display: 'inline-block', 
                   width: '18px', 
@@ -393,41 +436,6 @@ export default function Header() {
                 `}} />
                 Войти через Google
               </button>
-            </div>
-
-            {/* Согласия (УПРОЩЕННЫЕ) */}
-            <div style={modalStyles.consents}>
-              <label style={modalStyles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  required
-                  style={modalStyles.checkbox}
-                />
-                <span style={modalStyles.checkboxText}>
-                  Я принимаю{' '}
-                  <a href="/terms" target="_blank" style={modalStyles.link}>
-                    Пользовательское соглашение
-                  </a>
-                  {' '}и{' '}
-                  <a href="/privacy" target="_blank" style={modalStyles.link}>
-                    Политику конфиденциальности
-                  </a>
-                </span>
-              </label>
-
-              <label style={modalStyles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={agreedToDataTransfer}
-                  onChange={(e) => setAgreedToDataTransfer(e.target.checked)}
-                  style={modalStyles.checkbox}
-                />
-                <span style={modalStyles.checkboxText}>
-                  Согласие на трансграничную передачу данных (только для Google)
-                </span>
-              </label>
             </div>
 
             <p style={modalStyles.hint}>
