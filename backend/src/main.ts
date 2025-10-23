@@ -1,7 +1,4 @@
 // backend/src/main.ts
-// ⚠️ ВАЖНО: Sentry должен быть импортирован ПЕРВЫМ (если используете)
-import * as Sentry from '@sentry/node';
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -9,11 +6,6 @@ import { ErrorFormatterInterceptor } from './common/error-formatter.interceptor'
 
 async function bootstrap() {
   try {
-    // Инициализируем Sentry если есть DSN
-    if (process.env.SENTRY_DSN) {
-      await import('sentry.server.config.js');
-    }
-
     const app = await NestFactory.create(AppModule, {
       cors: true,
     });
@@ -68,7 +60,6 @@ async function bootstrap() {
         status: 'OK', 
         message: 'NestJS Chat API is running',
         timestamp: new Date().toISOString(),
-        sentry: !!process.env.SENTRY_DSN,
         environment: process.env.NODE_ENV,
       });
     });
@@ -76,11 +67,6 @@ async function bootstrap() {
     // ✅ Глобальный обработчик ошибок
     app.use((err: any, req: any, res: any, next: any) => {
       console.error('❌ Unhandled error:', err);
-      
-      // Отправляем в Sentry если настроен
-      if (process.env.SENTRY_DSN) {
-        Sentry.captureException(err);
-      }
       
       // Возвращаем клиенту
       res.status(err.status || 500).json({
@@ -98,19 +84,11 @@ async function bootstrap() {
     console.log(`🔗 API available at http://localhost:${port}/api`);
     console.log(`🌍 CORS: ${isProd ? 'PRODUCTION (zuuma.ru)' : 'DEV (localhost)'}`);
     console.log(`🔌 WebSocket endpoint: ws://localhost:${port}/socket.io`);
-    console.log(`🛡️  Sentry: ${process.env.SENTRY_DSN ? '✅ ENABLED' : '⏸️  DISABLED (добавьте SENTRY_DSN в .env)'}`);
     console.log(`📊 Audit Logs: ✅ ENABLED`);
     console.log('🚀 ===================================\n');
 
   } catch (error) {
     console.error('❌ Failed to start application:', error);
-    
-    // Отправляем критическую ошибку в Sentry
-    if (process.env.SENTRY_DSN) {
-      Sentry.captureException(error);
-      await Sentry.close(2000);
-    }
-    
     process.exit(1);
   }
 }
@@ -120,19 +98,11 @@ bootstrap();
 // ✅ Обработка необработанных отклонений промисов
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  if (process.env.SENTRY_DSN) {
-    Sentry.captureException(reason);
-  }
 });
 
 // ✅ Обработка необработанных исключений
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
-  if (process.env.SENTRY_DSN) {
-    Sentry.captureException(error);
-  }
-  
-  // Даем Sentry время отправить событие
   setTimeout(() => {
     process.exit(1);
   }, 1000);

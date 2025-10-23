@@ -48,13 +48,12 @@ services:
       - YOOKASSA_SECRET_KEY=${YOOKASSA_SECRET_KEY}
       - YANDEX_API_KEY=${YANDEX_API_KEY}
       - YANDEX_FOLDER_ID=${YANDEX_FOLDER_ID}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - BACKEND_URL=${BACKEND_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
-      - SENTRY_DSN=${SENTRY_DSN}
     networks:
       - app_network
 
@@ -68,8 +67,6 @@ services:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXT_PUBLIC_UMAMI_WEBSITE_ID=${NEXT_PUBLIC_UMAMI_WEBSITE_ID}
-      - NEXT_PUBLIC_SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN}
     networks:
       - app_network
 
@@ -89,63 +86,10 @@ services:
     networks:
       - app_network
 
-  # Umami для веб-аналитики
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    container_name: support_umami
-    restart: always
-    ports:
-      - "127.0.0.1:3002:3000"
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@umami-db:5432/umami
-      DATABASE_TYPE: postgresql
-      APP_SECRET: ${UMAMI_SECRET}
-      TRACKER_SCRIPT_NAME: analytics
-    depends_on:
-      - umami-db
-    networks:
-      - app_network
-
-  umami-db:
-    image: postgres:15-alpine
-    container_name: support_umami_db
-    restart: always
-    environment:
-      POSTGRES_DB: umami
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - umami_data:/var/lib/postgresql/data
-    networks:
-      - app_network
-
-  # Grafana для бизнес-метрик
-  grafana:
-    image: grafana/grafana:latest
-    container_name: support_grafana
-    restart: always
-    ports:
-      - "127.0.0.1:3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-      - GF_INSTALL_PLUGINS=grafana-clock-panel
-      - GF_SERVER_ROOT_URL=https://zuuma.ru/grafana
-    volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - postgres
-    networks:
-      - app_network
-
 volumes:
   postgres_data:
     driver: local
   qdrant_data:
-    driver: local
-  umami_data:
-    driver: local
-  grafana_data:
     driver: local
 
 networks:
