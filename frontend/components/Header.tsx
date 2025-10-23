@@ -9,7 +9,10 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   
-  // ✅ ИЗМЕНЕНО: теперь два типа модальных окон
+  // ✅ ИСПРАВЛЕНО: Фикс для undefined API URL
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
+  
+  // Модальные окна
   const [authModalType, setAuthModalType] = useState<'email' | 'google' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
@@ -50,7 +53,7 @@ export default function Header() {
         ? { email, password, fullName }
         : { email, password };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -79,7 +82,7 @@ export default function Header() {
       setError('Пожалуйста, дайте все необходимые согласия');
       return;
     }
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
+    window.location.href = `${API_URL}/api/auth/google`;
   };
 
   const handleLogout = () => {
@@ -92,9 +95,11 @@ export default function Header() {
   return (
     <header style={styles.header}>
       <div style={styles.container}>
-        <h1 style={styles.logo} onClick={() => router.push('/')}>
-          ZUUMA
-        </h1>
+        {/* ✅ ИСПРАВЛЕНО: Логотип с иконкой */}
+        <div style={styles.logoContainer} onClick={() => router.push('/')}>
+          <img src="/favicon.ico" alt="Zuuma" style={styles.logoIcon} />
+          <h1 style={styles.logo}>zuuma</h1>
+        </div>
 
         <nav style={styles.nav}>
           {isLoggedIn ? (
@@ -117,7 +122,7 @@ export default function Header() {
               </button>
               <button 
                 onClick={() => setAuthModalType('google')}
-                style={styles.googleButton}
+                style={styles.googleButtonHeader}
               >
                 🔵 Вход через Google
               </button>
@@ -424,11 +429,23 @@ const styles = {
     alignItems: 'center',
     padding: '0 20px',
   },
+  // ✅ ИСПРАВЛЕНО: Контейнер логотипа
+  logoContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    cursor: 'pointer',
+  },
+  // ✅ ИСПРАВЛЕНО: Иконка логотипа
+  logoIcon: {
+    width: '32px',
+    height: '32px',
+  },
+  // ✅ ИСПРАВЛЕНО: Текст логотипа белый
   logo: {
     fontSize: '24px',
     fontWeight: 'bold',
-    color: '#4CAF50',
-    cursor: 'pointer',
+    color: '#FFFFFF',
     margin: 0,
   },
   nav: {
@@ -457,9 +474,9 @@ const styles = {
     color: 'white',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
-  googleButton: {
+  googleButtonHeader: {
     padding: '10px 20px',
     background: '#4285F4',
     border: 'none',
@@ -467,7 +484,7 @@ const styles = {
     color: 'white',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: '500',
+    fontWeight: '500' as const,
   },
   logoutButton: {
     padding: '10px 20px',
