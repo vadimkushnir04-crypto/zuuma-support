@@ -1,276 +1,146 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { UserIcon, Settings, Menu, X, Mail, Lock, User } from "lucide-react";
-import { useTranslation } from "react-i18next";
-import LanguageSwitcher from "./LanguageSwitcher";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-
-interface UserInfo {
-  id: string;
-  email: string;
-  fullName?: string;
-  avatarUrl?: string;
-  plan?: string;
-}
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { X, User, Mail, Lock } from 'lucide-react';
 
 export default function Header() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const { t } = useTranslation("common");
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState('');
   
-  // Модальное окно входа/регистрации
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+  // ✅ ИЗМЕНЕНО: теперь два типа модальных окон
+  const [authModalType, setAuthModalType] = useState<'email' | 'google' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
-  // Форма
+  // Поля формы
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [error, setError] = useState('');
+  
+  // Согласия
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [agreedToDataTransfer, setAgreedToDataTransfer] = useState(false);
-  const [error, setError] = useState('');
-
-  const API_BASE_URL = "https://zuuma.ru/api";
-  const isHomePage = pathname === "/";
 
   useEffect(() => {
-    setMounted(true);
-
-    const token = searchParams.get("token");
-    const userParam = searchParams.get("user");
-
-    if (token && userParam) {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    if (token && user) {
+      setIsLoggedIn(true);
       try {
-        const user = JSON.parse(decodeURIComponent(userParam));
-        localStorage.setItem("auth_token", token);
-        setUserInfo(user);
-        window.history.replaceState({}, document.title, "/assistants");
-        router.replace("/assistants");
-      } catch (error) {
-        console.error("Error parsing user data:", error);
+        const userData = JSON.parse(user);
+        setUserName(userData.fullName || userData.email);
+      } catch (e) {
+        console.error('Error parsing user data:', e);
       }
-    } else {
-      loadUserInfo();
     }
-  }, [searchParams, router]);
+  }, []);
 
-  const loadUserInfo = async () => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) return;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (res.ok) {
-        const userData = await res.json();
-        setUserInfo(userData.user);
-      } else {
-        localStorage.removeItem("auth_token");
-        setUserInfo(null);
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки данных пользователя:", error);
-    }
-  };
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-    document.body.classList.toggle("sidebar-open");
-  };
-
-  const handleGoogleLogin = () => {
+  // Email/Password вход
+  const handleEmailAuth = async () => {
     if (!agreedToTerms) {
-      setError('Вы должны принять условия использования');
-      return;
-    }
-    if (!agreedToDataTransfer) {
-      setError('Для входа через Google требуется согласие на передачу данных');
-      return;
-    }
-    window.location.href = `${API_BASE_URL}/auth/google`;
-  };
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!agreedToTerms) {
-      setError('Вы должны принять условия использования');
+      setError('Пожалуйста, примите условия использования');
       return;
     }
 
     try {
-      const endpoint = authMode === 'login' ? '/auth/login' : '/auth/register';
+      const endpoint = authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
       const body = authMode === 'register' 
         ? { email, password, fullName }
         : { email, password };
 
-      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('auth_token', data.token);
-        setUserInfo(data.user);
-        setAuthModalOpen(false);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setIsLoggedIn(true);
+        setUserName(data.user.fullName || data.user.email);
+        setAuthModalType(null);
         router.push('/assistants');
       } else {
-        setError(data.error || 'Ошибка аутентификации');
+        setError(data.error || 'Ошибка авторизации');
       }
     } catch (err) {
-      setError('Ошибка сети. Попробуйте снова.');
+      setError('Внутренняя ошибка сервера. Попробуйте позже.');
     }
   };
 
-  const handleProfileClick = () => {
-    if (userInfo) {
-      router.push("/profile");
-    } else {
-      setAuthModalOpen(true);
+  // Google вход
+  const handleGoogleLogin = () => {
+    if (!agreedToTerms || !agreedToDataTransfer) {
+      setError('Пожалуйста, дайте все необходимые согласия');
+      return;
     }
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token");
-    setUserInfo(null);
-    setProfileOpen(false);
-    router.push("/");
-  };
-
-  const openAuthModal = (mode: 'login' | 'register') => {
-    setAuthMode(mode);
-    setAuthModalOpen(true);
-    setError('');
-    setEmail('');
-    setPassword('');
-    setFullName('');
-    setAgreedToTerms(false);
-    setAgreedToDataTransfer(false);
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    router.push('/');
   };
 
   return (
-    <>
-      <header 
-        className="header"
-        style={{
-          paddingLeft: isHomePage ? "16px" : "276px",
-          transition: "padding-left 0.3s ease",
-        }}
-      >
-        <div className="header-left">
-          <button
-            className="sidebar-toggle"
-            onClick={toggleSidebar}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
+    <header style={styles.header}>
+      <div style={styles.container}>
+        <h1 style={styles.logo} onClick={() => router.push('/')}>
+          ZUUMA
+        </h1>
 
-          <Link
-            href="/"
-            className="logo flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:text-purple-500"
-          >
-            <Image
-              src="/favicon.ico"
-              alt="Zuuma Logo"
-              width={22}
-              height={22}
-              className="transition-transform duration-300 hover:scale-125 hover:drop-shadow-[0_0_8px_rgba(168,85,247,0.6)] animate-pulse-slow"
-            />
-            <span className="font-semibold text-lg tracking-tight">zuuma</span>
-          </Link>
-        </div>
+        <nav style={styles.nav}>
+          {isLoggedIn ? (
+            <>
+              <span style={styles.userName}>{userName}</span>
+              <button onClick={() => router.push('/assistants')} style={styles.navButton}>
+                Мои ассистенты
+              </button>
+              <button onClick={handleLogout} style={styles.logoutButton}>
+                Выйти
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => setAuthModalType('email')}
+                style={styles.loginButton}
+              >
+                📧 Вход по Email
+              </button>
+              <button 
+                onClick={() => setAuthModalType('google')}
+                style={styles.googleButton}
+              >
+                🔵 Вход через Google
+              </button>
+            </>
+          )}
+        </nav>
+      </div>
 
-        <div className="header-right">
-          <LanguageSwitcher />
-
-          <button className="icon-button" title="Настройки">
-            <Settings size={20} color="#E0E0E0" />
-          </button>
-
-          <div className="profile-container">
-            <div
-              className="profile-info"
-              onClick={handleProfileClick}
-              style={{ cursor: "pointer" }}
-            >
-              {userInfo?.avatarUrl ? (
-                <img
-                  src={userInfo.avatarUrl}
-                  alt="Avatar"
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    marginRight: 8,
-                    objectFit: "cover",
-                  }}
-                />
-              ) : (
-                <UserIcon size={16} style={{ marginRight: 8 }} />
-              )}
-              <div>
-                <div className="profile-name">
-                  {userInfo ? userInfo.fullName || "Пользователь" : "Гость"}
-                </div>
-                <div className="profile-email">
-                  {userInfo ? userInfo.email : "Нажмите для входа"}
-                </div>
-              </div>
-            </div>
-
-            {profileOpen && userInfo && (
-              <div className="profile-dropdown">
-                <div className="dropdown-divider"></div>
-                <button
-                  onClick={() => router.push("/profile")}
-                  className="login-button"
-                >
-                  Профиль
-                </button>
-                <button onClick={handleLogout} className="login-button">
-                  Выйти
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {sidebarOpen && (
-          <div className="sidebar-overlay" onClick={toggleSidebar}></div>
-        )}
-      </header>
-
-      {/* Модальное окно входа/регистрации */}
-      {authModalOpen && (
-        <div style={modalStyles.overlay} onClick={() => setAuthModalOpen(false)}>
+      {/* ============================================ */}
+      {/* МОДАЛЬНОЕ ОКНО ДЛЯ EMAIL/PASSWORD           */}
+      {/* ============================================ */}
+      {authModalType === 'email' && (
+        <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
             <button 
               style={modalStyles.closeButton}
-              onClick={() => setAuthModalOpen(false)}
+              onClick={() => setAuthModalType(null)}
             >
               <X size={20} />
             </button>
 
             <h2 style={modalStyles.title}>
-              {authMode === 'login' ? 'Вход в Zuuma' : 'Регистрация в Zuuma'}
+              {authMode === 'login' ? 'Вход по Email' : 'Регистрация по Email'}
             </h2>
 
             {/* Переключатель Login/Register */}
@@ -301,7 +171,7 @@ export default function Header() {
               </div>
             )}
 
-            {/* Согласие (ПЕРЕНЕСЕНО ВВЕРХ) */}
+            {/* Согласие */}
             <div style={modalStyles.consents}>
               <label style={modalStyles.checkboxLabel}>
                 <input
@@ -324,12 +194,8 @@ export default function Header() {
               </label>
             </div>
 
-            {/* Форма Email/Password */}
+            {/* Форма */}
             <div style={modalStyles.section}>
-              <h3 style={modalStyles.sectionTitle}>
-                ✅ Рекомендуем: данные остаются в РФ
-              </h3>
-
               {authMode === 'register' && (
                 <div style={modalStyles.inputGroup}>
                   <User size={18} style={modalStyles.icon} />
@@ -381,63 +247,6 @@ export default function Header() {
               </button>
             </div>
 
-            {/* Divider */}
-            <div style={modalStyles.divider}>
-              <span style={modalStyles.dividerLine}></span>
-              <span style={modalStyles.dividerText}>или</span>
-              <span style={modalStyles.dividerLine}></span>
-            </div>
-
-            {/* Google OAuth */}
-            <div style={modalStyles.section}>
-              <h3 style={modalStyles.sectionTitle}>Вход через Google</h3>
-              
-              <div style={modalStyles.warningBox}>
-                <p style={modalStyles.warningText}>
-                  ⚠️ При входе через Google данные передаются на серверы Google (США)
-                </p>
-              </div>
-
-              {/* Дополнительное согласие для Google */}
-              <label style={{...modalStyles.checkboxLabel, marginBottom: '12px'}}>
-                <input
-                  type="checkbox"
-                  checked={agreedToDataTransfer}
-                  onChange={(e) => setAgreedToDataTransfer(e.target.checked)}
-                  style={modalStyles.checkbox}
-                />
-                <span style={modalStyles.checkboxText}>
-                  Согласие на трансграничную передачу данных
-                </span>
-              </label>
-
-              <button 
-                onClick={handleGoogleLogin}
-                disabled={!agreedToTerms || !agreedToDataTransfer}
-                style={{
-                  ...modalStyles.googleButton,
-                  opacity: (!agreedToTerms || !agreedToDataTransfer) ? 0.5 : 1,
-                  cursor: (!agreedToTerms || !agreedToDataTransfer) ? 'not-allowed' : 'pointer',
-                }}
-              >
-                <span style={{ 
-                  display: 'inline-block', 
-                  width: '18px', 
-                  height: '18px', 
-                  marginRight: '8px',
-                  verticalAlign: 'middle'
-                }} dangerouslySetInnerHTML={{ __html: `
-                  <svg width="18" height="18" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                `}} />
-                Войти через Google
-              </button>
-            </div>
-
             <p style={modalStyles.hint}>
               {authMode === 'login' ? (
                 <>
@@ -461,214 +270,378 @@ export default function Header() {
                 </>
               )}
             </p>
+
+            {/* Альтернатива */}
+            <div style={{ textAlign: 'center', marginTop: '20px', color: '#888', fontSize: '14px' }}>
+              <p>или</p>
+              <button 
+                onClick={() => setAuthModalType('google')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#4285F4',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontSize: '14px',
+                }}
+              >
+                Войти через Google
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </>
+
+      {/* ============================================ */}
+      {/* МОДАЛЬНОЕ ОКНО ДЛЯ GOOGLE                   */}
+      {/* ============================================ */}
+      {authModalType === 'google' && (
+        <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
+          <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
+            <button 
+              style={modalStyles.closeButton}
+              onClick={() => setAuthModalType(null)}
+            >
+              <X size={20} />
+            </button>
+
+            <h2 style={modalStyles.title}>Вход через Google</h2>
+
+            {error && (
+              <div style={modalStyles.error}>
+                {error}
+              </div>
+            )}
+
+            <div style={modalStyles.warningBox}>
+              <p style={modalStyles.warningText}>
+                ⚠️ При входе через Google данные передаются на серверы Google (США)
+              </p>
+            </div>
+
+            {/* Согласия */}
+            <div style={modalStyles.consents}>
+              <label style={modalStyles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  required
+                  style={modalStyles.checkbox}
+                />
+                <span style={modalStyles.checkboxText}>
+                  Я принимаю{' '}
+                  <a href="/terms" target="_blank" style={modalStyles.link}>
+                    Пользовательское соглашение
+                  </a>
+                  {' '}и{' '}
+                  <a href="/privacy" target="_blank" style={modalStyles.link}>
+                    Политику конфиденциальности
+                  </a>
+                </span>
+              </label>
+
+              <label style={modalStyles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={agreedToDataTransfer}
+                  onChange={(e) => setAgreedToDataTransfer(e.target.checked)}
+                  style={modalStyles.checkbox}
+                />
+                <span style={modalStyles.checkboxText}>
+                  Согласие на трансграничную передачу данных
+                </span>
+              </label>
+            </div>
+
+            <button 
+              onClick={handleGoogleLogin}
+              disabled={!agreedToTerms || !agreedToDataTransfer}
+              style={{
+                ...modalStyles.googleButton,
+                opacity: (!agreedToTerms || !agreedToDataTransfer) ? 0.5 : 1,
+                cursor: (!agreedToTerms || !agreedToDataTransfer) ? 'not-allowed' : 'pointer',
+                width: '100%',
+                marginTop: '20px',
+              }}
+            >
+              <span style={{ 
+                display: 'inline-block', 
+                width: '18px', 
+                height: '18px', 
+                marginRight: '8px',
+                verticalAlign: 'middle'
+              }} dangerouslySetInnerHTML={{ __html: `
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+              `}} />
+              Продолжить с Google
+            </button>
+
+            {/* Альтернатива */}
+            <div style={{ textAlign: 'center', marginTop: '20px', color: '#888', fontSize: '14px' }}>
+              <p>или</p>
+              <button 
+                onClick={() => setAuthModalType('email')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#4CAF50',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  fontSize: '14px',
+                }}
+              >
+                Войти по Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }
 
-const modalStyles: { [key: string]: React.CSSProperties } = {
+// ============================================
+// СТИЛИ
+// ============================================
+
+const styles = {
+  header: {
+    background: '#1E1E1E',
+    padding: '20px 0',
+    borderBottom: '1px solid #333',
+  },
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '0 20px',
+  },
+  logo: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    cursor: 'pointer',
+    margin: 0,
+  },
+  nav: {
+    display: 'flex',
+    gap: '15px',
+    alignItems: 'center',
+  },
+  userName: {
+    color: '#E0E0E0',
+    marginRight: '10px',
+  },
+  navButton: {
+    padding: '10px 20px',
+    background: '#2A2A2A',
+    border: 'none',
+    borderRadius: '6px',
+    color: '#E0E0E0',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+  loginButton: {
+    padding: '10px 20px',
+    background: '#4CAF50',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  googleButton: {
+    padding: '10px 20px',
+    background: '#4285F4',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
+  logoutButton: {
+    padding: '10px 20px',
+    background: '#f44336',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+};
+
+const modalStyles = {
   overlay: {
-    position: 'fixed',
+    position: 'fixed' as const,
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    background: 'rgba(0, 0, 0, 0.7)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    padding: '20px',
   },
   modal: {
-    backgroundColor: '#1E1E1E',
+    background: '#1E1E1E',
+    padding: '30px',
     borderRadius: '12px',
-    padding: '32px',
-    maxWidth: '500px',
-    width: '100%',
+    maxWidth: '450px',
+    width: '90%',
     maxHeight: '90vh',
-    overflowY: 'auto',
-    border: '1px solid #333',
-    position: 'relative',
+    overflowY: 'auto' as const,
+    position: 'relative' as const,
   },
   closeButton: {
-    position: 'absolute',
-    top: '16px',
-    right: '16px',
-    background: 'none',
+    position: 'absolute' as const,
+    top: '15px',
+    right: '15px',
+    background: 'transparent',
     border: 'none',
-    color: '#999',
+    color: '#888',
     cursor: 'pointer',
-    padding: '4px',
+    padding: '5px',
   },
   title: {
     fontSize: '24px',
-    fontWeight: 'bold',
-    marginBottom: '24px',
+    marginBottom: '20px',
     color: '#E0E0E0',
   },
   tabs: {
     display: 'flex',
-    gap: '8px',
-    marginBottom: '24px',
-    borderBottom: '1px solid #333',
+    gap: '10px',
+    marginBottom: '20px',
   },
   tab: {
     flex: 1,
-    padding: '12px',
-    background: 'none',
+    padding: '10px',
+    background: '#2A2A2A',
     border: 'none',
-    color: '#999',
-    fontSize: '14px',
-    fontWeight: '500',
+    borderRadius: '6px',
+    color: '#888',
     cursor: 'pointer',
-    borderBottom: '2px solid transparent',
-    transition: 'all 0.2s',
+    fontSize: '14px',
   },
   tabActive: {
-    color: '#4CAF50',
-    borderBottom: '2px solid #4CAF50',
+    background: '#4CAF50',
+    color: 'white',
   },
   error: {
-    backgroundColor: '#2A1515',
-    border: '1px solid #ff6b6b',
-    borderRadius: '8px',
-    padding: '12px',
-    marginBottom: '16px',
-    color: '#ff6b6b',
+    background: '#f443364d',
+    color: '#f44336',
+    padding: '10px',
+    borderRadius: '6px',
+    marginBottom: '15px',
     fontSize: '14px',
   },
   section: {
-    marginBottom: '24px',
-  },
-  sectionTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    marginBottom: '12px',
-    color: '#4CAF50',
+    marginBottom: '20px',
   },
   inputGroup: {
-    position: 'relative',
-    marginBottom: '12px',
+    position: 'relative' as const,
+    marginBottom: '15px',
   },
   icon: {
-    position: 'absolute',
+    position: 'absolute' as const,
     left: '12px',
     top: '50%',
     transform: 'translateY(-50%)',
-    color: '#999',
-    pointerEvents: 'none',
+    color: '#888',
   },
   input: {
     width: '100%',
     padding: '12px 12px 12px 40px',
-    backgroundColor: '#2A2A2A',
-    border: '1px solid #333',
-    borderRadius: '8px',
+    background: '#2A2A2A',
+    border: '1px solid #444',
+    borderRadius: '6px',
     color: '#E0E0E0',
     fontSize: '14px',
-    boxSizing: 'border-box',
+    boxSizing: 'border-box' as const,
   },
   submitButton: {
     width: '100%',
     padding: '12px',
-    backgroundColor: '#4CAF50',
-    color: '#000',
+    background: '#4CAF50',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '6px',
+    color: 'white',
     fontSize: '16px',
-    fontWeight: '600',
+    fontWeight: '500' as const,
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
-  },
-  divider: {
-    display: 'flex',
-    alignItems: 'center',
-    margin: '20px 0',
-  },
-  dividerLine: {
-    flex: 1,
-    height: '1px',
-    backgroundColor: '#333',
-  },
-  dividerText: {
-    padding: '0 12px',
-    color: '#666',
-    fontSize: '13px',
-  },
-  googleButton: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '12px',
-    padding: '12px',
-    backgroundColor: '#fff',
-    color: '#333',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  warningBox: {
-    backgroundColor: '#2A1A1A',
-    border: '1px solid #ff9800',
-    borderRadius: '8px',
-    padding: '12px',
-    marginBottom: '12px',
-  },
-  warningText: {
-    fontSize: '12px',
-    color: '#ccc',
-    margin: 0,
-    lineHeight: '1.5',
+    marginTop: '10px',
   },
   consents: {
-    marginTop: '20px',
-    padding: '16px',
-    backgroundColor: '#2A2A2A',
-    borderRadius: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
+    marginBottom: '20px',
   },
   checkboxLabel: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: '8px',
+    gap: '10px',
+    marginBottom: '12px',
     cursor: 'pointer',
   },
   checkbox: {
     marginTop: '3px',
     cursor: 'pointer',
-    minWidth: '16px',
   },
   checkboxText: {
-    fontSize: '12px',
-    color: '#ccc',
+    fontSize: '13px',
+    color: '#B0B0B0',
     lineHeight: '1.5',
   },
   link: {
     color: '#4CAF50',
     textDecoration: 'none',
   },
-  hint: {
-    textAlign: 'center',
-    marginTop: '20px',
+  warningBox: {
+    background: '#ff98004d',
+    border: '1px solid #ff9800',
+    borderRadius: '6px',
+    padding: '12px',
+    marginBottom: '20px',
+  },
+  warningText: {
     fontSize: '13px',
-    color: '#999',
+    color: '#ffb74d',
+    margin: 0,
+    lineHeight: '1.5',
+  },
+  hint: {
+    textAlign: 'center' as const,
+    color: '#888',
+    fontSize: '14px',
+    marginTop: '15px',
   },
   linkButton: {
-    background: 'none',
+    background: 'transparent',
     border: 'none',
     color: '#4CAF50',
     cursor: 'pointer',
     textDecoration: 'underline',
-    padding: 0,
-    font: 'inherit',
+    fontSize: '14px',
+  },
+  googleButton: {
+    padding: '12px',
+    background: '#4285F4',
+    border: 'none',
+    borderRadius: '6px',
+    color: 'white',
+    fontSize: '16px',
+    fontWeight: '500' as const,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 };
