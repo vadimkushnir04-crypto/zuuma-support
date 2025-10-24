@@ -45,18 +45,24 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
     try {
-      // ✅ req.user уже содержит { user, token }
       const { token } = req.user;
-
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
-      // Редиректим на страницу успешного входа
-      return res.redirect(`${frontendUrl}/auth/success?token=${token}`);
+
+      // Ставим куку с токеном
+      res.cookie('token', token, {
+        httpOnly: true,      // защищает от XSS
+        secure: true,        // только HTTPS
+        sameSite: 'lax',     // совместимость с редиректами
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+      });
+
+      // Редиректим на главную
+      return res.redirect(`${frontendUrl}/`);
     } catch (error: any) {
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
       return res.redirect(`${frontendUrl}?error=${encodeURIComponent(error.message)}`);
     }
   }
-
   // ============================================
   // РЕГИСТРАЦИЯ
   // ============================================
@@ -192,8 +198,9 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: any) {
-    return { success: true, message: 'Выход выполнен успешно.' };
+  async logout(@Res() res: Response) {
+    res.clearCookie('token');
+    return res.json({ success: true, message: 'Выход выполнен успешно.' });
   }
 
   // ============================================

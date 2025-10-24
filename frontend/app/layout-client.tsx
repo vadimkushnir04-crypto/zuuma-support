@@ -6,6 +6,7 @@ import AdminChatWidget from "../components/AdminChatWidget";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
+import CookieConsent from "../components/CookieConsent";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -42,6 +43,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         </main>
       </div>
       <AdminChatWidget />
+      <CookieConsent />
     </>
   );
 }

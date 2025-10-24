@@ -1,17 +1,15 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, User, X } from 'lucide-react';
 
-interface HeaderProps {
-  isLoggedIn: boolean;
-  userName: string;
-  onLogout: () => void;
-}
-
-export default function Header({ isLoggedIn, userName, onLogout }: HeaderProps) {
+export default function Header({ isLoggedIn: externalLoggedIn, userName: externalName, onLogout }: any) {
   const router = useRouter();
+  
+  // Если Header сам управляет авторизацией:
+  const [isLoggedIn, setIsLoggedIn] = useState(externalLoggedIn || false);
+  const [userName, setUserName] = useState(externalName || '');
+  
   const [authModalType, setAuthModalType] = useState<'email' | 'google' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -20,7 +18,29 @@ export default function Header({ isLoggedIn, userName, onLogout }: HeaderProps) 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [agreedToDataTransfer, setAgreedToDataTransfer] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState(''); // Новое состояние
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // ✅ Проверка авторизации при загрузке (кука HttpOnly)
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch('/api/auth/profile', {
+          credentials: 'include', // 👈 важно — отправляем cookie с запросом
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          setIsLoggedIn(true);
+          setUserName(data.user.fullName || data.user.email);
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        setIsLoggedIn(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   // Очистка уведомлений при смене режима
   useEffect(() => {
@@ -28,22 +48,27 @@ export default function Header({ isLoggedIn, userName, onLogout }: HeaderProps) 
     setSuccessMessage('');
   }, [authMode]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include', // 👈 чтобы сервер мог удалить cookie
+      });
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+
     localStorage.removeItem('token');
-    onLogout();
+    setIsLoggedIn(false);
+    setUserName('');
+    onLogout?.();
     router.push('/');
   };
 
   const handleGoogleLogin = async () => {
     setError('');
     if (!agreedToTerms || !agreedToDataTransfer) return;
-
-    try {
-      // Здесь будет редирект на Google OAuth
-      window.location.href = '/api/auth/google';
-    } catch (err: any) {
-      setError(err.message || 'Ошибка входа через Google');
-    }
+    window.location.href = '/api/auth/google';
   };
 
   // Обновлённая функция с новыми фичами
