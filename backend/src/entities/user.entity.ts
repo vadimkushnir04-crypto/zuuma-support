@@ -1,5 +1,5 @@
 // backend/src/entities/user.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, DeleteDateColumn } from 'typeorm';
 import { Assistant } from '../assistants/entities/assistant.entity';
 
 @Entity('users')
@@ -13,7 +13,7 @@ export class User {
   @OneToMany(() => Assistant, (assistant) => assistant.user)
   assistants: Assistant[];
 
-  // ✅ ИСПРАВЛЕНО: Для локальной регистрации (Email + пароль)
+  // Для локальной регистрации (Email + пароль)
   @Column({ type: 'varchar', length: 255, nullable: true, select: false })
   password: string | null;
 
@@ -23,9 +23,9 @@ export class User {
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar_url: string | null;
 
-  // Откуда пришел пользователь
+  // Откуда пришел пользователь (добавлены github и telegram)
   @Column({ type: 'varchar', length: 20, default: 'local' })
-  provider: 'local' | 'google' | 'yandex' | 'vk';
+  provider: 'local' | 'google' | 'yandex' | 'vk' | 'github' | 'telegram';
 
   // OAuth IDs
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
@@ -80,7 +80,7 @@ export class User {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @DeleteDateColumn()
   deleted_at: Date | null;
 
   @Column({ type: 'timestamp', nullable: true })
