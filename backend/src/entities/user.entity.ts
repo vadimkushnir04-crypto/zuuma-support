@@ -1,4 +1,3 @@
-// backend/src/entities/user.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, DeleteDateColumn } from 'typeorm';
 import { Assistant } from '../assistants/entities/assistant.entity';
 
@@ -23,25 +22,13 @@ export class User {
   @Column({ type: 'varchar', length: 500, nullable: true })
   avatar_url: string | null;
 
-  // Откуда пришел пользователь (добавлены github и telegram)
+  // Откуда пришел пользователь (оставляем только local и google)
   @Column({ type: 'varchar', length: 20, default: 'local' })
-  provider: 'local' | 'google' | 'yandex' | 'vk' | 'github' | 'telegram';
+  provider: 'local' | 'google';
 
-  // OAuth IDs
+  // OAuth IDs (оставляем только google_id)
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   google_id: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
-  yandex_id: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
-  vk_id: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  telegram_id: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  github_id: string | null;
 
   // Подписка и токены
   @Column({ type: 'varchar', length: 20, default: 'free' })

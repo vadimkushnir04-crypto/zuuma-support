@@ -38,18 +38,3 @@ import { AuditLogModule } from '../common/audit-log.module'; // ✅ Импорт
   exports: [AuthService, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}
-
-/*
- * ✅ ИСПРАВЛЕНИЯ В ЭТОМ ФАЙЛЕ:
- * 
- * 1. Добавлен импорт AuditLog entity
- * 2. AuditLog зарегистрирован в TypeOrmModule.forFeature()
- * 3. Добавлен импорт AuditLogModule
- * 4. AuditLogModule добавлен в imports
- * 
- * Это исправляет ошибку:
- * "EntityMetadataNotFoundError: No metadata for 'AuditLog' was found"
- * 
- * Теперь AuthController может использовать AuditLogService
- * для логирования действий пользователей.
- */
