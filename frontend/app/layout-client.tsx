@@ -4,14 +4,16 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import AdminChatWidget from "../components/AdminChatWidget"; // ← ДОБАВЬ
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const hideSidebar = pathname === "/";
+  const { isLoggedIn, userName, logout } = useAuth();
 
   return (
     <>
-      <Header />
+      <Header isLoggedIn={isLoggedIn} userName={userName} onLogout={logout} />
       <div style={{ display: 'flex', paddingTop: '54px' }}>
         {!hideSidebar && <Sidebar />}
         <main
