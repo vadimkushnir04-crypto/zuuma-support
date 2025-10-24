@@ -10,8 +10,11 @@ import {
   Headers, 
   UnauthorizedException,
   Req,
+  Res,
   UseGuards
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuditLogService } from '../common/audit-log.service';
 import { AuditAction } from '../common/entities/audit-log.entity';
@@ -23,6 +26,83 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly auditLogService: AuditLogService,
   ) {}
+
+  // ============================================
+  // GOOGLE OAUTH ROUTES
+  // ============================================
+
+  /**
+   * Инициирует процесс Google OAuth
+   * GET /api/auth/google
+   */
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  async googleAuth(@Req() req: any) {
+    // Guard автоматически перенаправит на страницу входа Google
+    // Этот метод не выполняется, используется только для активации Guard
+  }
+
+  /**
+   * Обработка callback от Google после успешной авторизации
+   * GET /api/auth/google/callback
+   */
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
+    const ipAddress = this.getClientIp(req);
+    const userAgent = req.headers['user-agent'] || '';
+
+    try {
+      // Получаем данные пользователя из req.user (установлены GoogleStrategy)
+      const { user, token } = req.user;
+
+      console.log('✅ Google OAuth успешен, user ID:', user.id);
+
+      // Логируем успешный вход через Google
+      await this.auditLogService.log({
+        userId: user.id,
+        action: AuditAction.LOGIN,
+        details: {
+          type: 'google_oauth',
+          email: user.email,
+          provider: 'google',
+        },
+        ipAddress,
+        userAgent,
+        status: 'success',
+      });
+
+      // Перенаправляем на фронтенд с токеном
+      const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
+      
+      // ✅ Фронтенд должен извлечь токен из URL и сохранить в localStorage
+      res.redirect(`${frontendUrl}?token=${token}`);
+    } catch (error) {
+      console.error('❌ Google OAuth ошибка:', error);
+
+      // Логируем неудачную попытку входа через Google
+      await this.auditLogService.log({
+        userId: 'anonymous',
+        action: AuditAction.LOGIN,
+        details: {
+          type: 'google_oauth_failed',
+          errorMessage: error.message,
+        },
+        ipAddress,
+        userAgent,
+        status: 'failure',
+        errorMessage: error.message,
+      });
+
+      // Перенаправляем на фронтенд с сообщением об ошибке
+      const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
+      res.redirect(`${frontendUrl}?error=${encodeURIComponent(error.message)}`);
+    }
+  }
+
+  // ============================================
+  // REGULAR AUTH ROUTES
+  // ============================================
 
   @Post('register')
   async register(
@@ -49,14 +129,19 @@ export class AuthController {
           type: 'registration',
           email: body.email,
           fullName: body.fullName,
+          provider: 'local',
         },
         ipAddress,
         userAgent,
         status: 'success',
       });
 
+      console.log('✅ Регистрация успешна, user ID:', result.user.id);
+
       return { success: true, ...result };
     } catch (err) {
+      console.error('❌ Ошибка регистрации:', err.message);
+
       // Логируем неудачную попытку регистрации
       await this.auditLogService.log({
         userId: 'anonymous',
@@ -97,14 +182,19 @@ export class AuthController {
         details: {
           type: 'login',
           email: body.email,
+          provider: 'local',
         },
         ipAddress,
         userAgent,
         status: 'success',
       });
 
+      console.log('✅ Вход успешен, user ID:', result.user.id);
+
       return { success: true, ...result };
     } catch (err) {
+      console.error('❌ Ошибка входа:', err.message);
+
       // Логируем неудачную попытку входа
       await this.auditLogService.log({
         userId: 'anonymous',
@@ -225,6 +315,8 @@ export class AuthController {
       status: 'success',
     });
 
+    console.log('✅ Выход выполнен, user ID:', userId);
+
     return { success: true, message: 'Logged out successfully' };
   }
 
@@ -242,3 +334,22 @@ export class AuthController {
     );
   }
 }
+
+/*
+ * ✅ ИСПРАВЛЕНИЯ В ЭТОМ ФАЙЛЕ:
+ * 
+ * 1. Добавлены роуты для Google OAuth:
+ *    - GET /api/auth/google
+ *    - GET /api/auth/google/callback
+ * 
+ * 2. Добавлены импорты:
+ *    - Response из express
+ *    - AuthGuard из @nestjs/passport
+ * 
+ * 3. Улучшено логирование всех действий
+ * 
+ * 4. Добавлены console.log для отладки
+ * 
+ * Это исправляет ошибку:
+ * "GET /api/auth/google 404 (Not Found)"
+ */

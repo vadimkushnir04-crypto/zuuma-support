@@ -1,7 +1,8 @@
+// backend/src/auth/auth.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport'; // ✅ Добавили импорт
+import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -10,11 +11,18 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { TokenBalance } from '../tokens/token-balance.entity';
 import { Plan } from '../tokens/plan.entity';
 import { GoogleStrategy } from './google.strategy';
+import { AuditLog } from '../common/entities/audit-log.entity'; // ✅ Импорт AuditLog
+import { AuditLogModule } from '../common/audit-log.module'; // ✅ Импорт AuditLogModule
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, TokenBalance, Plan]),
-    PassportModule.register({ defaultStrategy: 'jwt' }), // ✅ Изменили на jwt по умолчанию
+    TypeOrmModule.forFeature([
+      User, 
+      TokenBalance, 
+      Plan,
+      AuditLog // ✅ КРИТИЧНО: регистрируем AuditLog для AuthModule
+    ]),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -23,9 +31,25 @@ import { GoogleStrategy } from './google.strategy';
       }),
       inject: [ConfigService],
     }),
+    AuditLogModule, // ✅ КРИТИЧНО: импортируем AuditLogModule для доступа к AuditLogService
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard, GoogleStrategy],
   exports: [AuthService, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}
+
+/*
+ * ✅ ИСПРАВЛЕНИЯ В ЭТОМ ФАЙЛЕ:
+ * 
+ * 1. Добавлен импорт AuditLog entity
+ * 2. AuditLog зарегистрирован в TypeOrmModule.forFeature()
+ * 3. Добавлен импорт AuditLogModule
+ * 4. AuditLogModule добавлен в imports
+ * 
+ * Это исправляет ошибку:
+ * "EntityMetadataNotFoundError: No metadata for 'AuditLog' was found"
+ * 
+ * Теперь AuthController может использовать AuditLogService
+ * для логирования действий пользователей.
+ */
