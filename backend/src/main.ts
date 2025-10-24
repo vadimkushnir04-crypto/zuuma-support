@@ -3,7 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ErrorFormatterInterceptor } from './common/error-formatter.interceptor';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
+
 
 async function bootstrap() {
   try {

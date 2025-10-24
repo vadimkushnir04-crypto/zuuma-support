@@ -16,19 +16,6 @@ export default function Footer() {
             <p style={styles.description}>
               Платформа для создания AI-ассистентов и автоматизации бизнес-процессов
             </p>
-            <div style={styles.contact}>
-              <p style={styles.contactItem}>ИНН: 263516890557</p>
-              <p style={styles.contactItem}>
-                <a href="mailto:delovoi.acount@gmail.com" style={styles.link}>
-                  delovoi.acount@gmail.com
-                </a>
-              </p>
-              <p style={styles.contactItem}>
-                <a href="tel:+79633873434" style={styles.link}>
-                  +7 (963) 387-34-34
-                </a>
-              </p>
-            </div>
           </div>
 
           {/* Legal documents */}
@@ -109,14 +96,6 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div style={styles.bottomBar}>
-          <div style={styles.bottomLeft}>
-            <p style={styles.copyright}>
-              © {currentYear} Кушнир Вадим Олегович (самозанятый)
-            </p>
-            <p style={styles.disclaimer}>
-              Все права защищены. ИНН: 263516890557
-            </p>
-          </div>
           <div style={styles.bottomRight}>
             <p style={styles.smallText}>
               Используя сайт, вы соглашаетесь с{' '}

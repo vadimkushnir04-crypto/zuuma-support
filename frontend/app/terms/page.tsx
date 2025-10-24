@@ -176,11 +176,9 @@ export default function TermsOfServicePage() {
         <div style={styles.textBlock}>
           <h4 style={styles.subheading}>6.1. Исполнитель обязуется:</h4>
           <ul style={styles.list}>
-            <li>Предоставить доступ к Платформе в течение 1 минуты после оплаты</li>
-            <li>Обеспечить работоспособность сервиса 99% времени (SLA)</li>
+            <li>Предоставить доступ к Платформе после оплаты</li>
             <li>Защищать персональные данные Пользователя</li>
             <li>Предоставлять техническую поддержку в рабочие часы</li>
-            <li>Уведомлять о плановых технических работах за 24 часа</li>
           </ul>
 
           <h4 style={styles.subheading}>6.2. Исполнитель имеет право:</h4>
@@ -283,12 +281,6 @@ export default function TermsOfServicePage() {
             <li>Комиссии платежных систем не возвращаются</li>
           </ul>
 
-          <div style={styles.highlightBox}>
-            <p style={{margin: 0}}>
-              ✅ <strong>Для возврата средств</strong> напишите на delovoi.acount@gmail.com 
-              с указанием причины и номера платежа.
-            </p>
-          </div>
         </div>
       </section>
 
