@@ -44,16 +44,16 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
-    const ipAddress = this.getClientIp(req);
-
     try {
-      const { user, token } = req.user;
+      // ✅ req.user уже содержит { user, token }
+      const { token } = req.user;
 
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
-      res.redirect(`${frontendUrl}?token=${token}`);
+      // Редиректим на страницу успешного входа
+      return res.redirect(`${frontendUrl}/auth/success?token=${token}`);
     } catch (error: any) {
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
-      res.redirect(`${frontendUrl}?error=${encodeURIComponent(error.message)}`);
+      return res.redirect(`${frontendUrl}?error=${encodeURIComponent(error.message)}`);
     }
   }
 

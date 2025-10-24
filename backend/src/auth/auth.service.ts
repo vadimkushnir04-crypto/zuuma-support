@@ -125,12 +125,12 @@ export class AuthService {
 
     try {
       await this.resend.emails.send({
-        from: 'ZUUMA <no-reply@zuuma.ru>',
+        from: 'Vadim Zuuma <no-reply@zuuma.ru>',
         to: user.email,
-        subject: 'Подтвердите ваш email — ZUUMA',
+        subject: 'Подтвердите ваш email — Zuuma',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #10b981;">Добро пожаловать в ZUUMA!</h2>
+            <h2 style="color: #10b981;">Здравствуй! Меня зовут Вадим — я основатель платформы Zuuma</h2>
             <p>Подтвердите email, чтобы начать:</p>
             <a href="${verifyUrl}" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
               Подтвердить email
@@ -141,7 +141,7 @@ export class AuthService {
             </p>
             <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
             <p style="font-size: 12px; color: #aaa;">
-              Это письмо отправлено автоматически. Не отвечайте на него.
+              Спасибо за то, что выбрали платформу Zuuma, это ценно для меня! Это письмо отправлено автоматически, на него ответить не получится, но если хотите задать мне вопрос лично, напишите на почту vadim.kushnir.04@gmail.com
             </p>
           </div>
         `,
