@@ -20,25 +20,24 @@ export default function TopUpModal({ isOpen, onClose, onSuccess }: TopUpModalPro
 const handleTopUp = async () => {
   setLoading(true);
   try {
-    const token = localStorage.getItem('auth_token'); // ← Исправлено
     const res = await fetch(`${API_BASE_URL}/api/tokens/topup`, {
       method: 'POST',
+      credentials: 'include', // ✅ отправляем куки с токеном
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
         amount,
         paymentMeta: { method: 'test', timestamp: new Date() }
-      })
+      }),
     });
     
-    if (res.ok) {
-      onSuccess();
-      onClose();
-    }
+    if (!res.ok) throw new Error('Ошибка пополнения');
+
+    onSuccess();
+    onClose();
   } catch (error) {
-    console.error('Top-up failed:', error);
+    console.error('❌ Top-up failed:', error);
   } finally {
     setLoading(false);
   }

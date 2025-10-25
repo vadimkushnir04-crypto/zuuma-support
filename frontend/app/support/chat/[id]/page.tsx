@@ -45,14 +45,14 @@ export default function ChatDetailPage() {
   const socketRef = useRef<Socket | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Загрузка чата
   useEffect(() => {
     if (!sessionId) return;
 
     const loadChat = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
         const res = await fetch(`${API_BASE_URL}/support/chats/${sessionId}`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include', // ✅ cookie вместо токена
         });
         if (!res.ok) throw new Error('Failed to load chat');
         const data = await res.json();
@@ -68,10 +68,9 @@ export default function ChatDetailPage() {
     loadChat();
   }, [sessionId]);
 
+  // Подключение WebSocket
   useEffect(() => {
     if (!sessionId || loading) return;
-    
-    const token = localStorage.getItem('auth_token');
 
     if (socketRef.current) {
       socketRef.current.disconnect();
@@ -80,7 +79,7 @@ export default function ChatDetailPage() {
 
     const socket = io(API_BASE_URL, {
       transports: ['websocket', 'polling'],
-      auth: { token },
+      // ✅ auth токен не нужен, сервер проверяет cookie
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
@@ -94,11 +93,11 @@ export default function ChatDetailPage() {
 
     socket.on('message', (payload: any) => {
       if (payload.chatSessionId !== sessionId) return;
-      
+
       setMessages(prev => {
         const exists = prev.some(m => m.id === payload.id);
         if (exists) return prev;
-        
+
         return [
           ...prev,
           {
@@ -134,24 +133,24 @@ export default function ChatDetailPage() {
     }
   }, [newMessage]);
 
+  // Отправка сообщения
   const sendMessage = async () => {
     const content = newMessage.trim();
     if (!content || sending) return;
     setSending(true);
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_BASE_URL}/support/chats/${sessionId}/message`, {
         method: 'POST',
+        credentials: 'include', // ✅ cookie
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ content }),
       });
 
       if (!response.ok) throw new Error('Ошибка при отправке сообщения');
-      
+
       setNewMessage('');
     } catch (err) {
       console.error('Send message error:', err);
@@ -161,18 +160,18 @@ export default function ChatDetailPage() {
     }
   };
 
+  // Возврат чата на AI
   const returnToAi = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       await fetch(`${API_BASE_URL}/support/chats/${sessionId}/return-to-ai`, {
         method: 'POST',
+        credentials: 'include', // ✅ cookie
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ message: returnMessage.trim() || undefined }),
       });
-      
+
       setShowReturnModal(false);
       setReturnMessage('');
       router.push('/support');
@@ -182,20 +181,20 @@ export default function ChatDetailPage() {
     }
   };
 
+  // Закрытие чата
   const resolveChat = async () => {
     if (!confirm('Вы уверены, что хотите закрыть чат?')) return;
 
     try {
-      const token = localStorage.getItem('auth_token');
       await fetch(`${API_BASE_URL}/support/chats/resolve`, {
         method: 'POST',
+        credentials: 'include', // ✅ cookie
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ chatSessionId: sessionId }),
       });
-      
+
       router.push('/support');
     } catch (err) {
       console.error('Resolve chat error:', err);

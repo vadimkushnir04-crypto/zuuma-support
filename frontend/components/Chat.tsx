@@ -61,56 +61,46 @@ export default function Chat() {
         console.log('♻️ Reusing existing userIdentifier:', identifier);
       }
       setUserIdentifier(identifier);
-      
-      // ✅ Загружаем историю чата
+
+      // Загружаем историю чата
       loadChatHistory(selectedAssistantId, identifier);
     }
   }, [selectedAssistantId, t]);
 
-    // ✅ НОВАЯ ФУНКЦИЯ: Загрузка истории сообщений
-  const loadChatHistory = async (assistantId: string, userIdent: string) => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        // Если нет токена, показываем welcome сообщение
-        setMessages([{
-          id: `welcome-${Date.now()}`,
-          text: t('welcomeMessage'),
-          sender: "assistant",
-          timestamp: new Date(),
-        }]);
-        return;
-      }
+    // Загрузка истории сообщений
+    const loadChatHistory = async (assistantId: string, userIdent: string) => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/support/sessions/by-identifier?assistantId=${assistantId}&userIdentifier=${userIdent}`,
+          { credentials: 'include' } // ✅ cookie
+        );
 
-      const res = await fetch(
-        `${API_BASE_URL}/support/sessions/by-identifier?assistantId=${assistantId}&userIdentifier=${userIdent}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+        if (res.ok) {
+          const data = await res.json();
 
-      if (res.ok) {
-        const data = await res.json();
-        
-        if (data.session && data.messages && data.messages.length > 0) {
-          console.log('📜 Loaded chat history:', data.messages.length, 'messages');
-          
-          // Устанавливаем chatSessionId
-          setChatSessionId(data.session.id);
-          
-          // Преобразуем сообщения в нужный формат
-          const loadedMessages: Message[] = data.messages.map((msg: any) => ({
-            id: msg.id,
-            text: msg.content,
-            sender: msg.senderType === 'user' ? 'user' : 'assistant',
-            timestamp: new Date(msg.createdAt),
-            sources: msg.metadata?.sources,
-            files: msg.metadata?.files || [],
-          }));
-          
-          setMessages(loadedMessages);
+          if (data.session && data.messages && data.messages.length > 0) {
+            console.log('📜 Loaded chat history:', data.messages.length, 'messages');
+            setChatSessionId(data.session.id);
+
+            const loadedMessages: Message[] = data.messages.map((msg: any) => ({
+              id: msg.id,
+              text: msg.content,
+              sender: msg.senderType === 'user' ? 'user' : 'assistant',
+              timestamp: new Date(msg.createdAt),
+              sources: msg.metadata?.sources,
+              files: msg.metadata?.files || [],
+            }));
+
+            setMessages(loadedMessages);
+          } else {
+            setMessages([{
+              id: `welcome-${Date.now()}`,
+              text: t('welcomeMessage'),
+              sender: "assistant",
+              timestamp: new Date(),
+            }]);
+          }
         } else {
-          // Нет истории - показываем welcome
           setMessages([{
             id: `welcome-${Date.now()}`,
             text: t('welcomeMessage'),
@@ -118,8 +108,8 @@ export default function Chat() {
             timestamp: new Date(),
           }]);
         }
-      } else {
-        // Ошибка загрузки - показываем welcome
+      } catch (err) {
+        console.error('❌ Error loading chat history:', err);
         setMessages([{
           id: `welcome-${Date.now()}`,
           text: t('welcomeMessage'),
@@ -127,17 +117,7 @@ export default function Chat() {
           timestamp: new Date(),
         }]);
       }
-    } catch (err) {
-      console.error('❌ Error loading chat history:', err);
-      // При ошибке показываем welcome
-      setMessages([{
-        id: `welcome-${Date.now()}`,
-        text: t('welcomeMessage'),
-        sender: "assistant",
-        timestamp: new Date(),
-      }]);
-    }
-  };
+    };
 
   const isDuplicate = (newMessage: Message): boolean => {
     return messages.some(msg => {
@@ -180,98 +160,91 @@ export default function Chat() {
     setMessages(prev => [...prev, newMessage]);
   };
 
-const sendMessage = async () => {
-  if (!input.trim() || isLoading || !selectedAssistantId) return;
+  // Отправка сообщения
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading || !selectedAssistantId) return;
 
-  const messageText = input;
-  setInput("");
-  
-  // ✅ ДОБАВЬТЕ ЭТО: Показываем своё сообщение сразу
-  const userMessage: Message = {
-    id: `user-${Date.now()}`,
-    text: messageText,
-    sender: "user",
-    timestamp: new Date(),
-  };
-  addMessageIfNotExists(userMessage);
-  
-  // Теперь включаем загрузку
-  setIsLoading(true);
+    const messageText = input;
+    setInput("");
 
-  try {
-    const token = localStorage.getItem('auth_token');
-    
-    if (!token) {
-      throw new Error('Требуется авторизация');
-    }
-
-    let currentSessionId = chatSessionId;
-    
-    if (!currentSessionId) {
-      currentSessionId = `temp-${Date.now()}`;
-      setChatSessionId(currentSessionId);
-      
-      await new Promise(resolve => setTimeout(resolve, 200));  // ✅ УВЕЛИЧЕНО до 200мс
-      
-      if (socketRef.current?.connected) {
-        socketRef.current.emit('join', { sessionId: currentSessionId });
-        socketRef.current.emit('joinAssistant', {
-          assistantId: selectedAssistantId,
-          userIdentifier: userIdentifier,
-          sessionId: currentSessionId,
-        });
-        console.log('📌 Pre-joined to temp room:', currentSessionId);
-        
-        await new Promise(resolve => setTimeout(resolve, 500));  // ✅ УВЕЛИЧЕНО до 500мс
-      }
-    }
-
-    const response = await fetch(`${API_BASE_URL}/chat/ask`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        message: messageText,
-        assistantId: selectedAssistantId,
-        conversationId: conversationId,
-        chatSessionId: currentSessionId,
-        userIdentifier: userIdentifier,
-      }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      
-      if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
-        setChatSessionId(data.chatSessionId);
-      }
-
-      if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
-        setIsLoading(false);
-      }
-      
-    } else {
-      if (response.status === 401) {
-        throw new Error('Сессия истекла. Пожалуйста, войдите снова');
-      }
-      throw new Error(`${t('errors.status')} ${response.status}`);
-    }
-  } catch (error) {
-    console.error("Ошибка отправки сообщения:", error);
-    
-    const errorMessage: Message = {
-      id: `error-${Date.now()}`,
-      text: error instanceof Error ? error.message : t('errors.requestError'),
-      sender: "assistant",
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      text: messageText,
+      sender: "user",
       timestamp: new Date(),
     };
+    addMessageIfNotExists(userMessage);
 
-    addMessageIfNotExists(errorMessage);
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+
+    try {
+      let currentSessionId = chatSessionId;
+
+      if (!currentSessionId) {
+        currentSessionId = `temp-${Date.now()}`;
+        setChatSessionId(currentSessionId);
+
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('join', { sessionId: currentSessionId });
+          socketRef.current.emit('joinAssistant', {
+            assistantId: selectedAssistantId,
+            userIdentifier: userIdentifier,
+            sessionId: currentSessionId,
+          });
+          console.log('📌 Pre-joined to temp room:', currentSessionId);
+
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/chat/ask`, {
+        method: "POST",
+        credentials: 'include', // ✅ cookie
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: messageText,
+          assistantId: selectedAssistantId,
+          conversationId: conversationId,
+          chatSessionId: currentSessionId,
+          userIdentifier: userIdentifier,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
+          setChatSessionId(data.chatSessionId);
+        }
+
+        if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
+          setIsLoading(false);
+        }
+
+      } else {
+        if (response.status === 401) {
+          throw new Error('Сессия истекла. Пожалуйста, войдите снова');
+        }
+        throw new Error(`${t('errors.status')} ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Ошибка отправки сообщения:", error);
+
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        text: error instanceof Error ? error.message : t('errors.requestError'),
+        sender: "assistant",
+        timestamp: new Date(),
+      };
+
+      addMessageIfNotExists(errorMessage);
+      setIsLoading(false);
+    }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -280,7 +253,7 @@ const sendMessage = async () => {
     }
   };
 
-  // ✅ WebSocket подключение - ПЕРВЫЙ useEffect
+  // WebSocket подключение
   useEffect(() => {
     if (!selectedAssistantId) return;
 
@@ -289,7 +262,7 @@ const sendMessage = async () => {
     const socket = io('https://zuuma.ru', {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
-      auth: { token: localStorage.getItem('auth_token') },
+      // ✅ токен больше не нужен, сервер проверяет cookie
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -300,15 +273,13 @@ const sendMessage = async () => {
 
     socket.on('connect', () => {
       console.log('✅ WebSocket connected, socket ID:', socket.id);
-      
-      // Присоединяемся к комнате ассистента
-      socket.emit('joinAssistant', { 
+
+      socket.emit('joinAssistant', {
         assistantId: selectedAssistantId,
         userIdentifier: userIdentifier,
         sessionId: chatSessionId,
       });
-      
-      // Если уже есть chatSessionId - присоединяемся к сессии
+
       if (chatSessionId) {
         socket.emit('join', { sessionId: chatSessionId });
         console.log('📌 Joined session room:', chatSessionId);
@@ -330,11 +301,6 @@ const sendMessage = async () => {
         files: payload.files || [],
       };
       addMessageIfNotExists(newMessage);
-      setIsLoading(false);
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log('❌ WebSocket disconnected:', reason);
       setIsLoading(false);
     });
 

@@ -27,20 +27,10 @@ export default function CreateAssistantPage() {
   const loadAssistants = async () => {
     setLoadingAssistants(true);
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        setError('Требуется авторизация');
-        setLoadingAssistants(false);
-        return;
-      }
-
       const res = await fetch(`${API_BASE_URL}/assistants`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include', // ✅ используем cookie
       });
-      
+
       if (!res.ok) throw new Error("Ошибка загрузки ассистентов");
       const data = await res.json();
       setAssistants(data.data.assistants || []);
@@ -196,58 +186,50 @@ export default function CreateAssistantPage() {
 }
 
 // Modal Component
-const CreateAssistantModal = ({
-  onClose,
-  onSuccess,
-}: {
-  onClose: () => void;
-  onSuccess: (message: string) => void;
-}) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    systemPrompt: "",
-  });
-  const [loading, setLoading] = useState(false);
+  const CreateAssistantModal = ({
+    onClose,
+    onSuccess,
+  }: {
+    onClose: () => void;
+    onSuccess: (message: string) => void;
+  }) => {
+    const [formData, setFormData] = useState({
+      name: "",
+      description: "",
+      systemPrompt: "",
+    });
+    const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim()) return;
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!formData.name.trim()) return;
 
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        alert("Требуется авторизация");
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/assistants`, {
+          method: "POST",
+          credentials: 'include', // ✅ используем cookie
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          onSuccess(result.message || "Ассистент создан успешно");
+          onClose();
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Ошибка создания ассистента");
+        }
+      } catch (error) {
+        console.error("Ошибка создания ассистента:", error);
+        alert(error instanceof Error ? error.message : "Ошибка создания ассистента");
+      } finally {
         setLoading(false);
-        return;
       }
-
-      const response = await fetch(`${API_BASE_URL}/assistants`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        onSuccess(result.message || "Ассистент создан успешно");
-        onClose();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Ошибка создания ассистента");
-      }
-    } catch (error) {
-      console.error("Ошибка создания ассистента:", error);
-      alert(error instanceof Error ? error.message : "Ошибка создания ассистента");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   return (
     <div className="new-design-system">

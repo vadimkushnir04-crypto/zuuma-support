@@ -1,4 +1,3 @@
-// backend/src/auth/jwt-auth.guard.ts
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -15,13 +14,19 @@ export class JwtAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     let token: string | undefined;
 
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    // ✅ ВАЖНО: Сначала проверяем cookie, потом header
+    // Это даёт приоритет cookie и игнорирует старые токены из localStorage
+    if (request.cookies && request.cookies.token) {
+      token = request.cookies.token;
+      console.log('🍪 Token from cookie');
+    } else if (authHeader && authHeader.startsWith('Bearer ')) {
+      // Fallback на header только если нет cookie
       token = authHeader.substring(7);
-    } else if (request.cookies && request.cookies.token) {
-      token = request.cookies.token;  // ✅ Добавьте: берём из куки, если нет header
+      console.log('🔑 Token from header (fallback)');
     }
 
     if (!token) {
+      console.error('❌ No token found in header or cookies');
       throw new UnauthorizedException('No token provided');
     }
 

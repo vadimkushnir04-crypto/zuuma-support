@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Lock, LogIn } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -21,18 +21,10 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       
-      if (!token) {
-        setIsAuthenticated(false);
-        setIsChecking(false);
-        return;
-      }
-
-      // Проверяем токен через запрос профиля
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        credentials: 'include', // 👈 Отправляем cookie
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -40,7 +32,6 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
       if (response.ok) {
         setIsAuthenticated(true);
       } else {
-        localStorage.removeItem('auth_token');
         setIsAuthenticated(false);
       }
     } catch (error) {
@@ -125,7 +116,7 @@ export const authGuardStyles = `
     align-items: center;
     justify-content: center;
     padding: 20px;
-    background: var(--bg);
+    background: var(--bg-main);
   }
 
   .auth-guard-loading {
@@ -153,14 +144,14 @@ export const authGuardStyles = `
   }
 
   .auth-required-card {
-    background: var(--bg-secondary);
+    background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 48px;
     max-width: 480px;
     width: 100%;
     text-align: center;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 40px var(--shadow);
   }
 
   .auth-required-icon {
@@ -170,7 +161,7 @@ export const authGuardStyles = `
     width: 120px;
     height: 120px;
     margin: 0 auto 24px;
-    background: var(--bg);
+    background: var(--bg-main);
     border: 2px solid var(--border);
     border-radius: 50%;
     color: var(--fg-muted);
@@ -185,7 +176,7 @@ export const authGuardStyles = `
     font-size: 28px;
     font-weight: 600;
     margin-bottom: 12px;
-    color: var(--fg);
+    color: var(--fg-main);
   }
 
   .auth-required-description {
@@ -201,7 +192,7 @@ export const authGuardStyles = `
     gap: 16px;
     margin-bottom: 32px;
     padding: 24px;
-    background: var(--bg);
+    background: var(--bg-main);
     border-radius: 12px;
     border: 1px solid var(--border);
   }
@@ -210,7 +201,7 @@ export const authGuardStyles = `
     display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--fg);
+    color: var(--fg-main);
     font-size: 14px;
   }
 
@@ -237,7 +228,7 @@ export const authGuardStyles = `
   .auth-required-button:hover {
     background: var(--accent-hover);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(136, 136, 136, 0.3);
   }
 
   .auth-required-hint {

@@ -114,13 +114,6 @@ export default function ManualBotConnection({ assistants, onBotCreated }: Manual
     setError('');
     setIsConnecting(true);
 
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      setError('⚠️ Токен авторизации не найден. Пожалуйста, войдите заново.');
-      setIsConnecting(false);
-      return;
-    }
-
     if (!selectedAssistant) {
       setError('⚠️ Пожалуйста, выберите ассистента.');
       setIsConnecting(false);
@@ -138,11 +131,12 @@ export default function ManualBotConnection({ assistants, onBotCreated }: Manual
     console.log('📤 Sending payload to backend:', payload);
 
     try {
+      // ✅ telegramAPI.connectManualBot должен использовать fetch с credentials: 'include'
       const result = await telegramAPI.connectManualBot(payload);
 
       if (result.success && result.integration) {
         console.log('✅ Bot created:', result);
-        onBotCreated(result.integration); // Это вызовет обновление в родителе
+        onBotCreated(result.integration); // обновление в родителе
       } else {
         throw new Error(result.error || 'Ошибка подключения бота');
       }
@@ -153,6 +147,7 @@ export default function ManualBotConnection({ assistants, onBotCreated }: Manual
       setIsConnecting(false);
     }
   };
+
 
   return (
     <div className="manual-bot-connection">

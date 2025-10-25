@@ -89,21 +89,25 @@ export default function IntegrationsPage() {
 
   const openAnalytics = async (integration: IntegrationType) => {
     setSelectedIntegration(integration);
-    
+
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integrations/${integration.id}/analytics`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/integrations/${integration.id}/analytics`,
+        {
+          credentials: 'include', // ✅ используем cookie
+        }
+      );
+
       if (response.ok) {
         const analytics = await response.json();
         setSelectedIntegration({ ...integration, ...analytics });
+      } else {
+        throw new Error(`Ошибка загрузки аналитики: ${response.status}`);
       }
     } catch (err) {
       console.error('Failed to load analytics:', err);
     }
-    
+
     setShowAnalyticsModal(true);
   };
 
@@ -114,26 +118,28 @@ export default function IntegrationsPage() {
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedIntegration) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
     const name = formData.get('name') as string;
     const assistantId = formData.get('assistantId') as string;
     const commandsStr = formData.get('commands') as string;
-    const commands = commandsStr.split(',').map(c => c.trim()).filter(c => c);
+    const commands = commandsStr
+      .split(',')
+      .map(c => c.trim())
+      .filter(c => c);
 
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/integrations/${selectedIntegration.id}/settings`,
         {
           method: 'PUT',
+          credentials: 'include', // ✅ используем cookie
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json', // оставляем для JSON
           },
-          body: JSON.stringify({ name, assistantId, commands })
+          body: JSON.stringify({ name, assistantId, commands }),
         }
       );
 
@@ -142,7 +148,8 @@ export default function IntegrationsPage() {
         refreshIntegrations();
         alert('Настройки успешно сохранены!');
       } else {
-        throw new Error('Failed to save settings');
+        const txt = await response.text();
+        throw new Error(txt || 'Failed to save settings');
       }
     } catch (err) {
       console.error('Failed to save settings:', err);

@@ -8,7 +8,7 @@ import FileUploadForm from "../../../components/FileUploadForm";
 import Chat from "../../../components/Chat";
 import AuthGuard from '../../../components/AuthGuard';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru";
 
 // ========================
 // Провайдер контекста для выбранного ассистента
@@ -62,30 +62,54 @@ export default function Home() {
   const [assistants, setAssistants] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [isTestingOpen, setIsTestingOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'text' | 'file'>('text'); // ← Состояние для вкладок
+  const [activeTab, setActiveTab] = useState<'text' | 'file'>('text');
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    
-    if (!token) {
-      console.error('No auth token');
-      setLoading(false);
-      return;
-    }
-
-    fetch(`${API_BASE_URL}/assistants`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-      .then(res => res.ok ? res.json() : Promise.reject("Ошибка загрузки"))
-      .then(data => {
-        const assistantsList = data.data.assistants || [];
-        setAssistants(assistantsList);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadAssistants();
   }, []);
+
+  // ✅ ВАРИАНТ 1: Прямой fetch с credentials (простой способ)
+  const loadAssistants = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/assistants`, {
+        credentials: 'include', // ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ - отправляем cookie
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) {
+        console.error('Failed to load assistants:', res.status);
+        setLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+      const assistantsList = data.data?.assistants || [];
+      setAssistants(assistantsList);
+    } catch (error) {
+      console.error('Error loading assistants:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ✅ ВАРИАНТ 2: Через api helper (рекомендуется для переиспользования)
+  
+  import { apiFetch } from '@/lib/api';
+  
+  const loadAssistants = async () => {
+    try {
+      const data = await apiFetch('/api/assistants');
+      const assistantsList = data.data?.assistants || [];
+      setAssistants(assistantsList);
+    } catch (error) {
+      console.error('Error loading assistants:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  */
 
   if (loading) {
     return (

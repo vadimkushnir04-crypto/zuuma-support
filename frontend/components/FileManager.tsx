@@ -35,31 +35,24 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
 
   const loadFiles = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${API_BASE_URL}/assistants/${assistantId}/files`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include', // ✅ Отправляем cookie
         }
       );
 
       if (response.ok) {
         const data = await response.json();
-        // ✅ Исправляем URL файлов на правильные
+
+        // ✅ Исправляем URL файлов
         const fixedFiles = (data.files || []).map((file: FileItem) => {
           let fileUrl = file.fileUrl || '';
-          
-          // Если URL уже полный (начинается с http), оставляем как есть
+
           if (fileUrl.startsWith('http')) {
-            return {
-              ...file,
-              fileUrl
-            };
+            return { ...file, fileUrl };
           }
-          
-          // Если URL относительный, добавляем base URL
+
           if (fileUrl.startsWith('/api/files')) {
             fileUrl = `${API_BASE_URL}${fileUrl.replace('/api', '')}`;
           } else if (fileUrl.startsWith('/files')) {
@@ -69,15 +62,12 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
           } else {
             fileUrl = `${API_BASE_URL}${fileUrl}`;
           }
-          
+
           console.log('📎 Fixed file URL:', fileUrl);
-          
-          return {
-            ...file,
-            fileUrl
-          };
+
+          return { ...file, fileUrl };
         });
-        
+
         setFiles(fixedFiles);
       }
     } catch (error) {
@@ -92,14 +82,11 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
 
     setDeleting(fileId);
     try {
-      const token = localStorage.getItem('auth_token');
       const response = await fetch(
         `${API_BASE_URL}/assistants/${assistantId}/files/${fileId}`,
         {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include', // ✅ Отправляем cookie
         }
       );
 

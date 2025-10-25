@@ -19,7 +19,7 @@ import {
 
 } from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
 
 /**
  * Типы данных
@@ -109,30 +109,31 @@ export default function AssistantsPage() {
       setLoading(true);
       setError(null);
 
-      const token = localStorage.getItem('auth_token');
-      
+
       const [assistantsResponse, statsResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/assistants`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include', // 👈 теперь куки прикладываются автоматически
         }),
-        // ✅ ИЗМЕНЕНО: убрали companyId
         fetch(`${API_BASE_URL}/assistants/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          credentials: 'include',
         }),
       ]);
 
+      if (!assistantsResponse.ok || !statsResponse.ok) {
+        throw new Error(`Ошибка загрузки ассистентов: ${assistantsResponse.status} / ${statsResponse.status}`);
+      }
 
       const assistantsData = await assistantsResponse.json();
       const statsData = await statsResponse.json();
 
-      const assistantsList = Array.isArray(assistantsData?.data?.assistants) ? assistantsData.data.assistants : [];
+      const assistantsList = Array.isArray(assistantsData?.data?.assistants)
+        ? assistantsData.data.assistants
+        : [];
+
       setAssistants(assistantsList);
       setStats(Array.isArray(statsData?.data) ? statsData.data : []);
-      
+
+      // ✅ вызываем функции после успешной загрузки
       await loadAssistantsFunctions(assistantsList);
     } catch (err) {
       console.error("Ошибка загрузки ассистентов:", err);
@@ -141,6 +142,7 @@ export default function AssistantsPage() {
       setLoading(false);
     }
   };
+
 
   // Загружаем функции для всех ассистентов
   const loadAssistantsFunctions = async (assistantsList: Assistant[]) => {
@@ -186,18 +188,14 @@ export default function AssistantsPage() {
     }
 
     try {
-      const token = localStorage.getItem('auth_token');
-      
       const response = await fetch(`${API_BASE_URL}/assistants/${id}`, {
         method: "DELETE",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include', // ✅ теперь cookie используется
       });
 
       if (response.ok) {
         await loadAssistants();
-        showNotification("success", "Ассистент удален");
+        showNotification("success", "Ассистент удалён");
       } else {
         throw new Error("Ошибка удаления");
       }
@@ -207,28 +205,25 @@ export default function AssistantsPage() {
     }
   };
 
-const regenerateApiKey = async (id: string) => {
-  if (!confirm("Вы уверены? Старый API ключ перестанет работать.")) return;
-  try {
-    const token = localStorage.getItem('auth_token');
-    
-    const response = await fetch(`${API_BASE_URL}/assistants/${id}/regenerate-key`, {
-      method: "POST",
-      headers: {
-        'Authorization': `Bearer ${token}`
+  const regenerateApiKey = async (id: string) => {
+    if (!confirm("Вы уверены? Старый API ключ перестанет работать.")) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/assistants/${id}/regenerate-key`, {
+        method: "POST",
+        credentials: 'include', // ✅ cookie
+      });
+
+      if (response.ok) {
+        await loadAssistants();
+        showNotification("success", "API ключ обновлён");
+      } else {
+        throw new Error("Ошибка обновления");
       }
-    });
-    if (response.ok) {
-      await loadAssistants();
-      showNotification("success", "API ключ обновлен");
-    } else {
-      throw new Error("Ошибка обновления");
+    } catch (error) {
+      console.error("Ошибка регенерации API ключа:", error);
+      showNotification("error", "Не удалось обновить API ключ");
     }
-  } catch (error) {
-    console.error("Ошибка регенерации API ключа:", error);
-    showNotification("error", "Не удалось обновить API ключ");
-  }
-};
+  };
 
   const copyToClipboard = async (text: string, codeType?: string) => {
     try {
@@ -926,29 +921,27 @@ const AssistantSettingsModal: React.FC<{
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      // Автоматически добавляем {contextText} если его нет
+      // ✅ cookie автоматически передаются
       let finalCustomPrompt = formData.customPromptText.trim();
       if (finalCustomPrompt && !finalCustomPrompt.includes('{contextText}')) {
         finalCustomPrompt = `${finalCustomPrompt}
 
-КОНТЕКСТ:
-{contextText}
+  КОНТЕКСТ:
+  {contextText}
 
-Отвечай на основе предоставленного контекста.`;
+  Отвечай на основе предоставленного контекста.`;
       }
-      
+
       const response = await fetch(`${API_BASE_URL}/assistants/${assistant.id}`, {
         method: "PUT",
+        credentials: 'include', // ✅ используем cookie
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           name: formData.name,

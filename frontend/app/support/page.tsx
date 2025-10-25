@@ -30,24 +30,23 @@ export default function SupportPage() {
 
   const loadSessions = async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      setLoading(true);
 
-      if (!token) {
-        console.warn('Нет токена – пользователь не авторизован');
-        setLoading(false);
-        return;
-      }
+      // ✅ cookie автоматически прикладываются, токен больше не нужен
+      const statusFilter =
+        filter === 'all'
+          ? ''
+          : `&status=${
+              filter === 'pending'
+                ? 'pending_human'
+                : filter === 'active'
+                ? 'human_active'
+                : 'resolved'
+            }`;
 
-      const statusFilter = filter === 'all' ? '' : `&status=${filter === 'pending' ? 'pending_human' : filter === 'active' ? 'human_active' : 'resolved'}`;
-      
-      const response = await fetch(
-        `${API_BASE_URL}/support/chats?${statusFilter}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/support/chats?${statusFilter}`, {
+        credentials: 'include', // ✅ отправляем cookie
+      });
 
       if (!response.ok) throw new Error('Failed to load sessions');
 
@@ -59,6 +58,7 @@ export default function SupportPage() {
       setLoading(false);
     }
   };
+
 
   const getUrgencyColor = (urgency?: string) => {
     switch (urgency) {

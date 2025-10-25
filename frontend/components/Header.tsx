@@ -8,6 +8,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   
   const [isLoggedIn, setIsLoggedIn] = useState(externalLoggedIn || false);
   const [userName, setUserName] = useState(externalName || '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null); // ✅ Добавлено
   
   const [authModalType, setAuthModalType] = useState<'email' | 'google' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -19,7 +20,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // ✅ Проверка авторизации при загрузке (кука HttpOnly)
+  // ✅ Проверка авторизации при загрузке
   useEffect(() => {
     checkAuth();
   }, []);
@@ -27,12 +28,13 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   const checkAuth = async () => {
     try {
       const res = await fetch('/api/auth/profile', {
-        credentials: 'include', // 👈 важно — отправляем cookie с запросом
+        credentials: 'include',
       });
       const data = await res.json();
       if (data.success && data.user) {
         setIsLoggedIn(true);
         setUserName(data.user.fullName || data.user.email);
+        setAvatarUrl(data.user.avatarUrl || null); // ✅ Сохраняем аватарку
       } else {
         setIsLoggedIn(false);
       }
@@ -42,7 +44,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
     }
   };
 
-  // Очистка уведомлений при смене режима
   useEffect(() => {
     setError('');
     setSuccessMessage('');
@@ -52,7 +53,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
-        credentials: 'include', // 👈 чтобы сервер мог удалить cookie
+        credentials: 'include',
       });
     } catch (e) {
       console.error('Logout error:', e);
@@ -60,6 +61,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
 
     setIsLoggedIn(false);
     setUserName('');
+    setAvatarUrl(null);
     onLogout?.();
     router.push('/');
   };
@@ -87,7 +89,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // ✅ Добавлено
+          credentials: 'include',
           body: JSON.stringify({ email, password, fullName }),
         });
 
@@ -107,7 +109,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', // ✅ Добавлено
+          credentials: 'include',
           body: JSON.stringify({ email, password }),
         });
 
@@ -117,10 +119,9 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           throw new Error(data.error || 'Ошибка входа');
         }
 
-        // ✅ После успешного логина - закрываем модалку и проверяем статус
         setAuthModalType(null);
-        await checkAuth(); // Проверяем авторизацию
-        router.push('/assistants'); // Перенаправляем на главную страницу ассистентов
+        await checkAuth();
+        router.push('/assistants');
       }
     } catch (err: any) {
       if (err.message.includes('Google') || err.message.includes('google')) {
@@ -134,7 +135,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   return (
     <header style={styles.header}>
       <div style={styles.container}>
-        {/* Логотип */}
         <div style={styles.logoContainer} onClick={() => router.push('/')}>
           <img src="/favicon.ico" alt="Zuuma" style={styles.logoIcon} />
           <h1 style={styles.logo}>zuuma</h1>
@@ -143,7 +143,22 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         <nav style={styles.nav}>
           {isLoggedIn ? (
             <>
-              <span style={styles.userName}>{userName}</span>
+              {/* ✅ Аватарка и имя с переходом в профиль */}
+              <div 
+                style={styles.profileSection} 
+                onClick={() => router.push('/profile')}
+                title="Перейти в профиль"
+              >
+                {avatarUrl && (
+                  <img 
+                    src={avatarUrl} 
+                    alt={userName} 
+                    style={styles.avatar}
+                  />
+                )}
+                <span style={styles.userName}>{userName}</span>
+              </div>
+              
               <button onClick={() => router.push('/assistants')} style={styles.navButton}>
                 Мои ассистенты
               </button>
@@ -164,7 +179,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         </nav>
       </div>
 
-      {/* Модальное окно Email - без изменений */}
+      {/* Модальные окна остаются без изменений */}
       {authModalType === 'email' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
@@ -304,7 +319,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         </div>
       )}
 
-      {/* Модальное окно Google - без изменений */}
       {authModalType === 'google' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
@@ -399,88 +413,114 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   );
 }
 
-// ============================================
-// СТИЛИ
-// ============================================
-
+// ✅ ТЕМНЫЙ ДИЗАЙН Header
 const styles = {
   header: {
-    backgroundColor: '#fff',
-    borderBottom: '1px solid #e5e7eb',
+    background: '#111111', // ✅ Темный фон
+    borderBottom: '1px solid #444444',
+    padding: '16px 0',
     position: 'sticky' as const,
     top: 0,
-    zIndex: 50,
+    zIndex: 1000,
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
   },
   container: {
-    maxWidth: '1200px',
+    maxWidth: '1400px',
     margin: '0 auto',
-    padding: '0 16px',
+    padding: '0 24px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: '64px',
   },
   logoContainer: {
     display: 'flex',
     alignItems: 'center',
+    gap: '12px',
     cursor: 'pointer',
+    transition: 'opacity 0.2s',
   },
   logoIcon: {
     width: '32px',
     height: '32px',
-    marginRight: '8px',
   },
   logo: {
     fontSize: '24px',
     fontWeight: 700,
-    color: '#1f2937',
+    color: '#E0E0E0', // ✅ Светлый текст
     margin: 0,
   },
   nav: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '16px',
+  },
+  // ✅ Секция профиля с аватаркой
+  profileSection: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    background: '#1a1a1a',
+    border: '1px solid #444444',
+  } as React.CSSProperties,
+  avatar: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    objectFit: 'cover' as const,
+    border: '2px solid #888888',
   },
   userName: {
-    fontSize: '14px',
-    color: '#4b5563',
-    marginRight: '16px',
+    fontSize: '15px',
+    fontWeight: 500,
+    color: '#E0E0E0',
   },
   navButton: {
-    padding: '8px 16px',
-    backgroundColor: '#f3f4f6',
-    border: 'none',
-    borderRadius: '6px',
+    padding: '10px 20px',
+    background: '#1a1a1a',
+    color: '#E0E0E0',
+    border: '1px solid #444444',
+    borderRadius: '8px',
     fontSize: '14px',
+    fontWeight: 500,
     cursor: 'pointer',
-    transition: 'background 0.2s',
+    transition: 'all 0.2s',
   },
   logoutButton: {
-    padding: '8px 16px',
-    backgroundColor: '#ef4444',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
+    padding: '10px 20px',
+    background: '#333333',
+    color: '#E0E0E0',
+    border: '1px solid #555555',
+    borderRadius: '8px',
     fontSize: '14px',
+    fontWeight: 500,
     cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   loginButton: {
-    padding: '8px 16px',
-    backgroundColor: '#10b981',
+    padding: '10px 20px',
+    background: '#888888',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontSize: '14px',
+    fontWeight: 500,
     cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   googleButtonHeader: {
-    padding: '8px 16px',
-    backgroundColor: '#4285F4',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
+    padding: '10px 20px',
+    background: '#1a1a1a',
+    color: '#E0E0E0',
+    border: '1px solid #444444',
+    borderRadius: '8px',
     fontSize: '14px',
+    fontWeight: 500,
     cursor: 'pointer',
+    transition: 'all 0.2s',
   },
 };
 
@@ -491,184 +531,201 @@ const modalStyles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    background: 'rgba(0, 0, 0, 0.8)',
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    justifyContent: 'center',
+    zIndex: 2000,
   },
   modal: {
-    backgroundColor: '#fff',
-    borderRadius: '12px',
-    padding: '24px',
-    width: '400px',
-    maxWidth: '90vw',
-    position: 'relative' as const,
-    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+    background: '#111111',
+    borderRadius: '16px',
+    padding: '32px',
+    maxWidth: '440px',
+    width: '90%',
+    maxHeight: '90vh',
+    overflowY: 'auto' as const,
+    border: '1px solid #444444',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
   },
   closeButton: {
     position: 'absolute' as const,
-    top: '12px',
-    right: '12px',
-    background: 'none',
+    top: '16px',
+    right: '16px',
+    background: 'transparent',
     border: 'none',
+    color: '#B0B0B0',
     cursor: 'pointer',
-    padding: '4px',
+    padding: '8px',
+    borderRadius: '4px',
+    transition: 'all 0.2s',
   },
   title: {
-    margin: '0 0 20px 0',
-    fontSize: '20px',
-    fontWeight: 600,
+    fontSize: '24px',
+    fontWeight: 700,
+    marginBottom: '24px',
+    color: '#E0E0E0',
     textAlign: 'center' as const,
-    color: '#1f2937',
   },
   tabs: {
     display: 'flex',
-    marginBottom: '20px',
-    borderBottom: '1px solid #e5e7eb',
+    gap: '8px',
+    marginBottom: '24px',
+    padding: '4px',
+    background: '#0a0a0a',
+    borderRadius: '8px',
   },
   tab: {
     flex: 1,
     padding: '10px',
-    background: 'none',
+    background: 'transparent',
+    color: '#B0B0B0',
     border: 'none',
+    borderRadius: '6px',
     fontSize: '14px',
+    fontWeight: 500,
     cursor: 'pointer',
-    color: '#6b7280',
+    transition: 'all 0.2s',
   },
   tabActive: {
-    color: '#10b981',
-    borderBottom: '2px solid #10b981',
-    fontWeight: 600,
+    background: '#888888',
+    color: 'white',
   },
   error: {
-    backgroundColor: '#fee2e2',
-    color: '#991b1b',
-    border: '1px solid #fca5a5',
-    borderRadius: '6px',
-    padding: '10px 12px',
+    padding: '12px',
+    background: '#ff4444',
+    color: 'white',
+    borderRadius: '8px',
+    marginBottom: '16px',
     fontSize: '14px',
-    marginBottom: '12px',
     textAlign: 'center' as const,
   },
-  // Новое: успех
   successBox: {
-    backgroundColor: '#e6ffed',
-    color: '#2c662d',
-    border: '1px solid #b5e7b5',
-    borderRadius: '6px',
-    padding: '10px 12px',
+    padding: '12px',
+    background: '#10b981',
+    color: 'white',
+    borderRadius: '8px',
+    marginBottom: '16px',
     fontSize: '14px',
-    marginBottom: '12px',
     textAlign: 'center' as const,
   },
   consents: {
-    marginBottom: '16px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '12px',
+    marginBottom: '24px',
   },
   checkboxLabel: {
     display: 'flex',
-    alignItems: 'flex-start',
+    gap: '8px',
     fontSize: '13px',
-    color: '#4b5563',
-    marginBottom: '8px',
+    color: '#B0B0B0',
+    cursor: 'pointer',
   },
   checkbox: {
-    marginRight: '8px',
     marginTop: '2px',
+    cursor: 'pointer',
   },
   checkboxText: {
-    lineHeight: '1.4',
+    lineHeight: '1.5',
   },
   link: {
-    color: '#10b981',
+    color: '#888888',
     textDecoration: 'underline',
   },
   section: {
-    marginBottom: '16px',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '16px',
   },
   inputGroup: {
     position: 'relative' as const,
-    marginBottom: '12px',
+    display: 'flex',
+    alignItems: 'center',
   },
   icon: {
     position: 'absolute' as const,
-    left: '12px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: '#9ca3af',
+    left: '14px',
+    color: '#666666',
   },
   input: {
     width: '100%',
-    padding: '12px 12px 12px 40px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    padding: '12px 12px 12px 44px',
+    background: '#0a0a0a',
+    border: '1px solid #444444',
+    borderRadius: '8px',
     fontSize: '14px',
+    color: '#E0E0E0',
     outline: 'none',
   },
   submitButton: {
-    width: '100%',
     padding: '12px',
-    backgroundColor: '#10b981',
+    background: '#888888',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '15px',
-    fontWeight: 500,
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: 600,
     cursor: 'pointer',
-    marginTop: '8px',
+    transition: 'all 0.2s',
   },
   hint: {
     textAlign: 'center' as const,
     fontSize: '14px',
-    color: '#6b7280',
-    margin: '16px 0',
+    color: '#B0B0B0',
+    marginTop: '16px',
   },
   linkButton: {
     background: 'none',
     border: 'none',
-    color: '#10b981',
-    cursor: 'pointer',
+    color: '#888888',
     textDecoration: 'underline',
+    cursor: 'pointer',
     fontSize: '14px',
   },
   alternative: {
+    marginTop: '24px',
     textAlign: 'center' as const,
-    marginTop: '20px',
-    color: '#888',
+    color: '#666666',
     fontSize: '14px',
   },
   alternativeButton: {
-    background: 'transparent',
-    border: 'none',
-    color: '#4285F4',
-    cursor: 'pointer',
-    textDecoration: 'underline',
+    width: '100%',
+    marginTop: '12px',
+    padding: '12px',
+    background: '#1a1a1a',
+    color: '#E0E0E0',
+    border: '1px solid #444444',
+    borderRadius: '8px',
     fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   warningBox: {
-    backgroundColor: '#fef3c7',
-    border: '1px solid #f59e0b',
-    borderRadius: '6px',
-    padding: '10px',
+    padding: '12px',
+    background: '#ff9800',
+    borderRadius: '8px',
     marginBottom: '16px',
   },
   warningText: {
-    margin: 0,
     fontSize: '13px',
-    color: '#92400e',
+    color: 'white',
+    margin: 0,
+    textAlign: 'center' as const,
   },
   googleButton: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: '100%',
     padding: '12px',
-    backgroundColor: '#4285F4',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '15px',
-    fontWeight: 500,
+    background: 'white',
+    color: '#333',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: 600,
     cursor: 'pointer',
+    transition: 'all 0.2s',
   },
 };

@@ -102,13 +102,13 @@ export default function AnalyticsPage() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const token = localStorage.getItem('auth_token'); // ← Исправлено
+
         const res = await fetch(`${API_BASE_URL}/api/tokens/analytics`, {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            credentials: 'include', // 👈 ДОБАВЬТЕ ЭТО
+            headers: {
+              'Content-Type': 'application/json'
+            }
         });
         
         if (res.ok) {

@@ -33,7 +33,7 @@ export default function AuditLogsPage() {
 
   const fetchLogs = async () => {
     try {
-      const token = localStorage.getItem('token');
+
       const params = new URLSearchParams({
         limit: filter.limit.toString(),
         offset: filter.offset.toString(),
@@ -43,8 +43,9 @@ export default function AuditLogsPage() {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/audit-logs?${params}`,
         {
+          credentials: 'include',
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           },
         }
       );
@@ -62,13 +63,13 @@ export default function AuditLogsPage() {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/audit-logs/stats?days=30`,
         {
+          credentials: 'include', // 👈 ДОБАВЬТЕ ЭТО
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            'Content-Type': 'application/json'
+          }
         }
       );
 
@@ -83,13 +84,13 @@ export default function AuditLogsPage() {
 
   const exportLogs = async (format: 'json' | 'csv') => {
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/audit-logs/export?format=${format}`,
         {
+          credentials: 'include', // 👈 ДОБАВЬТЕ ЭТО
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            'Content-Type': 'application/json'
+          }
         }
       );
 

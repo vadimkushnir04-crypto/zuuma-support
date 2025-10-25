@@ -44,7 +44,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
     };
 
 
-    const handleUpload = async (e: React.FormEvent) => {
+  const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedAssistantId) {
@@ -58,35 +58,27 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
     }
 
     if (!title.trim()) {
-      setMessage("❌ Укажите название файла - это важно для поиска!");
+      setMessage("❌ Укажите название файла — это важно для поиска!");
       return;
     }
 
     setLoading(true);
     setMessage("⏳ Загрузка файла...");
+
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        setMessage("❌ Требуется авторизация");
-        setLoading(false);
-        return;
-      }
-
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', title.trim());
+      formData.append("file", file);
+      formData.append("title", title.trim());
       if (description.trim()) {
-        formData.append('description', description.trim());
+        formData.append("description", description.trim());
       }
 
+      // ✅ Загружаем файл (куки передаются автоматически)
       const res = await fetch(
         `${API_BASE_URL}/assistants/${selectedAssistantId}/upload-file`,
         {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
+          credentials: "include", // 🔥 отправляем cookie
           body: formData,
         }
       );
@@ -94,20 +86,18 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
       if (res.ok) {
         const result = await res.json();
         setMessage(`✅ ${result.data.message}`);
-        
+
         setFile(null);
         setTitle("");
         setDescription("");
 
+        // ✅ Обновляем ассистента (например, помечаем как "trained")
         await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}`, {
           method: "PATCH",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
+          credentials: "include", // 🔥 cookie снова здесь
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ trained: true }),
         });
-
       } else if (res.status === 401) {
         setMessage("❌ Сессия истекла. Войдите снова.");
       } else {
@@ -127,6 +117,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
     setDescription("");
     setMessage("");
   };
+
 
   return (
     <form onSubmit={handleUpload} className="file-upload-form">

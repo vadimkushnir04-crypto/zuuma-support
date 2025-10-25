@@ -56,23 +56,15 @@ export default function UploadTextForm() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
-      
-      if (!token) {
-        setMessage("❌ Требуется авторизация. Пожалуйста, войдите в систему.");
-        setLoading(false);
-        return;
-      }
-
       const res = await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}/upload`, {
         method: "POST",
+        credentials: "include", // ✅ Отправляем cookie
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           text: text.trim(),
-          title: title.trim() || t('defaultTitle')
+          title: title.trim() || t('defaultTitle'),
         }),
       });
 
@@ -82,11 +74,12 @@ export default function UploadTextForm() {
         setText("");
         setTitle("");
 
+        // ✅ Обновляем статус обучения ассистента
         await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { 
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
           },
           body: JSON.stringify({ trained: true }),
         });
@@ -163,18 +156,8 @@ export function AssistantsDropdown() {
   const { selectedAssistantId, setSelectedAssistantId } = useContext(SelectedAssistantContext);
 
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
-    
-    if (!token) {
-      setError('Требуется авторизация');
-      setLoading(false);
-      return;
-    }
-
     fetch(`${API_BASE_URL}/assistants`, {
-      headers: {
-        "Authorization": `Bearer ${token}`
-      }
+      credentials: "include", // ✅ куки автоматически подставятся
     })
       .then(res => {
         if (!res.ok) {

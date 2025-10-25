@@ -15,17 +15,6 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const hideSidebar = pathname === "/";
   const { isLoggedIn, userName, logout } = useAuth();
 
-  // 🔥 Добавляем этот эффект:
-  useEffect(() => {
-    const token = searchParams.get('token');
-    if (token) {
-      localStorage.setItem('authToken', token);
-      // Убираем токен из адресной строки, чтобы он не светился
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, newUrl);
-    }
-  }, [searchParams]);
-
   return (
     <>
       <Header isLoggedIn={isLoggedIn} userName={userName} onLogout={logout} />

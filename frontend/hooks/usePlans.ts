@@ -1,6 +1,7 @@
+// hooks/usePlans.ts
 import useSWR from 'swr';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru";
 
 // Запасные тарифы на случай, если API не работает
 const FALLBACK_PLANS = [
@@ -16,29 +17,27 @@ const FALLBACK_PLANS = [
     id: 'pro',
     slug: 'pro',
     title: 'Pro',
-    monthly_tokens: '1500000',
+    monthly_tokens: '2000000',
     tokens_per_chat: 10000,
-    price_cents: '149900',
+    price_cents: '99000',
   },
   {
     id: 'max',
     slug: 'max',
     title: 'Max',
-    monthly_tokens: '5000000',
+    monthly_tokens: '6000000',
     tokens_per_chat: 20000,
-    price_cents: '499000',
+    price_cents: '299000',
   },
 ];
 
 const fetcher = async (url: string) => {
   console.log('🔍 Fetching plans from:', `${API_BASE_URL}${url}`);
   
-  const token = localStorage.getItem('auth_token');
-  
   try {
     const res = await fetch(`${API_BASE_URL}${url}`, {
+      credentials: 'include', // ✅ Отправляем cookie вместо Bearer token
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
@@ -66,8 +65,7 @@ const fetcher = async (url: string) => {
 };
 
 export function usePlans() {
-  // ✅ ИСПРАВЛЕНО: убрали /api/ из пути
-  const { data, error, mutate } = useSWR('/tokens/plans', fetcher, {
+  const { data, error, mutate } = useSWR('/api/tokens/plans', fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
   });
@@ -81,12 +79,10 @@ export function usePlans() {
 }
 
 export async function changePlan(planSlug: string) {
-  const token = localStorage.getItem('auth_token');
-  // ✅ ИСПРАВЛЕНО: убрали /api/ из пути
-  const res = await fetch(`${API_BASE_URL}/tokens/change-plan`, {
+  const res = await fetch(`${API_BASE_URL}/api/tokens/change-plan`, {
     method: 'POST',
+    credentials: 'include', // ✅ Отправляем cookie
     headers: {
-      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ planSlug })

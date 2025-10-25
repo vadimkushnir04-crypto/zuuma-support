@@ -39,9 +39,9 @@ export default function CookieConsent() {
         lineHeight: '1.4',
       }}
     >
-      <span>
-        Мы используем cookie для авторизации и улучшения работы сайта.
-      </span>
+    <span>
+      Мы используем cookie для входа в аккаунт, сохранения сеанса и улучшения работы сайта.
+    </span>
       <button
         onClick={acceptCookies}
         style={{

@@ -24,29 +24,36 @@ export interface ConnectManualBotRequest {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
 
 class TelegramAPI {
+  // ✅ Универсальный метод запросов с куками
+  private async request(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      credentials: 'include', // ✅ автоматически подставляет cookie
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
 
-  private getAuthToken(): string {
-    const token = localStorage.getItem('auth_token') || '';
-    if (!token) console.warn('⚠️ auth_token is missing in localStorage');
-    return token;
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      console.error(`❌ Ошибка запроса [${response.status}]:`, data);
+      throw new Error(data.error || data.message || `Ошибка ${response.status}`);
+    }
+
+    return data;
   }
 
-  private getHeaders() {
-    const token = this.getAuthToken();
-    if (!token) throw new Error('JWT token missing. Please login again.');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    };
-  }
+  // =========================
+  // 📡 TELEGRAM AUTH ROUTES
+  // =========================
 
   async getAuthStatus(): Promise<TelegramAuthStatus> {
     try {
-      const response = await fetch(`${API_BASE_URL}/telegram/auth/status`, {
-        headers: this.getHeaders(),
-      });
-      if (!response.ok) throw new Error('Failed to get auth status');
-      return await response.json();
+      return await this.request('/telegram/auth/status');
     } catch (error) {
       console.error('Error getting Telegram auth status:', error);
       return { isAuthorized: false, userId: '' };
@@ -55,43 +62,43 @@ class TelegramAPI {
 
   async sendAuthCode(phone: string): Promise<TelegramAuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/telegram/auth/send-code`, {
+      return await this.request('/telegram/auth/send-code', {
         method: 'POST',
-        headers: this.getHeaders(),
         body: JSON.stringify({ phone }),
       });
-      return await response.json();
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return { success: false, error: (error as Error).message };
     }
   }
 
   async confirmCode(phone: string, code: string): Promise<TelegramAuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/telegram/auth/confirm-code`, {
+      return await this.request('/telegram/auth/confirm-code', {
         method: 'POST',
-        headers: this.getHeaders(),
         body: JSON.stringify({ phone, code }),
       });
-      return await response.json();
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return { success: false, error: (error as Error).message };
     }
   }
 
   async revokeAuth(): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/telegram/auth/revoke`, {
+      return await this.request('/telegram/auth/revoke', {
         method: 'POST',
-        headers: this.getHeaders(),
       });
-      return await response.json();
-    } catch {
-      return { success: false, message: 'Failed to revoke authorization' };
+    } catch (error) {
+      return { success: false, message: (error as Error).message };
     }
   }
 
-  async connectManualBot(data: ConnectManualBotRequest): Promise<{
+  // =========================
+  // 🤖 BOT CONNECTION
+  // =========================
+
+  async connectManualBot(
+    data: ConnectManualBotRequest
+  ): Promise<{
     success: boolean;
     integration?: any;
     error?: string;
@@ -102,46 +109,27 @@ class TelegramAPI {
     console.trace('📌 Call stack for connectManualBot');
     console.groupEnd();
 
-    const token = this.getAuthToken();
-    if (!token) return { success: false, error: 'JWT token missing. Please login again.' };
-
-    // Отправляем payload без изменений
-    const payload: ConnectManualBotRequest = {
-      botName: data.botName,
-      botToken: data.botToken,
-      assistantId: data.assistantId,
-      description: data.description,
-      creationMethod: 'manual',
-    };
-
-    console.log('📤 Sending payload to backend:', JSON.stringify(payload, null, 2));
-
     try {
-      const response = await fetch(`${API_BASE_URL}/telegram/bots/connect-manual`, {
+      const result = await this.request('/telegram/bots/connect-manual', {
         method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          botName: data.botName,
+          botToken: data.botToken,
+          assistantId: data.assistantId,
+          description: data.description,
+          creationMethod: 'manual',
+        }),
       });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        console.error('❌ Server responded with error:', result);
-        return {
-          success: false,
-          error: result.error || result.message || 'Failed to connect bot',
-        };
-      }
 
       console.log('✅ Server response:', result);
       return result;
     } catch (error) {
       console.error('❌ Request failed:', error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return { success: false, error: (error as Error).message };
     }
   }
 
-  // Универсальный метод для createTelegramBot (теперь только для manual)
+  // Универсальный метод (оставляем для совместимости)
   async createTelegramBot(data: ConnectManualBotRequest) {
     if (data.creationMethod !== 'manual') {
       return { success: false, error: 'Only manual creation method is supported' };
