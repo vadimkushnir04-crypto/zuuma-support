@@ -18,23 +18,14 @@ async function bootstrap() {
     const port = process.env.PORT || 8000;
 
     // ✅ CORS с правильными доменами
-    app.enableCors({
-      origin: isProd 
-        ? [
-            'https://zuuma.ru',
-            'https://www.zuuma.ru',
-          ]
-        : [
-            'http://localhost:3000',
-            'http://localhost:3001',
-            'http://127.0.0.1:3000',
-            'http://127.0.0.1:3001',
-            'null', // Для локальных HTML файлов (виджет)
-          ],
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true,
-    });
+      app.enableCors({
+        origin: isProd 
+          ? ['https://zuuma.ru', 'https://www.zuuma.ru']
+          : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        credentials: true,
+      });
 
     // ✅ Глобальные пайпы и интерцепторы
     app.useGlobalPipes(

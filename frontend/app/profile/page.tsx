@@ -69,10 +69,10 @@ export default function ProfilePage() {
           await loadUserProfile();
           
           // Проверяем что пользователь не на Free плане
-          const token = localStorage.getItem("auth_token");
+          
           const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+            credentials: 'include',
             headers: {
-              "Authorization": `Bearer ${token}`,
               "Content-Type": "application/json",
             },
           });
@@ -94,16 +94,12 @@ export default function ProfilePage() {
   }, []);
 
   const loadUserProfile = async () => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) {
-      window.location.href = "/";
-      return;
-    }
 
     try {
       const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+
+        credentials: 'include',
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
@@ -113,7 +109,7 @@ export default function ProfilePage() {
         setUserProfile(data.user);
         setFullName(data.user.fullName || "");
       } else {
-        localStorage.removeItem("auth_token");
+        
         window.location.href = "/";
       }
     } catch (error) {
@@ -124,14 +120,11 @@ export default function ProfilePage() {
   };
 
   const loadSubscription = async () => {
-    const token = localStorage.getItem("auth_token");
-    if (!token) return;
+
 
     try {
       const res = await fetch(`${API_BASE_URL}/payments/subscription`, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
+          credentials: 'include',
       });
 
       if (res.ok) {
@@ -163,11 +156,11 @@ export default function ProfilePage() {
     setProcessingPayment(true);
 
     try {
-      const token = localStorage.getItem("auth_token");
+      
       const res = await fetch(`${API_BASE_URL}/payments/create`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ planSlug }),
@@ -211,12 +204,11 @@ export default function ProfilePage() {
     if (!confirm(message)) return;
 
     try {
-      const token = localStorage.getItem("auth_token");
+      
       const res = await fetch(`${API_BASE_URL}/payments/subscription/${subscription.id}/cancel`, {
         method: 'POST',
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
+        body: JSON.stringify({}),
+        credentials: 'include',
       });
 
       if (res.ok) {
@@ -245,12 +237,10 @@ export default function ProfilePage() {
     }
 
     try {
-      const token = localStorage.getItem("auth_token");
+      
       const res = await fetch(`${API_BASE_URL}/payments/subscription/${subscription.id}/refund`, {
         method: 'POST',
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (res.ok) {
@@ -274,11 +264,11 @@ export default function ProfilePage() {
     
     setSaving(true);
     try {
-      const token = localStorage.getItem("auth_token");
+      
       const res = await fetch(`${API_BASE_URL}/auth/profile`, {
         method: "PUT",
+        credentials: 'include',
         headers: {
-          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ fullName }),
@@ -299,7 +289,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token");
+    
     window.location.href = "/";
   };
 

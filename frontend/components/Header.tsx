@@ -97,21 +97,19 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         setPassword('');
         setFullName('');
         setAgreedToTerms(false);
-      } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        });
+        } else {
+            const res = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Ошибка входа');
 
-        if (data.token) {
-          localStorage.setItem('token', data.token);
-          setAuthModalType(null);
-          window.location.reload();
-        }
+        if (!res.ok) throw new Error(data.error || 'Ошибка входа');
+        setAuthModalType(null);
+        window.location.reload();
+        
       }
     } catch (err: any) {
       // Специальная обработка ошибки Google-аккаунта

@@ -53,14 +53,6 @@ export interface DeleteIntegrationResponse {
 
 class IntegrationsAPI {
 
-  private getAuthToken(): string {
-    try {
-      return localStorage.getItem('auth_token') || '';
-    } catch {
-      return '';
-    }
-  }
-
   private normalizeIntegration(item: any): Integration {
     if (!item) return item;
     const createdRaw = item.created ?? item.createdAt ?? item.created_at ?? item.createdOn ?? item.created_on ?? null;
@@ -123,7 +115,7 @@ class IntegrationsAPI {
   async getAllIntegrations(): Promise<Integration[]> {
     try {
       const response = await fetch(`${API_BASE_URL}/integrations`, {
-        headers: { 'Authorization': `Bearer ${this.getAuthToken()}` },
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -154,8 +146,8 @@ class IntegrationsAPI {
     try {
       const response = await fetch(`${API_BASE_URL}/integrations/${id}/toggle`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
           'Content-Type': 'application/json',
         },
       });
@@ -186,8 +178,8 @@ class IntegrationsAPI {
     try {
       const response = await fetch(`${API_BASE_URL}/integrations/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${this.getAuthToken()}`,
           'Content-Type': 'application/json',
         },
       });
@@ -211,17 +203,9 @@ class IntegrationsAPI {
 
   async fetchAssistants(): Promise<Assistant[]> {
     try {
-      const token = this.getAuthToken();
-
-      if (!token) {
-        console.error('No auth token');
-        return [];
-      }
 
       const response = await fetch(`${API_BASE_URL}/assistants`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      credentials: 'include',
       });
 
       if (!response.ok) {

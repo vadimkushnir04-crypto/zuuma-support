@@ -124,12 +124,21 @@ export class AuthController {
   // ============================================
 
   @Post('login')
-  async login(@Body() body: { email: string; password: string }, @Req() req: any) {
+  async login(@Body() body: { email: string; password: string }, @Req() req: any, @Res() res: Response) {  // ✅ Добавьте @Res() res
     const ipAddress = this.getClientIp(req);
 
     try {
       const result = await this.authService.login(body.email, body.password, ipAddress);
-      return { success: true, ...result };
+      
+      // ✅ Установите куки, как в Google
+      res.cookie('token', result.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+      });
+
+      return res.json({ success: true, user: result.user });  // ✅ Верните только user, без token
     } catch (err: any) {
       // Специальная ошибка для Google
       if (err.message.includes('Google') || err.message.includes('google')) {

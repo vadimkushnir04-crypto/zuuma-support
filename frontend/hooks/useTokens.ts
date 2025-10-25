@@ -1,3 +1,4 @@
+// frontend/hooks/useTokens.ts
 import useSWR from 'swr';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
@@ -9,13 +10,9 @@ interface TokenBalance {
 }
 
 const fetcher = async (url: string) => {
-  const token = localStorage.getItem('auth_token');
-  
-  console.log('🔍 Token exists:', !!token);
-  
   const res = await fetch(`${API_BASE_URL}${url}`, {
+    credentials: 'include',  // ✅ Добавьте: отправляет куки
     headers: {
-      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     }
   });
@@ -31,7 +28,6 @@ const fetcher = async (url: string) => {
 };
 
 export function useTokens() {
-  // ✅ ИСПРАВЛЕНО: убрали /api/
   const { data, error, mutate } = useSWR('/tokens', fetcher, { 
     refreshInterval: 15000,
     revalidateOnFocus: false
