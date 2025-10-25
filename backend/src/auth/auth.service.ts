@@ -43,24 +43,29 @@ export class AuthService {
     });
 
     if (!user) {
+      // Новый пользователь через Google
       user = this.userRepository.create({
         email: googleData.email,
         google_id: googleData.googleId,
         full_name: googleData.fullName,
         avatar_url: googleData.picture || null,
         provider: 'google',
-        email_verified: true, // Google → сразу подтверждён
+        email_verified: true,
         consent_given_at: new Date(),
       });
       user = await this.userRepository.save(user);
+      console.log('✅ New Google user created:', user.id);
     } else if (!user.google_id) {
-      // Привязываем Google
+      // Привязываем Google к существующему аккаунту
+      console.log(`🔗 Linking Google to existing ${user.provider} account:`, user.id);
       user.google_id = googleData.googleId;
       user.full_name = googleData.fullName;
       user.avatar_url = googleData.picture || null;
-      user.provider = 'google';
       user.email_verified = true;
+      // ✅ НЕ МЕНЯЕМ provider! Оставляем 'local' если был local
       user = await this.userRepository.save(user);
+    } else {
+      console.log('✅ Existing Google user login:', user.id);
     }
 
     const token = this.generateToken(user.id, user.email);
@@ -77,16 +82,37 @@ export class AuthService {
     fullName?: string,
     ipAddress?: string,
   ) {
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({ 
+      where: { email },
+      select: ['id', 'email', 'password', 'provider', 'google_id'],
+    });
+
     if (existingUser) {
-      if (existingUser.provider !== 'local') {
-        throw new BadRequestException(
-          'Этот email зарегистрирован через Google. Используйте вход через Google.',
-        );
+      // ✅ Если у пользователя УЖЕ ЕСТЬ пароль - блокируем
+      if (existingUser.password) {
+        throw new BadRequestException('Email уже зарегистрирован');
       }
-      throw new BadRequestException('Email уже зарегистрирован');
+      
+      // ✅ Если пользователь только через Google (нет пароля) - разрешаем добавить пароль
+      if (existingUser.google_id && !existingUser.password) {
+        console.log('🔗 Adding password to existing Google account:', existingUser.id);
+        
+        if (password.length < 8) {
+          throw new BadRequestException('Пароль должен содержать минимум 8 символов');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        existingUser.password = hashedPassword;
+        if (fullName) existingUser.full_name = fullName;
+        existingUser.email_verified = true; // Google уже подтвердил
+        
+        const savedUser = await this.userRepository.save(existingUser);
+        return { user: savedUser };
+      }
     }
 
+    // Новый пользователь
     if (password.length < 8) {
       throw new BadRequestException('Пароль должен содержать минимум 8 символов');
     }
@@ -111,7 +137,7 @@ export class AuthService {
     // Отправляем письмо
     await this.sendVerificationEmail(savedUser);
 
-    return { user: savedUser }; // Возвращаем полный User для контроллера
+    return { user: savedUser };
   }
 
   // ================================
@@ -193,6 +219,7 @@ export class AuthService {
         'tokens_limit',
         'assistants_limit',
         'created_at',
+        'google_id',
       ],
     });
 
@@ -200,7 +227,9 @@ export class AuthService {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
-    if (user.provider !== 'local' || !user.password) {
+    // ✅ Проверяем наличие пароля, а не только provider
+    if (!user.password) {
+      // Пользователь зарегистрирован ТОЛЬКО через Google (нет пароля)
       throw new BadRequestException(
         'Этот email зарегистрирован через Google. Используйте вход через Google.',
       );
@@ -274,4 +303,26 @@ export class AuthService {
       emailVerified: user.email_verified,
     };
   }
+
+    // ================================
+  // МЕТОДЫ ДЛЯ GUARD-PROTECTED ENDPOINTS
+  // ================================
+
+  async getProfileById(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Пользователь не найден');
+    return this.sanitizeUser(user);
+  }
+
+  async updateProfileById(userId: string, fullName?: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Пользователь не найден');
+
+    if (fullName) user.full_name = fullName;
+    user.updated_at = new Date();
+
+    const updated = await this.userRepository.save(user);
+    return this.sanitizeUser(updated);
+  }
+
 }

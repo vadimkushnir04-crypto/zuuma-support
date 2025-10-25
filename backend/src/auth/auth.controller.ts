@@ -7,7 +7,6 @@ import {
   Body,
   HttpException,
   HttpStatus,
-  Headers,
   UnauthorizedException,
   Req,
   Res,
@@ -27,20 +26,12 @@ export class AuthController {
   // GOOGLE OAUTH ROUTES
   // ============================================
 
-  /**
-   * Инициирует процесс Google OAuth
-   * GET /api/auth/google
-   */
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth(@Req() req: any) {
     // Guard автоматически перенаправит на страницу входа Google
   }
 
-  /**
-   * Обработка callback от Google после успешной авторизации
-   * GET /api/auth/google/callback
-   */
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res() res: Response) {
@@ -48,21 +39,25 @@ export class AuthController {
       const { token } = req.user;
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
 
+      console.log('🔐 Setting cookie for Google auth');
+      
       // Ставим куку с токеном
       res.cookie('token', token, {
-        httpOnly: true,      // защищает от XSS
-        secure: true,        // только HTTPS
-        sameSite: 'lax',     // совместимость с редиректами
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
       });
 
       // Редиректим на главную
       return res.redirect(`${frontendUrl}/`);
     } catch (error: any) {
+      console.error('❌ Google auth error:', error);
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
       return res.redirect(`${frontendUrl}?error=${encodeURIComponent(error.message)}`);
     }
   }
+
   // ============================================
   // РЕГИСТРАЦИЯ
   // ============================================
@@ -73,6 +68,8 @@ export class AuthController {
     @Req() req: any,
   ) {
     const ipAddress = this.getClientIp(req);
+
+    console.log('📝 Register attempt:', { email: body.email, fullName: body.fullName });
 
     try {
       const result = await this.authService.register(
@@ -85,12 +82,16 @@ export class AuthController {
       // Отправляем письмо с подтверждением
       await this.authService.sendVerificationEmail(result.user);
 
+      console.log('✅ Registration successful:', result.user.id);
+
       return {
         success: true,
         message: 'Регистрация успешна. Проверьте почту для подтверждения email.',
         user: result.user,
       };
     } catch (err: any) {
+      console.error('❌ Registration error:', err.message);
+      
       // Специальная ошибка для Google
       if (err.message.includes('Google') || err.message.includes('google')) {
         throw new BadRequestException(
@@ -124,13 +125,21 @@ export class AuthController {
   // ============================================
 
   @Post('login')
-  async login(@Body() body: { email: string; password: string }, @Req() req: any, @Res() res: Response) {  // ✅ Добавьте @Res() res
+  async login(
+    @Body() body: { email: string; password: string },
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
     const ipAddress = this.getClientIp(req);
+
+    console.log('🔑 Login attempt:', { email: body.email });
 
     try {
       const result = await this.authService.login(body.email, body.password, ipAddress);
       
-      // ✅ Установите куки, как в Google
+      console.log('🔐 Setting cookie for email login');
+      
+      // Установите куки
       res.cookie('token', result.token, {
         httpOnly: true,
         secure: true,
@@ -138,8 +147,12 @@ export class AuthController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
       });
 
-      return res.json({ success: true, user: result.user });  // ✅ Верните только user, без token
+      console.log('✅ Login successful:', result.user.id);
+
+      return res.json({ success: true, user: result.user });
     } catch (err: any) {
+      console.error('❌ Login error:', err.message);
+      
       // Специальная ошибка для Google
       if (err.message.includes('Google') || err.message.includes('google')) {
         throw new BadRequestException(
@@ -160,16 +173,17 @@ export class AuthController {
 
   @Get('profile')
   @UseGuards(JwtAuthGuard)
-  async getProfile(@Headers('authorization') authHeader: string, @Req() req: any) {
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Токен не предоставлен');
-    }
+  async getProfile(@Req() req: any) {
+    // ✅ ИСПРАВЛЕНО: используем req.user, который установил Guard
+    const userId = req.user.id || req.user.userId;
 
-    const token = authHeader.substring(7);
+    console.log('👤 Getting profile for user:', userId);
+
     try {
-      const userProfile = await this.authService.getProfile(token);
+      const userProfile = await this.authService.getProfileById(userId);
       return { success: true, user: userProfile };
     } catch (err: any) {
+      console.error('❌ Profile error:', err.message);
       throw new HttpException(
         { success: false, error: err.message },
         HttpStatus.UNAUTHORIZED,
@@ -180,20 +194,19 @@ export class AuthController {
   @Put('profile')
   @UseGuards(JwtAuthGuard)
   async updateProfile(
-    @Headers('authorization') authHeader: string,
     @Body() body: { fullName?: string },
     @Req() req: any,
   ) {
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Токен не предоставлен');
-    }
+    // ✅ ИСПРАВЛЕНО: используем req.user
+    const userId = req.user.id || req.user.userId;
 
-    const token = authHeader.substring(7);
+    console.log('✏️ Updating profile for user:', userId);
 
     try {
-      const updatedUser = await this.authService.updateProfile(token, body.fullName);
+      const updatedUser = await this.authService.updateProfileById(userId, body.fullName);
       return { success: true, user: updatedUser };
     } catch (err: any) {
+      console.error('❌ Profile update error:', err.message);
       throw new HttpException(
         { success: false, error: err.message },
         HttpStatus.BAD_REQUEST,
@@ -208,6 +221,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Res() res: Response) {
+    console.log('👋 User logging out');
     res.clearCookie('token');
     return res.json({ success: true, message: 'Выход выполнен успешно.' });
   }
