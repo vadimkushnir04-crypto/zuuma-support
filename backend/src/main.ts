@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ErrorFormatterInterceptor } from './common/error-formatter.interceptor';
-import cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser'; // ✅ Default import
 
 
 async function bootstrap() {
@@ -17,15 +17,18 @@ async function bootstrap() {
     const isProd = process.env.NODE_ENV === 'production';
     const port = process.env.PORT || 8000;
 
+    // ✅ КРИТИЧЕСКИ ВАЖНО: cookie-parser ПЕРВЫМ, до всех middleware
+    app.use(cookieParser());
+
     // ✅ CORS с правильными доменами
-      app.enableCors({
-        origin: isProd 
-          ? ['https://zuuma.ru', 'https://www.zuuma.ru']
-          : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true,
-      });
+    app.enableCors({
+      origin: isProd 
+        ? ['https://zuuma.ru', 'https://www.zuuma.ru']
+        : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true, // ✅ Для работы с cookies
+    });
 
     // ✅ Глобальные пайпы и интерцепторы
     app.useGlobalPipes(
@@ -37,13 +40,14 @@ async function bootstrap() {
     );
     app.useGlobalInterceptors(new ErrorFormatterInterceptor());
 
-    // ✅ Логирование запросов
+    // ✅ Логирование запросов (с cookies)
     app.use((req, res, next) => {
       console.log(`\n📥 ${req.method} ${req.url}`);
       console.log('Headers:', {
         'content-type': req.headers['content-type'],
         'authorization': req.headers['authorization'] ? 'Bearer ***' : 'none',
       });
+      console.log('Cookies:', req.cookies ? Object.keys(req.cookies) : 'none'); // ✅ Добавили логирование кук
       next();
     });
 
@@ -69,8 +73,6 @@ async function bootstrap() {
       });
     });
 
-    app.use(cookieParser());
-
     // ✅ Запускаем сервер
     await app.listen(port, '0.0.0.0');
 
@@ -80,6 +82,7 @@ async function bootstrap() {
     console.log(`🌍 CORS: ${isProd ? 'PRODUCTION (zuuma.ru)' : 'DEV (localhost)'}`);
     console.log(`🔌 WebSocket endpoint: ws://localhost:${port}/socket.io`);
     console.log(`📊 Audit Logs: ✅ ENABLED`);
+    console.log(`🍪 Cookies: ✅ ENABLED`); // ✅ Добавили индикацию
     console.log('🚀 ===================================\n');
 
   } catch (error) {

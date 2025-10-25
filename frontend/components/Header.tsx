@@ -6,7 +6,6 @@ import { Mail, Lock, User, X } from 'lucide-react';
 export default function Header({ isLoggedIn: externalLoggedIn, userName: externalName, onLogout }: any) {
   const router = useRouter();
   
-  // Если Header сам управляет авторизацией:
   const [isLoggedIn, setIsLoggedIn] = useState(externalLoggedIn || false);
   const [userName, setUserName] = useState(externalName || '');
   
@@ -22,25 +21,26 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
 
   // ✅ Проверка авторизации при загрузке (кука HttpOnly)
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch('/api/auth/profile', {
-          credentials: 'include', // 👈 важно — отправляем cookie с запросом
-        });
-        const data = await res.json();
-        if (data.success && data.user) {
-          setIsLoggedIn(true);
-          setUserName(data.user.fullName || data.user.email);
-        } else {
-          setIsLoggedIn(false);
-        }
-      } catch (err) {
-        console.error('Auth check failed:', err);
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/profile', {
+        credentials: 'include', // 👈 важно — отправляем cookie с запросом
+      });
+      const data = await res.json();
+      if (data.success && data.user) {
+        setIsLoggedIn(true);
+        setUserName(data.user.fullName || data.user.email);
+      } else {
         setIsLoggedIn(false);
       }
-    };
-    fetchProfile();
-  }, []);
+    } catch (err) {
+      console.error('Auth check failed:', err);
+      setIsLoggedIn(false);
+    }
+  };
 
   // Очистка уведомлений при смене режима
   useEffect(() => {
@@ -58,7 +58,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
       console.error('Logout error:', e);
     }
 
-    localStorage.removeItem('token');
     setIsLoggedIn(false);
     setUserName('');
     onLogout?.();
@@ -67,52 +66,63 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
 
   const handleGoogleLogin = async () => {
     setError('');
-    if (!agreedToTerms || !agreedToDataTransfer) return;
+    if (!agreedToTerms || !agreedToDataTransfer) {
+      setError('Примите все условия для продолжения');
+      return;
+    }
     window.location.href = '/api/auth/google';
   };
 
-  // Обновлённая функция с новыми фичами
   const handleEmailAuth = async () => {
     setError('');
-    setSuccessMessage(''); // Очищаем старые уведомления
+    setSuccessMessage('');
 
-    if (!agreedToTerms) return;
+    if (!agreedToTerms) {
+      setError('Примите условия для продолжения');
+      return;
+    }
 
     try {
       if (authMode === 'register') {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // ✅ Добавлено
           body: JSON.stringify({ email, password, fullName }),
         });
 
         const data = await res.json();
 
-        if (!res.ok) throw new Error(data.error || 'Ошибка регистрации');
+        if (!res.ok) {
+          throw new Error(data.error || 'Ошибка регистрации');
+        }
 
-        // Успешная регистрация — показываем уведомление
         setSuccessMessage('Проверьте почту — мы отправили письмо для подтверждения.');
         setAuthMode('login');
         setEmail('');
         setPassword('');
         setFullName('');
         setAgreedToTerms(false);
-        } else {
-            const res = await fetch('/api/auth/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password }),
-            });
+      } else {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // ✅ Добавлено
+          body: JSON.stringify({ email, password }),
+        });
 
         const data = await res.json();
 
-        if (!res.ok) throw new Error(data.error || 'Ошибка входа');
+        if (!res.ok) {
+          throw new Error(data.error || 'Ошибка входа');
+        }
+
+        // ✅ После успешного логина - закрываем модалку и проверяем статус
         setAuthModalType(null);
-        window.location.reload();
-        
+        await checkAuth(); // Проверяем авторизацию
+        router.push('/assistants'); // Перенаправляем на главную страницу ассистентов
       }
     } catch (err: any) {
-      // Специальная обработка ошибки Google-аккаунта
       if (err.message.includes('Google') || err.message.includes('google')) {
         setError('Этот email зарегистрирован через Google. Используйте вход через Google.');
       } else {
@@ -154,9 +164,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         </nav>
       </div>
 
-      {/* ============================================ */}
-      {/* МОДАЛЬНОЕ ОКНО EMAIL */}
-      {/* ============================================ */}
+      {/* Модальное окно Email - без изменений */}
       {authModalType === 'email' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
@@ -168,7 +176,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               {authMode === 'login' ? 'Вход по Email' : 'Регистрация по Email'}
             </h2>
 
-            {/* Табы */}
             <div style={modalStyles.tabs}>
               <button
                 style={{
@@ -190,11 +197,9 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               </button>
             </div>
 
-            {/* Ошибки и успех */}
             {error && <div style={modalStyles.error}>{error}</div>}
             {successMessage && <div style={modalStyles.successBox}>{successMessage}</div>}
 
-            {/* Согласие */}
             <div style={modalStyles.consents}>
               <label style={modalStyles.checkboxLabel}>
                 <input
@@ -216,7 +221,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               </label>
             </div>
 
-            {/* Форма */}
             <div style={modalStyles.section}>
               {authMode === 'register' && (
                 <div style={modalStyles.inputGroup}>
@@ -300,9 +304,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         </div>
       )}
 
-      {/* ============================================ */}
-      {/* МОДАЛЬНОЕ ОКНО GOOGLE */}
-      {/* ============================================ */}
+      {/* Модальное окно Google - без изменений */}
       {authModalType === 'google' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
