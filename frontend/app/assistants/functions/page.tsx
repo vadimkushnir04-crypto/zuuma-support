@@ -10,7 +10,7 @@ import {
 
 import AuthGuard from '../../../components/AuthGuard';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
 
 // Типы
 interface FunctionParameter {

@@ -52,7 +52,7 @@ interface AssistantData {
   success: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
 
 export default function AnalyticsPage() {
   const { balance, loading, error, mutate } = useTokens();
