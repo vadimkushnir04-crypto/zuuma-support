@@ -54,6 +54,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - RESEND_API_KEY=${RESEND_API_KEY}  # ✅ ДОБАВЛЕНО!
     networks:
       - app_network
 
@@ -67,6 +68,7 @@ services:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXT_PUBLIC_SUPPORT_ASSISTANT_ID=${NEXT_PUBLIC_SUPPORT_ASSISTANT_ID}  # ✅ ДОБАВЛЕНО!
     networks:
       - app_network
 
