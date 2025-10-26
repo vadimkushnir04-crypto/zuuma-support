@@ -41,15 +41,13 @@ export class AuthController {
 
       console.log('🔐 Setting cookie for Google auth');
       
-      // Ставим куку с токеном
       res.cookie('token', token, {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      // Редиректим на главную
       return res.redirect(`${frontendUrl}/`);
     } catch (error: any) {
       console.error('❌ Google auth error:', error);
@@ -79,13 +77,13 @@ export class AuthController {
         ipAddress,
       );
 
-      // ✅ Письмо уже отправлено внутри register()
       console.log('✅ Registration successful:', result.user.id);
 
       return {
         success: true,
-        message: 'Регистрация успешна. Проверьте почту для подтверждения email.',
+        message: result.message || 'Регистрация успешна. Проверьте почту для подтверждения email.',
         user: result.user,
+        requiresVerification: result.requiresVerification || false,
       };
     } catch (err: any) {
       console.error('❌ Registration error:', err.message);
@@ -121,8 +119,39 @@ export class AuthController {
 
       return {
         success: true,
-        message: 'Email успешно подтверждён',
-        user: result,
+        message: result.message,
+        user: {
+          userId: result.userId,
+          email: result.email,
+          fullName: result.fullName,
+        },
+      };
+    } catch (err: any) {
+      throw new HttpException(
+        { success: false, error: err.message },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  // ============================================
+  // ПОВТОРНАЯ ОТПРАВКА ПИСЬМА
+  // ============================================
+
+  @Post('resend-verification')
+  async resendVerification(
+    @Body() body: { email: string },
+  ) {
+    try {
+      if (!body.email) {
+        throw new Error('Email не предоставлен');
+      }
+
+      const result = await this.authService.resendVerificationEmail(body.email);
+
+      return {
+        success: true,
+        message: result.message,
       };
     } catch (err: any) {
       throw new HttpException(
@@ -151,12 +180,11 @@ export class AuthController {
       
       console.log('🔐 Setting cookie for email login');
       
-      // Установите куки
       res.cookie('token', result.token, {
         httpOnly: true,
         secure: true,
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       console.log('✅ Login successful:', result.user.id);
@@ -164,6 +192,19 @@ export class AuthController {
       return res.json({ success: true, user: result.user });
     } catch (err: any) {
       console.error('❌ Login error:', err.message);
+      
+      // ✅ Специальная обработка ошибки неподтвержденного email
+      if (err.response?.requiresVerification) {
+        throw new HttpException(
+          {
+            success: false,
+            error: err.response.message,
+            requiresVerification: true,
+            email: err.response.email,
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
       
       // Специальная ошибка для Google
       if (err.message.includes('Google') || err.message.includes('google')) {
@@ -186,7 +227,6 @@ export class AuthController {
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: any) {
-    // ✅ ИСПРАВЛЕНО: используем req.user, который установил Guard
     const userId = req.user.id || req.user.userId;
 
     console.log('👤 Getting profile for user:', userId);
@@ -209,7 +249,6 @@ export class AuthController {
     @Body() body: { fullName?: string },
     @Req() req: any,
   ) {
-    // ✅ ИСПРАВЛЕНО: используем req.user
     const userId = req.user.id || req.user.userId;
 
     console.log('✏️ Updating profile for user:', userId);

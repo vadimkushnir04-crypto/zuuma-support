@@ -9,6 +9,10 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   const [isLoggedIn, setIsLoggedIn] = useState(externalLoggedIn || false);
   const [userName, setUserName] = useState(externalName || '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  const [showResendButton, setShowResendButton] = useState(false);
+  const [resendEmail, setResendEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
   
   const [authModalType, setAuthModalType] = useState<'email' | 'google' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -96,17 +100,25 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
-          // ✅ ИСПРАВЛЕНО: Проверяем data.message И data.error
           throw new Error(data.message || data.error || 'Ошибка регистрации');
         }
 
-        setSuccessMessage('Проверьте почту — мы отправили письмо для подтверждения.');
+        // ✅ НОВОЕ: Проверяем requiresVerification
+        if (data.requiresVerification) {
+          setSuccessMessage('✅ Регистрация успешна! Проверьте почту — мы отправили письмо с подтверждением.');
+          setShowResendButton(true);
+          setResendEmail(email);
+        } else {
+          setSuccessMessage('Проверьте почту — мы отправили письмо для подтверждения.');
+        }
+        
         setAuthMode('login');
         setEmail('');
         setPassword('');
         setFullName('');
         setAgreedToTerms(false);
       } else {
+        // ЛОГИН
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -117,7 +129,14 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
-          // ✅ ИСПРАВЛЕНО: Проверяем data.message И data.error
+          // ✅ НОВОЕ: Обработка requiresVerification при входе
+          if (data.requiresVerification) {
+            setError('⚠️ Пожалуйста, подтвердите email перед входом. Проверьте почту.');
+            setShowResendButton(true);
+            setResendEmail(data.email || email);
+            throw new Error(data.error || 'Email не подтвержден');
+          }
+          
           throw new Error(data.message || data.error || 'Ошибка входа');
         }
 
@@ -126,7 +145,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         router.push('/assistants');
       }
     } catch (err: any) {
-      // ✅ Специальная обработка ошибки Google OAuth
       if (err.message.includes('Google') || err.message.includes('google')) {
         setError(err.message);
       } else {
@@ -134,6 +152,33 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
       }
     }
   };
+
+  const handleResendVerification = async () => {
+  setResendLoading(true);
+  setError('');
+  setSuccessMessage('');
+
+  try {
+    const res = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email: resendEmail }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Ошибка отправки письма');
+    }
+
+    setSuccessMessage('✅ Письмо отправлено! Проверьте почту.');
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setResendLoading(false);
+  }
+};
 
   return (
     <header style={styles.header}>
@@ -217,6 +262,25 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
             {/* ✅ Отображение ошибок */}
             {error && <div style={modalStyles.error}>{error}</div>}
             {successMessage && <div style={modalStyles.successBox}>{successMessage}</div>}
+
+            {/* После блока с ошибками и успехом, перед инпутами */}
+            {showResendButton && (
+              <div style={modalStyles.resendSection}>
+                <p style={modalStyles.resendText}>
+                  Не получили письмо?
+                </p>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  style={{
+                    ...modalStyles.resendButton,
+                    opacity: resendLoading ? 0.5 : 1,
+                  }}
+                >
+                  {resendLoading ? 'Отправка...' : 'Отправить письмо повторно'}
+                </button>
+              </div>
+            )}
 
             <div style={modalStyles.consents}>
               <label style={modalStyles.checkboxLabel}>
@@ -697,4 +761,28 @@ const modalStyles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
+
+    resendSection: {
+    marginTop: '16px',
+    padding: '12px',
+    background: '#f8f9fa',
+    borderRadius: '8px',
+    textAlign: 'center' as const,
+  },
+  resendText: {
+    fontSize: '14px',
+    color: '#666',
+    marginBottom: '8px',
+  },
+  resendButton: {
+    padding: '8px 16px',
+    background: '#888888',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+
 };

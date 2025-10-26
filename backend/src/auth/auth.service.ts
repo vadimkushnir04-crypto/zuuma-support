@@ -10,7 +10,7 @@ import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
-import { EmailService } from '../common/email.service'; // ✅ ИМПОРТИРУЕМ EmailService
+import { EmailService } from '../common/email.service';
 
 @Injectable()
 export class AuthService {
@@ -18,7 +18,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly emailService: EmailService, // ✅ ИНЖЕКТИМ EmailService
+    private readonly emailService: EmailService,
   ) {}
 
   // ================================
@@ -42,7 +42,7 @@ export class AuthService {
         full_name: googleData.fullName,
         avatar_url: googleData.picture || null,
         provider: 'google',
-        email_verified: true,
+        email_verified: true, // Google OAuth автоматически верифицирует email
         consent_given_at: new Date(),
       });
       user = await this.userRepository.save(user);
@@ -52,7 +52,7 @@ export class AuthService {
       user.google_id = googleData.googleId;
       user.full_name = googleData.fullName;
       user.avatar_url = googleData.picture || user.avatar_url;
-      user.email_verified = true;
+      user.email_verified = true; // Google OAuth верифицирует email
       user = await this.userRepository.save(user);
     } else {
       console.log('✅ Existing Google user login:', user.id);
@@ -140,7 +140,7 @@ export class AuthService {
       tokens_limit: 100000,
       tokens_used: 0,
       assistants_limit: 3,
-      email_verified: false,
+      email_verified: false, // ❗ ВАЖНО: email НЕ подтвержден
       email_verification_token: verificationToken,
       consent_given_at: new Date(),
       consent_ip_address: ipAddress || null,
@@ -161,23 +161,17 @@ export class AuthService {
       // Не бросаем ошибку - регистрация прошла успешно
     }
 
-    // 6. Генерация JWT токена
-    const token = this.generateToken(savedUser.id, savedUser.email);
-
+    // 6. ❗ НЕ генерируем JWT токен - пользователь должен подтвердить email!
+    
     return {
       user: {
         id: savedUser.id,
         email: savedUser.email,
         fullName: savedUser.full_name,
-        avatarUrl: savedUser.avatar_url,
-        plan: savedUser.plan,
-        tokensUsed: savedUser.tokens_used,
-        tokensLimit: savedUser.tokens_limit,
-        assistantsLimit: savedUser.assistants_limit,
-        createdAt: savedUser.created_at?.toISOString(),
-        emailVerified: savedUser.email_verified,
+        emailVerified: false, // ❗ ВАЖНО: показываем что email не подтвержден
       },
-      token,
+      message: 'Регистрация успешна. Проверьте почту для подтверждения email.',
+      requiresVerification: true, // ❗ Флаг для фронтенда
     };
   }
 
@@ -191,23 +185,64 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('Неверный или устаревший токен');
+      throw new BadRequestException('Неверный или устаревший токен подтверждения');
     }
 
     if (user.email_verified) {
       throw new BadRequestException('Email уже подтвержден');
     }
 
+    // ✅ Подтверждаем email
     user.email_verified = true;
     user.email_verification_token = null;
     user.updated_at = new Date();
 
     await this.userRepository.save(user);
 
+    console.log('✅ Email verified for user:', user.id);
+
     return {
       userId: user.id,
       email: user.email,
       fullName: user.full_name,
+      message: 'Email успешно подтвержден. Теперь вы можете войти в систему.',
+    };
+  }
+
+  // ================================
+  // ПОВТОРНАЯ ОТПРАВКА ПИСЬМА
+  // ================================
+
+  async resendVerificationEmail(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      throw new BadRequestException('Пользователь с таким email не найден');
+    }
+
+    if (user.email_verified) {
+      throw new BadRequestException('Email уже подтвержден');
+    }
+
+    // Генерируем новый токен
+    const verificationToken = randomBytes(32).toString('hex');
+    user.email_verification_token = verificationToken;
+    user.updated_at = new Date();
+    
+    await this.userRepository.save(user);
+
+    // Отправляем письмо
+    try {
+      await this.emailService.sendVerificationEmail(email, verificationToken);
+      console.log('📧 Verification email resent to:', email);
+    } catch (emailError) {
+      console.error('⚠️ Failed to resend verification email:', emailError.message);
+      throw new BadRequestException('Не удалось отправить письмо. Попробуйте позже.');
+    }
+
+    return {
+      success: true,
+      message: 'Письмо с подтверждением отправлено повторно. Проверьте почту.',
     };
   }
 
@@ -231,6 +266,7 @@ export class AuthService {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
+    // Проверка: если аккаунт через Google без пароля
     if (!user.password) {
       throw new BadRequestException({
         message: 'Этот email зарегистрирован через Google. Используйте вход через Google или установите пароль через регистрацию.',
@@ -239,11 +275,23 @@ export class AuthService {
       });
     }
 
+    // Проверка пароля
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       throw new UnauthorizedException('Неверный email или пароль');
     }
 
+    // ✅ КРИТИЧНО: Проверка подтверждения email
+    if (!user.email_verified) {
+      console.log('❌ Login blocked: email not verified for user:', user.id);
+      throw new UnauthorizedException({
+        message: 'Пожалуйста, подтвердите ваш email перед входом. Проверьте почту или запросите новое письмо.',
+        requiresVerification: true,
+        email: user.email,
+      });
+    }
+
+    // ✅ Все проверки пройдены - разрешаем вход
     user.last_login_at = new Date();
     await this.userRepository.save(user);
 
