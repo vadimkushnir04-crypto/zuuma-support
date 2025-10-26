@@ -11,6 +11,7 @@ import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { randomBytes } from 'crypto';
+
 let Resend: any; // Динамический импорт
 
 @Injectable()
@@ -22,10 +23,13 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
-    // Динамический импорт Resend (если не установлен — fallback)
+    // Инициализация Resend для отправки писем
     if (process.env.RESEND_API_KEY) {
-      Resend = require('resend').Resend;
+      const { Resend } = require('resend');
       this.resend = new Resend(process.env.RESEND_API_KEY);
+      console.log('📧 Resend initialized');
+    } else {
+      console.warn('⚠️ RESEND_API_KEY not found, emails disabled');
     }
   }
 
@@ -77,231 +81,307 @@ export class AuthService {
   // РЕГИСТРАЦИЯ (Email + пароль)
   // ================================
 
-  async register(email: string, password: string, fullName?: string, ipAddress?: string) {
-    
-    console.log('📝 Register attempt:', { email, fullName });
-    
-    // Проверяем существует ли пользователь
-    const existingUser = await this.userRepository.findOne({ where: { email } });
-    
-    if (existingUser) {
-      // ✅ Если пользователь есть но без пароля (Google) - добавляем пароль
-      if (!existingUser.password && existingUser.provider === 'google') {
-        console.log('🔗 Adding password to existing Google account:', existingUser.id);
-        
-        const hashedPassword = await bcrypt.hash(password, 10);
-        existingUser.password = hashedPassword;
-        existingUser.provider = 'local'; // Теперь может входить и по паролю
-        existingUser.updated_at = new Date();
-        
-        const updatedUser = await this.userRepository.save(existingUser);
-        const token = this.generateToken(updatedUser.id, updatedUser.email);
-        
-        console.log('✅ Registration successful:', updatedUser.id);
-        
-        return {
-          user: {
-            id: updatedUser.id,
-            email: updatedUser.email,
-            fullName: updatedUser.full_name,
-            avatarUrl: updatedUser.avatar_url,
-            plan: updatedUser.plan,
-            tokensUsed: updatedUser.tokens_used,
-            tokensLimit: updatedUser.tokens_limit,
-            assistantsLimit: updatedUser.assistants_limit,
-            createdAt: updatedUser.created_at?.toISOString(),
-          },
-          token,
-        };
+/**
+ * Регистрация нового пользователя по email и паролю
+ * - Проверяет существование пользователя
+ * - Для Google-аккаунтов добавляет пароль
+ * - Генерирует токен верификации email
+ * - Отправляет письмо с подтверждением
+ */
+async register(
+  email: string, 
+  password: string, 
+  fullName?: string, 
+  ipAddress?: string
+) {
+  console.log('📝 Register attempt:', { email, fullName });
+  
+  // ============================================
+  // 1. Проверяем существует ли пользователь
+  // ============================================
+  const existingUser = await this.userRepository.findOne({ 
+    where: { email } 
+  });
+  
+  if (existingUser) {
+    // Случай: пользователь зарегистрирован через Google, но хочет добавить пароль
+    if (!existingUser.password && existingUser.provider === 'google') {
+      console.log('🔗 Adding password to existing Google account:', existingUser.id);
+      
+      // Валидация пароля
+      if (password.length < 8) {
+        throw new Error('Пароль должен содержать минимум 8 символов');
       }
       
-      throw new Error('Email уже зарегистрирован');
-    }
-
-    // Валидация пароля
-    if (password.length < 8) {
-      throw new Error('Пароль должен содержать минимум 8 символов');
-    }
-
-    // Хешируем пароль
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // ✅ Генерируем токен для верификации email
-    const verificationToken = randomBytes(32).toString('hex');
-
-    // Создаем пользователя
-    const user = this.userRepository.create({
-      email,
-      password: hashedPassword,
-      full_name: fullName || null,
-      provider: 'local',
-      email_verified: false, // ✅ Пока не подтвержден
-      email_verification_token: verificationToken, // ✅ Токен для подтверждения
-      consent_given_at: new Date(),
-      consent_ip_address: ipAddress || null,
-      agreed_to_data_transfer: false,
-      last_login_at: new Date(),
-    });
-
-    const savedUser = await this.userRepository.save(user);
-    
-    // ✅ Отправляем письмо с подтверждением
-    try {
-      await this.sendVerificationEmail(savedUser);
-      console.log('📧 Verification email sent to:', email);
-    } catch (emailError) {
-      console.error('⚠️ Failed to send verification email:', emailError);
-      // Не бросаем ошибку - регистрация прошла успешно
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      existingUser.password = hashedPassword;
+      existingUser.provider = 'local'; // Теперь может входить и по email/паролю
+      existingUser.updated_at = new Date();
+      
+      const updatedUser = await this.userRepository.save(existingUser);
+      const token = this.generateToken(updatedUser.id, updatedUser.email);
+      
+      console.log('✅ Password added to Google account:', updatedUser.id);
+      
+      return {
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          fullName: updatedUser.full_name,
+          avatarUrl: updatedUser.avatar_url,
+          plan: updatedUser.plan,
+          tokensUsed: updatedUser.tokens_used,
+          tokensLimit: updatedUser.tokens_limit,
+          assistantsLimit: updatedUser.assistants_limit,
+          createdAt: updatedUser.created_at?.toISOString(),
+          emailVerified: updatedUser.email_verified,
+        },
+        token,
+      };
     }
     
-    const token = this.generateToken(savedUser.id, savedUser.email);
-
-    console.log('✅ Registration successful:', savedUser.id);
-
-    return {
-      user: {
-        id: savedUser.id,
-        email: savedUser.email,
-        fullName: savedUser.full_name,
-        avatarUrl: savedUser.avatar_url,
-        plan: savedUser.plan,
-        tokensUsed: savedUser.tokens_used,
-        tokensLimit: savedUser.tokens_limit,
-        assistantsLimit: savedUser.assistants_limit,
-        createdAt: savedUser.created_at?.toISOString(),
-        emailVerified: savedUser.email_verified, // ✅ Добавлено
-      },
-      token,
-    };
+    // Пользователь уже существует с паролем
+    throw new Error('Email уже зарегистрирован');
   }
 
-  // ================================
-  // ОТПРАВКА ПИСЬМА
-  // ================================
+  // ============================================
+  // 2. Валидация нового пользователя
+  // ============================================
+  if (password.length < 8) {
+    throw new Error('Пароль должен содержать минимум 8 символов');
+  }
 
-  async sendVerificationEmail(user: User) {
-    if (!user.email_verification_token || !this.resend) return; // Fallback если нет Resend
+  // ============================================
+  // 3. Подготовка данных
+  // ============================================
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const verificationToken = randomBytes(32).toString('hex');
 
-    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${user.email_verification_token}`;
+  // ============================================
+  // 4. Создание пользователя
+  // ============================================
+  const user = this.userRepository.create({
+    email,
+    password: hashedPassword,
+    full_name: fullName || null,
+    provider: 'local',
+    plan: 'free',
+    tokens_limit: 100000,
+    tokens_used: 0,
+    assistants_limit: 3,
+    email_verified: false,
+    email_verification_token: verificationToken,
+    consent_given_at: new Date(),
+    consent_ip_address: ipAddress || null,
+    agreed_to_data_transfer: false,
+    last_login_at: new Date(),
+  });
 
-    try {
+  const savedUser = await this.userRepository.save(user);
+  
+  console.log('✅ User created:', savedUser.id);
+
+  // ============================================
+  // 5. Отправка письма с подтверждением
+  // ============================================
+  try {
+    await this.sendVerificationEmail(savedUser);
+    console.log('📧 Verification email sent to:', email);
+  } catch (emailError) {
+    console.error('⚠️ Failed to send verification email:', emailError.message);
+    // Не бросаем ошибку - регистрация прошла успешно
+    // Пользователь может запросить письмо повторно
+  }
+
+  // ============================================
+  // 6. Генерация JWT токена
+  // ============================================
+  const token = this.generateToken(savedUser.id, savedUser.email);
+
+  console.log('✅ Registration successful:', savedUser.id);
+
+  // ============================================
+  // 7. Возврат результата
+  // ============================================
+  return {
+    user: {
+      id: savedUser.id,
+      email: savedUser.email,
+      fullName: savedUser.full_name,
+      avatarUrl: savedUser.avatar_url,
+      plan: savedUser.plan,
+      tokensUsed: savedUser.tokens_used,
+      tokensLimit: savedUser.tokens_limit,
+      assistantsLimit: savedUser.assistants_limit,
+      createdAt: savedUser.created_at?.toISOString(),
+      emailVerified: savedUser.email_verified,
+    },
+    token,
+  };
+}
+
+    // ============================================
+    // МЕТОД: Отправка письма с верификацией
+    // ============================================
+    
+    async sendVerificationEmail(user: User): Promise<void> {
+      if (!user.email_verification_token) {
+        console.error('❌ No verification token for user:', user.id);
+        return;
+      }
+      
+      if (!this.resend) {
+        console.error('❌ Resend not initialized');
+        return;
+      }
+
+      const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${user.email_verification_token}`;
+
+      try {
+        console.log('📧 Sending verification email to:', user.email);
+        
       await this.resend.emails.send({
-        from: 'Vadim Zuuma <no-reply@zuuma.ru>',
+        from: 'Zuuma <noreply@zuuma.ru>',
         to: user.email,
-        subject: 'Подтвердите ваш email — Zuuma',
+        subject: 'Добро пожаловать в Zuuma — подтвердите ваш email',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #10b981;">Здравствуй! Меня зовут Вадим — я основатель платформы Zuuma</h2>
-            <p>Подтвердите email, чтобы начать:</p>
-            <a href="${verifyUrl}" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+          <div style="
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 24px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            background: #fafafa;
+          ">
+            <h2 style="color: #10b981; margin-bottom: 16px;">
+              Привет! Меня зовут Вадим — я основатель платформы <strong>Zuuma</strong>
+            </h2>
+
+            <p style="font-size: 15px; color: #333; line-height: 1.6;">
+              Благодарю, что выбрали мою платформу!  
+              Мне действительно приятно видеть, что вы с нами.  
+              Чтобы начать пользоваться Zuuma, подтвердите свой email:
+            </p>
+
+            <a href="${verifyUrl}" style="
+              display: inline-block;
+              background: #10b981;
+              color: white;
+              padding: 12px 28px;
+              text-decoration: none;
+              border-radius: 6px;
+              font-weight: bold;
+              margin: 24px 0;
+            ">
               Подтвердить email
             </a>
-            <p style="margin-top: 20px; font-size: 12px; color: #888;">
+
+            <p style="margin-top: 16px; font-size: 13px; color: #555;">
               Или перейдите по ссылке: <br>
               <a href="${verifyUrl}" style="color: #10b981;">${verifyUrl}</a>
             </p>
-            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
-            <p style="font-size: 12px; color: #aaa;">
-              Спасибо за то, что выбрали платформу Zuuma, это ценно для меня! Это письмо отправлено автоматически, на него ответить не получится, но если хотите задать мне вопрос лично, напишите на почту vadim.kushnir.04@gmail.com
+
+            <hr style="margin: 28px 0; border: 0; border-top: 1px solid #eee;">
+
+            <p style="font-size: 12px; color: #888; line-height: 1.5;">
+              Спасибо, что доверяете <strong>Zuuma</strong> — это действительно важно для меня.<br>
+              Это письмо отправлено автоматически, но если хотите связаться лично —  
+              напишите мне на <a href="mailto:vadim.kushnir.04@gmail.com" style="color: #10b981;">vadim.kushnir.04@gmail.com</a>.
             </p>
           </div>
         `,
       });
-    } catch (error) {
-      console.error('Resend error:', error);
-      // Не бросаем ошибку — регистрация прошла
+        
+        console.log('✅ Verification email sent successfully');
+      } catch (error) {
+        console.error('❌ Resend error:', error);
+        throw error;
+      }
     }
-  }
 
-  // ================================
-  // ПОДТВЕРЖДЕНИЕ EMAIL
-  // ================================
-
-  async verifyEmail(token: string) {
-    try {
-      console.log('🔍 Verifying email with token:', token.substring(0, 10) + '...');
-
-      // Ищем пользователя по токену
+    // ============================================
+    // МЕТОД: Верификация email по токену
+    // ============================================
+    async verifyEmail(token: string) {
       const user = await this.userRepository.findOne({
         where: { email_verification_token: token }
       });
 
       if (!user) {
-        console.error('❌ User not found for token');
         throw new Error('Неверный или устаревший токен');
       }
 
       if (user.email_verified) {
-        console.log('⚠️ Email already verified');
         throw new Error('Email уже подтвержден');
       }
 
-      // Подтверждаем email
       user.email_verified = true;
-      user.email_verification_token = null; // Удаляем токен после использования
+      user.email_verification_token = null;
       user.updated_at = new Date();
 
       await this.userRepository.save(user);
-
-      console.log('✅ Email verified for user:', user.id);
 
       return {
         userId: user.id,
         email: user.email,
         fullName: user.full_name,
       };
-    } catch (error) {
-      console.error('❌ Email verification error:', error.message);
-      throw error;
     }
-  }
 
   // ================================
   // ВХОД
   // ================================
 
-  async login(email: string, password: string, ipAddress?: string) {
-    const user = await this.userRepository.findOne({
-      where: { email },
-      select: [
-        'id',
-        'email',
-        'password',
-        'full_name',
-        'avatar_url',
-        'provider',
-        'plan',
-        'tokens_used',
-        'tokens_limit',
-        'assistants_limit',
-        'created_at',
-        'google_id',
-      ],
-    });
+      async login(email: string, password: string, ipAddress?: string) {
+      console.log('🔑 Login attempt:', { email });
+      
+      const user = await this.userRepository.findOne({
+        where: { email },
+        select: [
+          'id', 'email', 'password', 'full_name', 'avatar_url', 
+          'provider', 'plan', 'tokens_used', 'tokens_limit', 
+          'assistants_limit', 'created_at', 'email_verified'
+        ],
+      });
 
-    if (!user) {
-      throw new UnauthorizedException('Неверный email или пароль');
+      if (!user) {
+        throw new Error('Неверный email или пароль');
+      }
+
+      if (user.provider !== 'local' || !user.password) {
+        throw new Error('Этот email зарегистрирован через Google. Используйте вход через Google.');
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        throw new Error('Неверный email или пароль');
+      }
+
+      user.last_login_at = new Date();
+      await this.userRepository.save(user);
+
+      const token = this.generateToken(user.id, user.email);
+
+      console.log('✅ Login successful:', user.id);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          avatarUrl: user.avatar_url,
+          plan: user.plan,
+          tokensUsed: user.tokens_used,
+          tokensLimit: user.tokens_limit,
+          assistantsLimit: user.assistants_limit,
+          createdAt: user.created_at?.toISOString(),
+          emailVerified: user.email_verified,
+        },
+        token,
+      };
     }
-
-    // ✅ Проверяем наличие пароля, а не только provider
-    if (!user.password) {
-      // Пользователь зарегистрирован ТОЛЬКО через Google (нет пароля)
-      throw new BadRequestException(
-        'Этот email зарегистрирован через Google. Используйте вход через Google.',
-      );
-    }
-
-    const isValid = await bcrypt.compare(password, user.password);
-    if (!isValid) {
-      throw new UnauthorizedException('Неверный email или пароль');
-    }
-
-    user.last_login_at = new Date();
-    await this.userRepository.save(user);
-
-    const token = this.generateToken(user.id, user.email);
-    return { user: this.sanitizeUser(user), token };
-  }
 
   // ================================
   // ПРОФИЛЬ
@@ -341,9 +421,14 @@ export class AuthService {
     }
   }
 
-  private generateToken(userId: string, email: string) {
-    return this.jwtService.sign({ id: userId, email });
-  }
+    // ============================================
+    // ПРИВАТНЫЙ МЕТОД: Генерация JWT токена
+    // ============================================
+    private generateToken(userId: string, email: string): string {
+      const payload = { id: userId, email };
+      console.log('🔐 Generating token with payload:', payload);
+      return this.jwtService.sign(payload);
+    }
 
   private sanitizeUser(user: User) {
     return {

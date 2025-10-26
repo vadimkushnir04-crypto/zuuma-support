@@ -79,9 +79,7 @@ export class AuthController {
         ipAddress,
       );
 
-      // Отправляем письмо с подтверждением
-      await this.authService.sendVerificationEmail(result.user);
-
+      // ✅ Письмо уже отправлено внутри register()
       console.log('✅ Registration successful:', result.user.id);
 
       return {
@@ -92,7 +90,6 @@ export class AuthController {
     } catch (err: any) {
       console.error('❌ Registration error:', err.message);
       
-      // Специальная ошибка для Google
       if (err.message.includes('Google') || err.message.includes('google')) {
         throw new BadRequestException(
           'Этот email зарегистрирован через Google. Используйте вход через Google.',
@@ -111,12 +108,27 @@ export class AuthController {
   // ============================================
 
   @Post('verify-email')
-  async verifyEmail(@Body() body: { token: string }) {
+  async verifyEmail(
+    @Body() body: { token: string },
+    @Req() req: any,
+  ) {
     try {
-      await this.authService.verifyEmail(body.token);
-      return { success: true, message: 'Email успешно подтверждён.' };
+      if (!body.token) {
+        throw new Error('Токен не предоставлен');
+      }
+
+      const result = await this.authService.verifyEmail(body.token);
+
+      return {
+        success: true,
+        message: 'Email успешно подтверждён',
+        user: result,
+      };
     } catch (err: any) {
-      throw new BadRequestException(err.message || 'Неверный или просроченный токен.');
+      throw new HttpException(
+        { success: false, error: err.message },
+        HttpStatus.BAD_REQUEST
+      );
     }
   }
 

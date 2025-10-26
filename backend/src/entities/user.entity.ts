@@ -57,7 +57,7 @@ export class User {
   @Column({ type: 'boolean', default: false })
   email_verified: boolean;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   email_verification_token: string | null;
 
   // Даты
