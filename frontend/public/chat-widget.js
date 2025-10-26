@@ -1,4 +1,4 @@
-// public/chat-widget.js - НОВЫЙ ДИЗАЙН
+// public/chat-widget.js
 
 (function() {
     if (window.ChatWidgetLoaded) return;
@@ -10,7 +10,7 @@
         theme: 'dark', // dark или light
         assistantName: 'AI Agent',
         customGreeting: 'Hi, how can I help?',
-        primaryColor: '#de8434', // Оранжевый как на картинке
+        primaryColor: '#de8434', // Оранжевый
         accentColor: '#1A1A2E' // Темный фон
     };
 
@@ -34,7 +34,7 @@
         });
     };
 
-    // 🎨 НОВЫЕ СТИЛИ (темная тема как на картинке)
+    // 🎨 СТИЛИ
     const styles = `
         .chat-widget-container {
             position: fixed;
@@ -503,24 +503,30 @@
         chatSend.disabled = true;
 
         try {
+            // ✅ ИСПРАВЛЕННЫЙ FETCH ЗАПРОС
             const response = await fetch(`${config.serverUrl}/chat/ask`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json' 
+                },
+                credentials: 'include', // ✅ Отправляем cookies
                 body: JSON.stringify({
                     message: message,
                     assistantId: config.assistantId,
-                    conversationId: conversationId,
                     sessionId: sessionId,
-                    userIdentifier: sessionId
+                    // ✅ Опциональные поля:
+                    conversationId: conversationId || undefined,
                 })
             });
 
             if (!response.ok) {
-                throw new Error(`Error ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Error ${response.status}`);
             }
 
             const data = await response.json();
             
+            // Сохраняем chatSessionId для WebSocket
             if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
                 chatSessionId = data.chatSessionId;
                 if (socket?.connected) {
@@ -528,14 +534,24 @@
                 }
             }
             
-            if (data.answer) {
+            // Сохраняем conversationId
+            if (data.conversationId) {
                 conversationId = data.conversationId;
+            }
+            
+            // Показываем ответ
+            if (data.answer) {
                 addMessage(data.answer, 'assistant');
+            } else {
+                throw new Error('No answer received');
             }
 
         } catch (error) {
             console.error('Send error:', error);
-            addMessage('Sorry, something went wrong. Please try again.', 'assistant');
+            addMessage(
+                error.message || 'Sorry, something went wrong. Please try again.', 
+                'assistant'
+            );
         } finally {
             hideTypingIndicator(typingIndicator);
             isLoading = false;

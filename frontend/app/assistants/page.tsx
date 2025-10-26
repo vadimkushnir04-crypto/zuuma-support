@@ -533,10 +533,10 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
 
   return (
     <div style={{ 
-      border: "1px solid #e5e7eb", 
+      border: "1px solid #444444", 
       borderRadius: 12, 
       padding: 20,
-      background: "white",
+      background: "#111111",
       marginBottom: 16
     }}>
       {/* Шапка карточки */}

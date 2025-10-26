@@ -10,7 +10,7 @@ import {
 
 import AuthGuard from '../../../components/AuthGuard';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
 
 // Типы
 interface FunctionParameter {
@@ -82,7 +82,7 @@ export default function GlobalFunctionsPage() {
   try {
     const token = localStorage.getItem('auth_token');
     
-    const response = await fetch(`${API_BASE_URL}/functions/global`, {
+    const response = await fetch(`${API_BASE_URL}/assistants/functions/global`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -130,7 +130,7 @@ const loadUsageStats = async () => {
   try {
     const token = localStorage.getItem('auth_token');
     
-    const response = await fetch(`${API_BASE_URL}/functions/usage-stats`, {
+    const response = await fetch(`${API_BASE_URL}/assistants/functions/usage-stats`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -182,7 +182,7 @@ const deleteFunction = async (functionId: string) => {
   try {
     const token = localStorage.getItem('auth_token');
     
-    const response = await fetch(`${API_BASE_URL}/functions/global/${functionId}`, {
+    const response = await fetch(`${API_BASE_URL}/assistants/functions/global/${functionId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -220,7 +220,7 @@ const testFunction = async () => {
       }
     });
 
-    const response = await fetch(`${API_BASE_URL}/functions/global/${selectedFunction.id}/test`, {
+    const response = await fetch(`${API_BASE_URL}/assistants/functions/global/${selectedFunction.id}/test`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

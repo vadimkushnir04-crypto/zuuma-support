@@ -8,7 +8,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   
   const [isLoggedIn, setIsLoggedIn] = useState(externalLoggedIn || false);
   const [userName, setUserName] = useState(externalName || '');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null); // ✅ Добавлено
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
   const [authModalType, setAuthModalType] = useState<'email' | 'google' | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -34,7 +34,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
       if (data.success && data.user) {
         setIsLoggedIn(true);
         setUserName(data.user.fullName || data.user.email);
-        setAvatarUrl(data.user.avatarUrl || null); // ✅ Сохраняем аватарку
+        setAvatarUrl(data.user.avatarUrl || null);
       } else {
         setIsLoggedIn(false);
       }
@@ -96,7 +96,8 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || 'Ошибка регистрации');
+          // ✅ ИСПРАВЛЕНО: Проверяем data.message И data.error
+          throw new Error(data.message || data.error || 'Ошибка регистрации');
         }
 
         setSuccessMessage('Проверьте почту — мы отправили письмо для подтверждения.');
@@ -116,7 +117,8 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || 'Ошибка входа');
+          // ✅ ИСПРАВЛЕНО: Проверяем data.message И data.error
+          throw new Error(data.message || data.error || 'Ошибка входа');
         }
 
         setAuthModalType(null);
@@ -124,8 +126,9 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         router.push('/assistants');
       }
     } catch (err: any) {
+      // ✅ Специальная обработка ошибки Google OAuth
       if (err.message.includes('Google') || err.message.includes('google')) {
-        setError('Этот email зарегистрирован через Google. Используйте вход через Google.');
+        setError(err.message);
       } else {
         setError(err.message);
       }
@@ -143,7 +146,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         <nav style={styles.nav}>
           {isLoggedIn ? (
             <>
-              {/* ✅ Аватарка и имя с переходом в профиль */}
               <div 
                 style={styles.profileSection} 
                 onClick={() => router.push('/profile')}
@@ -179,7 +181,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         </nav>
       </div>
 
-      {/* Модальные окна остаются без изменений */}
+      {/* Email Auth Modal */}
       {authModalType === 'email' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
@@ -212,6 +214,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               </button>
             </div>
 
+            {/* ✅ Отображение ошибок */}
             {error && <div style={modalStyles.error}>{error}</div>}
             {successMessage && <div style={modalStyles.successBox}>{successMessage}</div>}
 
@@ -288,37 +291,26 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               </button>
             </div>
 
-            <p style={modalStyles.hint}>
-              {authMode === 'login' ? (
-                <>
-                  Нет аккаунта?{' '}
-                  <button onClick={() => setAuthMode('register')} style={modalStyles.linkButton}>
-                    Зарегистрируйтесь
-                  </button>
-                </>
-              ) : (
-                <>
-                  Уже есть аккаунт?{' '}
-                  <button onClick={() => setAuthMode('login')} style={modalStyles.linkButton}>
-                    Войдите
-                  </button>
-                </>
-              )}
-            </p>
-
             <div style={modalStyles.alternative}>
-              <p>или</p>
-              <button
-                onClick={() => setAuthModalType('google')}
-                style={modalStyles.alternativeButton}
-              >
-                Войти через Google
-              </button>
+              или
             </div>
+
+            <button
+              onClick={handleGoogleLogin}
+              disabled={!agreedToTerms}
+              style={{
+                ...modalStyles.alternativeButton,
+                opacity: !agreedToTerms ? 0.5 : 1,
+                cursor: !agreedToTerms ? 'not-allowed' : 'pointer',
+              }}
+            >
+              Продолжить с Google
+            </button>
           </div>
         </div>
       )}
 
+      {/* Google Auth Modal */}
       {authModalType === 'google' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
@@ -329,12 +321,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
             <h2 style={modalStyles.title}>Вход через Google</h2>
 
             {error && <div style={modalStyles.error}>{error}</div>}
-
-            <div style={modalStyles.warningBox}>
-              <p style={modalStyles.warningText}>
-                При входе через Google данные передаются на серверы Google (США)
-              </p>
-            </div>
 
             <div style={modalStyles.consents}>
               <label style={modalStyles.checkboxLabel}>
@@ -363,9 +349,19 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
                   onChange={(e) => setAgreedToDataTransfer(e.target.checked)}
                   style={modalStyles.checkbox}
                 />
-                <span style={modalStyles.checkboxText}>Согласие на трансграничную передачу данных</span>
+                <span style={modalStyles.checkboxText}>
+                  Я согласен на передачу данных Google
+                </span>
               </label>
             </div>
+
+            {(!agreedToTerms || !agreedToDataTransfer) && (
+              <div style={modalStyles.warningBox}>
+                <p style={modalStyles.warningText}>
+                  Примите оба условия для продолжения
+                </p>
+              </div>
+            )}
 
             <button
               onClick={handleGoogleLogin}
@@ -374,38 +370,10 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
                 ...modalStyles.googleButton,
                 opacity: (!agreedToTerms || !agreedToDataTransfer) ? 0.5 : 1,
                 cursor: (!agreedToTerms || !agreedToDataTransfer) ? 'not-allowed' : 'pointer',
-                width: '100%',
-                marginTop: '20px',
               }}
             >
-              <span
-                style={{
-                  display: 'inline-block',
-                  width: '18px',
-                  height: '18px',
-                  marginRight: '8px',
-                  verticalAlign: 'middle',
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: `
-                    <svg width="18" height="18" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                  `,
-                }}
-              />
-              Продолжить с Google
+              Войти через Google
             </button>
-
-            <div style={modalStyles.alternative}>
-              <p>или</p>
-              <button onClick={() => setAuthModalType('email')} style={modalStyles.alternativeButton}>
-                Войти по Email
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -413,24 +381,26 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   );
 }
 
-// ✅ ТЕМНЫЙ ДИЗАЙН Header
 const styles = {
   header: {
-    background: '#111111', // ✅ Темный фон
+    width: '100%',
+    height: '54px',
+    background: '#1a1a1a',
     borderBottom: '1px solid #444444',
-    padding: '16px 0',
-    position: 'sticky' as const,
+    position: 'fixed' as const,
     top: 0,
+    left: 0,
     zIndex: 1000,
     boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
   },
   container: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: '100%',
+    padding: '0 24px',
     maxWidth: '1400px',
     margin: '0 auto',
-    padding: '0 24px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   logoContainer: {
     display: 'flex',
@@ -446,7 +416,7 @@ const styles = {
   logo: {
     fontSize: '24px',
     fontWeight: 700,
-    color: '#E0E0E0', // ✅ Светлый текст
+    color: '#E0E0E0',
     margin: 0,
   },
   nav: {
@@ -454,7 +424,6 @@ const styles = {
     alignItems: 'center',
     gap: '16px',
   },
-  // ✅ Секция профиля с аватаркой
   profileSection: {
     display: 'flex',
     alignItems: 'center',

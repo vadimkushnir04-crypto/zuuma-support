@@ -1,42 +1,59 @@
-"use client";
+'use client';
 
 import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 
 export default function AdminChatWidget() {
-  const pathname = usePathname();
-  
-  // Не показываем виджет на главной странице и странице помощи
-  const hideWidget = pathname === '/' || pathname === '/help';
-
   useEffect(() => {
-    if (hideWidget || typeof window === 'undefined') return;
+    // Проверяем, что скрипт еще не загружен
+    if (document.getElementById('zuuma-chat-widget-script')) {
+      return;
+    }
 
-    // Загружаем виджет поддержки для админов
+    // Настройка конфигурации виджета
     (window as any).chatConfig = {
-      apiKey: process.env.NEXT_PUBLIC_SUPPORT_API_KEY, // ← API ключ вашего ассистента
-      serverUrl: 'https://zuuma.ru/api',
+      assistantId: process.env.NEXT_PUBLIC_SUPPORT_ASSISTANT_ID,
+      serverUrl: process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api',
       theme: 'dark',
-      assistantName: 'Поддержка',
-      customGreeting: 'Здравствуйте, вам нужна помощь?',
+      assistantName: 'Поддержка Zuuma',
+      customGreeting: 'Здравствуйте! Чем могу помочь?',
       primaryColor: '#de8434',
-      assistantId: '73486773-bc62-4be6-9e64-c72816baab6f' // ← ID оставляем для идентификации
+      accentColor: '#1A1A2E'
     };
 
+    // Загружаем скрипт виджета
     const script = document.createElement('script');
-    script.src = 'https://zuuma.ru/chat-widget.js';
+    script.id = 'zuuma-chat-widget-script';
+    script.src = '/chat-widget.js';
     script.async = true;
+    
+    script.onload = () => {
+      console.log('✅ Chat widget script loaded successfully');
+    };
+    
+    script.onerror = () => {
+      console.error('❌ Failed to load chat widget script');
+    };
+
     document.body.appendChild(script);
 
+    // Cleanup при размонтировании
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
+      // Удаляем виджет при размонтировании компонента
+      const widgetContainer = document.getElementById('zuuma-chat-widget');
+      if (widgetContainer) {
+        widgetContainer.remove();
       }
-      (window as any).ChatWidgetLoaded = false;
-      const container = document.querySelector('.chat-widget-container');
-      if (container) container.remove();
+      
+      const widgetScript = document.getElementById('zuuma-chat-widget-script');
+      if (widgetScript) {
+        widgetScript.remove();
+      }
+      
+      // Очищаем флаг загрузки
+      delete (window as any).ChatWidgetLoaded;
     };
-  }, [hideWidget]);
+  }, []);
 
+  // Компонент не рендерит ничего - виджет создается скриптом
   return null;
 }

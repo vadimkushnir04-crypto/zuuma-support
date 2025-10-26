@@ -65,13 +65,16 @@ export class AuthService {
       console.log(`🔗 Linking Google to existing ${user.provider} account:`, user.id);
       user.google_id = googleData.googleId;
       user.full_name = googleData.fullName;
-      user.avatar_url = googleData.picture || null;
+      user.avatar_url = googleData.picture || user.avatar_url;
       user.email_verified = true;
-      // ✅ НЕ МЕНЯЕМ provider! Оставляем 'local' если был local
+      // ✅ НЕ МЕНЯЕМ provider! Пользователь может входить обоими способами
       user = await this.userRepository.save(user);
     } else {
       console.log('✅ Existing Google user login:', user.id);
     }
+
+    user.last_login_at = new Date();
+    await this.userRepository.save(user);
 
     const token = this.generateToken(user.id, user.email);
     return { user: this.sanitizeUser(user), token };
@@ -104,19 +107,18 @@ async register(
   });
   
   if (existingUser) {
-    // Случай: пользователь зарегистрирован через Google, но хочет добавить пароль
-    if (!existingUser.password && existingUser.provider === 'google') {
+    // ✅ Случай: пользователь зарегистрирован через Google, хочет добавить пароль
+    if (!existingUser.password) {
       console.log('🔗 Adding password to existing Google account:', existingUser.id);
       
       // Валидация пароля
       if (password.length < 8) {
-        throw new Error('Пароль должен содержать минимум 8 символов');
+        throw new BadRequestException('Пароль должен содержать минимум 8 символов');
       }
       
       const hashedPassword = await bcrypt.hash(password, 10);
       
       existingUser.password = hashedPassword;
-      existingUser.provider = 'local'; // Теперь может входить и по email/паролю
       existingUser.updated_at = new Date();
       
       const updatedUser = await this.userRepository.save(existingUser);
@@ -142,14 +144,14 @@ async register(
     }
     
     // Пользователь уже существует с паролем
-    throw new Error('Email уже зарегистрирован');
+    throw new BadRequestException('Email уже зарегистрирован');
   }
 
   // ============================================
   // 2. Валидация нового пользователя
   // ============================================
   if (password.length < 8) {
-    throw new Error('Пароль должен содержать минимум 8 символов');
+    throw new BadRequestException('Пароль должен содержать минимум 8 символов');
   }
 
   // ============================================
@@ -191,7 +193,6 @@ async register(
   } catch (emailError) {
     console.error('⚠️ Failed to send verification email:', emailError.message);
     // Не бросаем ошибку - регистрация прошла успешно
-    // Пользователь может запросить письмо повторно
   }
 
   // ============================================
@@ -310,11 +311,11 @@ async register(
       });
 
       if (!user) {
-        throw new Error('Неверный или устаревший токен');
+        throw new BadRequestException('Неверный или устаревший токен');
       }
 
       if (user.email_verified) {
-        throw new Error('Email уже подтвержден');
+        throw new BadRequestException('Email уже подтвержден');
       }
 
       user.email_verified = true;
@@ -334,54 +335,60 @@ async register(
   // ВХОД
   // ================================
 
-      async login(email: string, password: string, ipAddress?: string) {
-      console.log('🔑 Login attempt:', { email });
-      
-      const user = await this.userRepository.findOne({
-        where: { email },
-        select: [
-          'id', 'email', 'password', 'full_name', 'avatar_url', 
-          'provider', 'plan', 'tokens_used', 'tokens_limit', 
-          'assistants_limit', 'created_at', 'email_verified'
-        ],
-      });
+  async login(email: string, password: string, ipAddress?: string) {
+    console.log('🔑 Login attempt:', { email });
+    
+    const user = await this.userRepository.findOne({
+      where: { email },
+      select: [
+        'id', 'email', 'password', 'full_name', 'avatar_url', 
+        'provider', 'plan', 'tokens_used', 'tokens_limit', 
+        'assistants_limit', 'created_at', 'email_verified', 'google_id'
+      ],
+    });
 
-      if (!user) {
-        throw new Error('Неверный email или пароль');
-      }
-
-      if (user.provider !== 'local' || !user.password) {
-        throw new Error('Этот email зарегистрирован через Google. Используйте вход через Google.');
-      }
-
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        throw new Error('Неверный email или пароль');
-      }
-
-      user.last_login_at = new Date();
-      await this.userRepository.save(user);
-
-      const token = this.generateToken(user.id, user.email);
-
-      console.log('✅ Login successful:', user.id);
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.full_name,
-          avatarUrl: user.avatar_url,
-          plan: user.plan,
-          tokensUsed: user.tokens_used,
-          tokensLimit: user.tokens_limit,
-          assistantsLimit: user.assistants_limit,
-          createdAt: user.created_at?.toISOString(),
-          emailVerified: user.email_verified,
-        },
-        token,
-      };
+    if (!user) {
+      throw new UnauthorizedException('Неверный email или пароль');
     }
+
+    // ✅ ИСПРАВЛЕННАЯ ЛОГИКА: Проверяем только наличие пароля
+    if (!user.password) {
+      // Пользователь зарегистрирован через Google и не установил пароль
+      throw new BadRequestException({
+        message: 'Этот email зарегистрирован через Google. Используйте вход через Google или установите пароль через регистрацию.',
+        provider: 'google',
+        hasGoogleAccount: true
+      });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      throw new UnauthorizedException('Неверный email или пароль');
+    }
+
+    user.last_login_at = new Date();
+    await this.userRepository.save(user);
+
+    const token = this.generateToken(user.id, user.email);
+
+    console.log('✅ Login successful:', user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        avatarUrl: user.avatar_url,
+        plan: user.plan,
+        tokensUsed: user.tokens_used,
+        tokensLimit: user.tokens_limit,
+        assistantsLimit: user.assistants_limit,
+        createdAt: user.created_at?.toISOString(),
+        emailVerified: user.email_verified,
+      },
+      token,
+    };
+  }
 
   // ================================
   // ПРОФИЛЬ
