@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
+import { randomBytes } from 'crypto';
 let Resend: any; // Динамический импорт
 
 @Injectable()
@@ -76,68 +77,102 @@ export class AuthService {
   // РЕГИСТРАЦИЯ (Email + пароль)
   // ================================
 
-  async register(
-    email: string,
-    password: string,
-    fullName?: string,
-    ipAddress?: string,
-  ) {
-    const existingUser = await this.userRepository.findOne({ 
-      where: { email },
-      select: ['id', 'email', 'password', 'provider', 'google_id'],
-    });
-
+  async register(email: string, password: string, fullName?: string, ipAddress?: string) {
+    
+    console.log('📝 Register attempt:', { email, fullName });
+    
+    // Проверяем существует ли пользователь
+    const existingUser = await this.userRepository.findOne({ where: { email } });
+    
     if (existingUser) {
-      // ✅ Если у пользователя УЖЕ ЕСТЬ пароль - блокируем
-      if (existingUser.password) {
-        throw new BadRequestException('Email уже зарегистрирован');
-      }
-      
-      // ✅ Если пользователь только через Google (нет пароля) - разрешаем добавить пароль
-      if (existingUser.google_id && !existingUser.password) {
+      // ✅ Если пользователь есть но без пароля (Google) - добавляем пароль
+      if (!existingUser.password && existingUser.provider === 'google') {
         console.log('🔗 Adding password to existing Google account:', existingUser.id);
         
-        if (password.length < 8) {
-          throw new BadRequestException('Пароль должен содержать минимум 8 символов');
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
-        
         existingUser.password = hashedPassword;
-        if (fullName) existingUser.full_name = fullName;
-        existingUser.email_verified = true; // Google уже подтвердил
+        existingUser.provider = 'local'; // Теперь может входить и по паролю
+        existingUser.updated_at = new Date();
         
-        const savedUser = await this.userRepository.save(existingUser);
-        return { user: savedUser };
+        const updatedUser = await this.userRepository.save(existingUser);
+        const token = this.generateToken(updatedUser.id, updatedUser.email);
+        
+        console.log('✅ Registration successful:', updatedUser.id);
+        
+        return {
+          user: {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            fullName: updatedUser.full_name,
+            avatarUrl: updatedUser.avatar_url,
+            plan: updatedUser.plan,
+            tokensUsed: updatedUser.tokens_used,
+            tokensLimit: updatedUser.tokens_limit,
+            assistantsLimit: updatedUser.assistants_limit,
+            createdAt: updatedUser.created_at?.toISOString(),
+          },
+          token,
+        };
       }
+      
+      throw new Error('Email уже зарегистрирован');
     }
 
-    // Новый пользователь
+    // Валидация пароля
     if (password.length < 8) {
-      throw new BadRequestException('Пароль должен содержать минимум 8 символов');
+      throw new Error('Пароль должен содержать минимум 8 символов');
     }
 
+    // Хешируем пароль
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = uuidv4();
+    
+    // ✅ Генерируем токен для верификации email
+    const verificationToken = randomBytes(32).toString('hex');
 
+    // Создаем пользователя
     const user = this.userRepository.create({
       email,
       password: hashedPassword,
       full_name: fullName || null,
       provider: 'local',
-      email_verified: false,
-      email_verification_token: verificationToken,
+      email_verified: false, // ✅ Пока не подтвержден
+      email_verification_token: verificationToken, // ✅ Токен для подтверждения
       consent_given_at: new Date(),
       consent_ip_address: ipAddress || null,
       agreed_to_data_transfer: false,
+      last_login_at: new Date(),
     });
 
     const savedUser = await this.userRepository.save(user);
+    
+    // ✅ Отправляем письмо с подтверждением
+    try {
+      await this.sendVerificationEmail(savedUser);
+      console.log('📧 Verification email sent to:', email);
+    } catch (emailError) {
+      console.error('⚠️ Failed to send verification email:', emailError);
+      // Не бросаем ошибку - регистрация прошла успешно
+    }
+    
+    const token = this.generateToken(savedUser.id, savedUser.email);
 
-    // Отправляем письмо
-    await this.sendVerificationEmail(savedUser);
+    console.log('✅ Registration successful:', savedUser.id);
 
-    return { user: savedUser };
+    return {
+      user: {
+        id: savedUser.id,
+        email: savedUser.email,
+        fullName: savedUser.full_name,
+        avatarUrl: savedUser.avatar_url,
+        plan: savedUser.plan,
+        tokensUsed: savedUser.tokens_used,
+        tokensLimit: savedUser.tokens_limit,
+        assistantsLimit: savedUser.assistants_limit,
+        createdAt: savedUser.created_at?.toISOString(),
+        emailVerified: savedUser.email_verified, // ✅ Добавлено
+      },
+      token,
+    };
   }
 
   // ================================
@@ -183,21 +218,42 @@ export class AuthService {
   // ================================
 
   async verifyEmail(token: string) {
-    const user = await this.userRepository.findOne({
-      where: { email_verification_token: token },
-    });
+    try {
+      console.log('🔍 Verifying email with token:', token.substring(0, 10) + '...');
 
-    if (!user) {
-      throw new BadRequestException('Неверный или просроченный токен подтверждения.');
+      // Ищем пользователя по токену
+      const user = await this.userRepository.findOne({
+        where: { email_verification_token: token }
+      });
+
+      if (!user) {
+        console.error('❌ User not found for token');
+        throw new Error('Неверный или устаревший токен');
+      }
+
+      if (user.email_verified) {
+        console.log('⚠️ Email already verified');
+        throw new Error('Email уже подтвержден');
+      }
+
+      // Подтверждаем email
+      user.email_verified = true;
+      user.email_verification_token = null; // Удаляем токен после использования
+      user.updated_at = new Date();
+
+      await this.userRepository.save(user);
+
+      console.log('✅ Email verified for user:', user.id);
+
+      return {
+        userId: user.id,
+        email: user.email,
+        fullName: user.full_name,
+      };
+    } catch (error) {
+      console.error('❌ Email verification error:', error.message);
+      throw error;
     }
-
-    if (user.email_verified) {
-      throw new BadRequestException('Email уже подтверждён.');
-    }
-
-    user.email_verified = true;
-    user.email_verification_token = null;
-    await this.userRepository.save(user);
   }
 
   // ================================

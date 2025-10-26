@@ -109,15 +109,14 @@ export default function AssistantsPage() {
       setLoading(true);
       setError(null);
 
-
-      const [assistantsResponse, statsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/assistants`, {
-          credentials: 'include', // 👈 теперь куки прикладываются автоматически
-        }),
-        fetch(`${API_BASE_URL}/assistants/stats`, {
-          credentials: 'include',
-        }),
-      ]);
+    const [assistantsResponse, statsResponse] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/assistants`, {  // ✅ /api/assistants
+        credentials: 'include',
+      }),
+      fetch(`${API_BASE_URL}/api/assistants/stats`, {  // ✅ /api/assistants/stats
+        credentials: 'include',
+      }),
+    ]);
 
       if (!assistantsResponse.ok || !statsResponse.ok) {
         throw new Error(`Ошибка загрузки ассистентов: ${assistantsResponse.status} / ${statsResponse.status}`);
@@ -149,7 +148,7 @@ export default function AssistantsPage() {
     try {
       const functionsPromises = assistantsList.map(async (assistant) => {
         try {
-          const response = await fetch(`${API_BASE_URL}/assistants/${assistant.id}/functions`);
+          const response = await fetch(`${API_BASE_URL}/api/assistants/${assistant.id}/functions`);
           const data = await response.json();
           return {
             assistantId: assistant.id,
@@ -188,7 +187,7 @@ export default function AssistantsPage() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/assistants/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/assistants/${id}`, {
         method: "DELETE",
         credentials: 'include', // ✅ теперь cookie используется
       });
@@ -208,7 +207,7 @@ export default function AssistantsPage() {
   const regenerateApiKey = async (id: string) => {
     if (!confirm("Вы уверены? Старый API ключ перестанет работать.")) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/assistants/${id}/regenerate-key`, {
+      const response = await fetch(`${API_BASE_URL}/api/assistants/${id}/regenerate-key`, {
         method: "POST",
         credentials: 'include', // ✅ cookie
       });
@@ -415,7 +414,7 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
 <script>
   window.chatConfig = {
     apiKey: '${assistant.apiKey}',
-    serverUrl: '${API_BASE_URL}',
+    serverUrl: '${API_BASE_URL}/api',
     theme: '${assistant.settings?.theme || "light"}',
     assistantName: '${assistant.name}',
     customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
@@ -512,7 +511,7 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
     <script>
       window.chatConfig = {
         apiKey: '${assistant.apiKey}',
-        serverUrl: '${API_BASE_URL}',
+        serverUrl: '${API_BASE_URL}/api',
         theme: '${assistant.settings?.theme || 'light'}',
         assistantName: '${assistant.name}',
         customGreeting: '${assistant.settings?.customGreeting || 'Здравствуйте! Чем могу помочь?'}',
@@ -937,7 +936,7 @@ const AssistantSettingsModal: React.FC<{
   Отвечай на основе предоставленного контекста.`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/assistants/${assistant.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/assistants/${assistant.id}`, {
         method: "PUT",
         credentials: 'include', // ✅ используем cookie
         headers: { 
