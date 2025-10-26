@@ -11,8 +11,9 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { TokenBalance } from '../tokens/token-balance.entity';
 import { Plan } from '../tokens/plan.entity';
 import { GoogleStrategy } from './google.strategy';
-import { AuditLog } from '../common/entities/audit-log.entity'; // ✅ Импорт AuditLog
-import { AuditLogModule } from '../common/audit-log.module'; // ✅ Импорт AuditLogModule
+import { AuditLog } from '../common/entities/audit-log.entity';
+import { AuditLogModule } from '../common/audit-log.module';
+import { EmailService } from '../common/email.service'; // ✅ ИМПОРТИРУЕМ EmailService
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { AuditLogModule } from '../common/audit-log.module'; // ✅ Импорт
       User, 
       TokenBalance, 
       Plan,
-      AuditLog // ✅ КРИТИЧНО: регистрируем AuditLog для AuthModule
+      AuditLog
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
@@ -31,10 +32,15 @@ import { AuditLogModule } from '../common/audit-log.module'; // ✅ Импорт
       }),
       inject: [ConfigService],
     }),
-    AuditLogModule, // ✅ КРИТИЧНО: импортируем AuditLogModule для доступа к AuditLogService
+    AuditLogModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, GoogleStrategy],
+  providers: [
+    AuthService, 
+    JwtAuthGuard, 
+    GoogleStrategy,
+    EmailService // ✅ ДОБАВЛЯЕМ EmailService в providers
+  ],
   exports: [AuthService, JwtAuthGuard, JwtModule],
 })
 export class AuthModule {}
