@@ -1,4 +1,3 @@
-// backend/src/auth/auth.controller.ts
 import {
   Controller,
   Post,
@@ -28,9 +27,7 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth(@Req() req: any) {
-    // Guard автоматически перенаправит на страницу входа Google
-  }
+  async googleAuth(@Req() req: any) {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
@@ -40,7 +37,7 @@ export class AuthController {
       const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
 
       console.log('🔐 Setting cookie for Google auth');
-      
+
       res.cookie('token', token, {
         httpOnly: true,
         secure: true,
@@ -66,8 +63,13 @@ export class AuthController {
     @Req() req: any,
   ) {
     const ipAddress = this.getClientIp(req);
-
     console.log('📝 Register attempt:', { email: body.email, fullName: body.fullName });
+
+    // ✅ Проверка корректности email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      throw new BadRequestException('Введите корректный email-адрес.');
+    }
 
     try {
       const result = await this.authService.register(
@@ -77,17 +79,25 @@ export class AuthController {
         ipAddress,
       );
 
+      // 🚫 Не даем входить, пока почта не подтверждена
+      if (!result.user.emailVerified) {
+        return {
+          success: true,
+          message: '✅ Регистрация прошла успешно. Проверьте почту для подтверждения email.',
+          requiresVerification: true,
+        };
+      }
+
       console.log('✅ Registration successful:', result.user.id);
 
       return {
         success: true,
-        message: result.message || 'Регистрация успешна. Проверьте почту для подтверждения email.',
+        message: result.message || 'Регистрация успешна.',
         user: result.user,
-        requiresVerification: result.requiresVerification || false,
       };
     } catch (err: any) {
       console.error('❌ Registration error:', err.message);
-      
+
       if (err.message.includes('Google') || err.message.includes('google')) {
         throw new BadRequestException(
           'Этот email зарегистрирован через Google. Используйте вход через Google.',
@@ -106,14 +116,9 @@ export class AuthController {
   // ============================================
 
   @Post('verify-email')
-  async verifyEmail(
-    @Body() body: { token: string },
-    @Req() req: any,
-  ) {
+  async verifyEmail(@Body() body: { token: string }) {
     try {
-      if (!body.token) {
-        throw new Error('Токен не предоставлен');
-      }
+      if (!body.token) throw new Error('Токен не предоставлен');
 
       const result = await this.authService.verifyEmail(body.token);
 
@@ -129,7 +134,7 @@ export class AuthController {
     } catch (err: any) {
       throw new HttpException(
         { success: false, error: err.message },
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
   }
@@ -139,24 +144,21 @@ export class AuthController {
   // ============================================
 
   @Post('resend-verification')
-  async resendVerification(
-    @Body() body: { email: string },
-  ) {
+  async resendVerification(@Body() body: { email: string }) {
     try {
-      if (!body.email) {
-        throw new Error('Email не предоставлен');
+      if (!body.email) throw new Error('Email не предоставлен');
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(body.email)) {
+        throw new BadRequestException('Введите корректный email-адрес.');
       }
 
       const result = await this.authService.resendVerificationEmail(body.email);
-
-      return {
-        success: true,
-        message: result.message,
-      };
+      return { success: true, message: result.message };
     } catch (err: any) {
       throw new HttpException(
         { success: false, error: err.message },
-        HttpStatus.BAD_REQUEST
+        HttpStatus.BAD_REQUEST,
       );
     }
   }
@@ -172,14 +174,30 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const ipAddress = this.getClientIp(req);
-
     console.log('🔑 Login attempt:', { email: body.email });
+
+    // ✅ Проверка email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      throw new BadRequestException('Введите корректный email-адрес.');
+    }
 
     try {
       const result = await this.authService.login(body.email, body.password, ipAddress);
-      
-      console.log('🔐 Setting cookie for email login');
-      
+
+      // 🚫 Если email не подтверждён — запрещаем вход
+      if (!result.user.emailVerified) {
+        throw new HttpException(
+          {
+            success: false,
+            message: 'Email не подтверждён. Проверьте почту.',
+            requiresVerification: true,
+            email: body.email,
+          },
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       res.cookie('token', result.token, {
         httpOnly: true,
         secure: true,
@@ -188,12 +206,10 @@ export class AuthController {
       });
 
       console.log('✅ Login successful:', result.user.id);
-
       return res.json({ success: true, user: result.user });
     } catch (err: any) {
       console.error('❌ Login error:', err.message);
-      
-      // ✅ Специальная обработка ошибки неподтвержденного email
+
       if (err.response?.requiresVerification) {
         throw new HttpException(
           {
@@ -205,8 +221,7 @@ export class AuthController {
           HttpStatus.UNAUTHORIZED,
         );
       }
-      
-      // Специальная ошибка для Google
+
       if (err.message.includes('Google') || err.message.includes('google')) {
         throw new BadRequestException(
           'Этот email зарегистрирован через Google. Используйте вход через Google.',
@@ -228,7 +243,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@Req() req: any) {
     const userId = req.user.id || req.user.userId;
-
     console.log('👤 Getting profile for user:', userId);
 
     try {
@@ -245,12 +259,8 @@ export class AuthController {
 
   @Put('profile')
   @UseGuards(JwtAuthGuard)
-  async updateProfile(
-    @Body() body: { fullName?: string },
-    @Req() req: any,
-  ) {
+  async updateProfile(@Body() body: { fullName?: string }, @Req() req: any) {
     const userId = req.user.id || req.user.userId;
-
     console.log('✏️ Updating profile for user:', userId);
 
     try {

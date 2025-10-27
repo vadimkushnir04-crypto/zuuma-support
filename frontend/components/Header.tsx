@@ -70,21 +70,28 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
     router.push('/');
   };
 
-  const handleGoogleLogin = async () => {
-    setError('');
-    if (!agreedToTerms || !agreedToDataTransfer) {
-      setError('Примите все условия для продолжения');
-      return;
-    }
-    window.location.href = '/api/auth/google';
-  };
+    const handleGoogleLogin = async () => {
+      setError('');
+      if (!agreedToTerms || !agreedToDataTransfer) {
+        setError('Примите все условия для продолжения');
+        return;
+      }
+      window.location.href = '/api/auth/google';
+    };
 
-  const handleEmailAuth = async () => {
+    const handleEmailAuth = async () => {
     setError('');
     setSuccessMessage('');
 
     if (!agreedToTerms) {
       setError('Примите условия для продолжения');
+      return;
+    }
+
+    // ✅ Проверка корректности email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Введите корректный email-адрес');
       return;
     }
 
@@ -103,7 +110,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           throw new Error(data.message || data.error || 'Ошибка регистрации');
         }
 
-        // ✅ НОВОЕ: Проверяем requiresVerification
+        // ✅ Проверяем requiresVerification
         if (data.requiresVerification) {
           setSuccessMessage('✅ Регистрация успешна! Проверьте почту — мы отправили письмо с подтверждением.');
           setShowResendButton(true);
@@ -111,14 +118,15 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         } else {
           setSuccessMessage('Проверьте почту — мы отправили письмо для подтверждения.');
         }
-        
+
+        // Очищаем форму
         setAuthMode('login');
         setEmail('');
         setPassword('');
         setFullName('');
         setAgreedToTerms(false);
       } else {
-        // ЛОГИН
+        // 🔐 ЛОГИН
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -129,14 +137,13 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
-          // ✅ НОВОЕ: Обработка requiresVerification при входе
           if (data.requiresVerification) {
-            setError('⚠️ Пожалуйста, подтвердите email перед входом. Проверьте почту.');
+            setError('⚠️ Подтвердите email перед входом. Проверьте почту.');
             setShowResendButton(true);
             setResendEmail(data.email || email);
             throw new Error(data.error || 'Email не подтвержден');
           }
-          
+
           throw new Error(data.message || data.error || 'Ошибка входа');
         }
 
@@ -145,11 +152,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         router.push('/assistants');
       }
     } catch (err: any) {
-      if (err.message.includes('Google') || err.message.includes('google')) {
-        setError(err.message);
-      } else {
-        setError(err.message);
-      }
+      setError(err.message);
     }
   };
 
