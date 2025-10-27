@@ -26,17 +26,23 @@ export class EmailService {
     const smtpSecure = this.configService.get<boolean>('SMTP_SECURE') ?? true;
 
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-      console.warn('⚠️  [EmailService] SMTP credentials not configured');
-      console.warn('⚠️  [EmailService] Email sending is DISABLED');
-      console.warn('⚠️  [EmailService] Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS to environment');
+      console.error('❌ [EmailService] CRITICAL: SMTP credentials not configured!');
+      console.error('❌ [EmailService] Required variables:');
+      console.error('   - SMTP_HOST:', smtpHost ? '✓' : '✗');
+      console.error('   - SMTP_PORT:', smtpPort ? '✓' : '✗');
+      console.error('   - SMTP_USER:', smtpUser ? '✓' : '✗');
+      console.error('   - SMTP_PASS:', smtpPass ? '✓' : '✗');
+      console.error('❌ [EmailService] Email sending is DISABLED');
+      console.error('❌ [EmailService] Registration will NOT work without email verification!');
       this.isEnabled = false;
       return;
     }
 
-    console.log('📧 [EmailService] SMTP Host:', smtpHost);
-    console.log('📧 [EmailService] SMTP Port:', smtpPort);
-    console.log('📧 [EmailService] SMTP User:', smtpUser);
-    console.log('📧 [EmailService] SMTP Secure:', smtpSecure);
+    console.log('📧 [EmailService] SMTP Configuration:');
+    console.log('   - Host:', smtpHost);
+    console.log('   - Port:', smtpPort);
+    console.log('   - User:', smtpUser);
+    console.log('   - Secure:', smtpSecure);
 
     // Создаем транспорт
     this.transporter = nodemailer.createTransport({
@@ -47,16 +53,42 @@ export class EmailService {
         user: smtpUser,
         pass: smtpPass,
       },
+      // Добавляем таймауты
+      connectionTimeout: 10000, // 10 секунд
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     // Проверка подключения
+    console.log('📧 [EmailService] Testing SMTP connection...');
     this.transporter.verify((error, success) => {
       if (error) {
-        console.error('❌ [EmailService] SMTP connection failed:', error.message);
+        console.error('❌ [EmailService] SMTP connection FAILED!');
+        console.error('❌ [EmailService] Error:', error.message);
+        console.error('❌ [EmailService] Error code:', error.code);
+        
+        // Детальная диагностика
+        if (error.message.includes('authentication failed')) {
+          console.error('❌ [EmailService] Authentication problem:');
+          console.error('   1. Check SMTP_USER and SMTP_PASS are correct');
+          console.error('   2. For Gmail: Enable App Passwords (https://myaccount.google.com/apppasswords)');
+          console.error('   3. For Yandex: Create App Password (https://id.yandex.ru/security/app-passwords)');
+          console.error('   4. For Mail.ru: Check password for external apps is enabled');
+        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
+          console.error('❌ [EmailService] Connection problem:');
+          console.error('   1. Check SMTP_HOST is correct:', smtpHost);
+          console.error('   2. Check SMTP_PORT is correct:', smtpPort);
+          console.error('   3. Check firewall/network settings');
+        } else if (error.message.includes('certificate')) {
+          console.error('❌ [EmailService] SSL/TLS problem:');
+          console.error('   1. For port 465: Set SMTP_SECURE=true');
+          console.error('   2. For port 587: Set SMTP_SECURE=false');
+        }
+        
         this.isEnabled = false;
       } else {
-        console.log('✅ [EmailService] SMTP server ready');
-        console.log('📧 [EmailService] Email sending is ENABLED');
+        console.log('✅ [EmailService] SMTP connection successful!');
+        console.log('✅ [EmailService] Email sending is ENABLED');
         this.isEnabled = true;
       }
     });
@@ -64,14 +96,14 @@ export class EmailService {
 
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     if (!this.isEnabled || !this.transporter) {
-      const errorMsg = '⚠️  [EmailService] SMTP not configured - email sending disabled';
-      console.warn(errorMsg);
+      const errorMsg = 'Email sending is temporarily unavailable. Please contact administrator to configure SMTP settings.';
+      console.error('❌ [EmailService] Cannot send email - SMTP not configured');
       throw new Error(errorMsg);
     }
 
     const verificationUrl = `${this.frontendUrl}/verify-email?token=${token}`;
 
-    console.log('📧 [EmailService] Preparing to send verification email...');
+    console.log('📧 [EmailService] Preparing verification email...');
     console.log('📧 [EmailService] To:', email);
     console.log('📧 [EmailService] From:', this.fromEmail);
     console.log('📧 [EmailService] Verification URL:', verificationUrl);
@@ -102,11 +134,10 @@ export class EmailService {
       console.log('✅ [EmailService] Email sent successfully!');
       console.log('✅ [EmailService] Message ID:', info.messageId);
       console.log('✅ [EmailService] Response:', info.response);
-      console.log('✅ [EmailService] Verification email sent to:', email);
     } catch (error) {
       console.error('❌ [EmailService] Failed to send email');
       console.error('❌ [EmailService] To:', email);
-      console.error('❌ [EmailService] Error message:', error.message);
+      console.error('❌ [EmailService] Error:', error.message);
       
       if (error.code) {
         console.error('❌ [EmailService] Error code:', error.code);
