@@ -75,7 +75,7 @@ export class EmailService {
 
     try {
       await axios.post(
-        'https://postbox.api.cloud.yandex.net/v1/send',
+        `${this.configService.get<string>('YANDEX_POSTBOX_API_URL') || 'https://postbox.cloud.yandex.net'}/v1/send`,
         {
           folderId: this.folderId,
           from: `Zuuma <${this.fromEmail}>`,
