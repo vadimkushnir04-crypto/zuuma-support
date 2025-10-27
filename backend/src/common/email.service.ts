@@ -102,27 +102,41 @@ export class EmailService {
     console.log('📧 [EmailService] Verification URL:', verificationUrl);
 
     try {
-      const info = await this.transporter.sendMail({
-        from: `Zuuma <${this.fromEmail}>`,
-        to: email,
-        subject: 'Подтвердите ваш email',
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>Подтверждение регистрации на Zuuma</h2>
-              <p>Здравствуйте!</p>
-              <p>Для активации аккаунта подтвердите ваш email:</p>
-              <a href="${verificationUrl}" style="display: inline-block; padding: 12px 24px; background-color: #888888; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0;">
-                Подтвердить email
-              </a>
-              <p>Или скопируйте ссылку:</p>
-              <p style="word-break: break-all; color: #888;">${verificationUrl}</p>
-              <p style="color: #666; font-size: 12px; margin-top: 30px;">Если вы не регистрировались, проигнорируйте письмо.</p>
-            </body>
-          </html>
-        `,
-      });
+    const info = await this.transporter.sendMail({
+      from: `Vadim from Zuuma <${this.fromEmail}>`,
+      to: email,
+      subject: 'Добро пожаловать в Zuuma — подтвердите ваш email',
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+            <p>Привет 👋</p>
+
+            <p>Меня зовут Вадим — я создатель Zuuma.</p>
+            <p>Мы начали Zuuma, потому что хотели сделать простой и мощный инструмент для бизнеса — 
+            чтобы создавать AI-ассистентов, которые помогают вашим клиентам и командам без сложных настроек.</p>
+
+            <p>Перед тем как начать, подтвердите ваш email:</p>
+            <a href="${verificationUrl}" style="display: inline-block; background-color: #4a4a4a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Подтвердить email
+            </a>
+
+            <p>Или просто скопируйте ссылку:</p>
+            <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+
+            <p>✨ Спасибо, что присоединились!</p>
+
+            <p style="font-size: 13px; color: #777; margin-top: 40px;">
+              📧 По всем вопросам: <a href="mailto:delovoi.acount@gmail.com" style="color: #555;">delovoi.acount@gmail.com</a>
+            </p>
+
+            <p style="margin-top: 10px; font-size: 12px; color: #999;">
+              Если вы не регистрировались, просто проигнорируйте это письмо.
+            </p>
+          </body>
+        </html>
+      `,
+    });
 
       console.log('✅ [EmailService] Email sent successfully via Postbox!');
       console.log('✅ [EmailService] Message ID:', info.messageId);
