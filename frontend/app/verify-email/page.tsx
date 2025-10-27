@@ -16,10 +16,10 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    // ✅ Добавлен credentials для отправки cookie
+    // ✅ Отправляем токен для подтверждения
     fetch('/api/auth/verify-email', {
       method: 'POST',
-      credentials: 'include', // 👈 ВАЖНО
+      credentials: 'include', // Для получения JWT cookie
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
     })
@@ -27,11 +27,12 @@ export default function VerifyEmailPage() {
         const data = await res.json();
         if (res.ok) {
           setStatus('success');
-          setMessage('Email успешно подтверждён! Перенаправляем...');
-          // ✅ Автоматический редирект через 2 секунды
+          setMessage('Email успешно подтверждён! Входим в аккаунт...');
+          
+          // ✅ Автоматический вход и редирект через 4 секунды
           setTimeout(() => {
-            router.push('/');
-          }, 2000);
+            router.push('/assistants');
+          }, 4000); // Увеличено с 2 до 4 секунд
         } else {
           throw new Error(data.error || 'Ошибка подтверждения.');
         }
@@ -67,13 +68,20 @@ export default function VerifyEmailPage() {
 
         <p style={styles.message}>{message}</p>
 
+        {/* Прогресс-бар для успешного подтверждения */}
+        {status === 'success' && (
+          <div style={styles.progressContainer}>
+            <div style={styles.progressBar}></div>
+          </div>
+        )}
+
         {/* Кнопки действий */}
         {status === 'success' && (
           <button 
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/assistants')}
             style={styles.button}
           >
-            Перейти на главную
+            Перейти к ассистентам
           </button>
         )}
 
@@ -94,6 +102,17 @@ export default function VerifyEmailPage() {
           </div>
         )}
       </div>
+
+      {/* CSS для анимаций */}
+      <style jsx>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -169,6 +188,19 @@ const styles = {
     color: '#B0B0B0',
     marginBottom: '32px',
     lineHeight: '1.6',
+  },
+  progressContainer: {
+    width: '100%',
+    height: '4px',
+    background: '#444444',
+    borderRadius: '2px',
+    overflow: 'hidden',
+    marginBottom: '24px',
+  },
+  progressBar: {
+    height: '100%',
+    background: '#888888',
+    animation: 'progress 4s linear', // 4 секунды до редиректа
   },
   button: {
     padding: '12px 32px',

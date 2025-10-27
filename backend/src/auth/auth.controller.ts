@@ -116,20 +116,27 @@ export class AuthController {
   // ============================================
 
   @Post('verify-email')
-  async verifyEmail(@Body() body: { token: string }) {
+  async verifyEmail(
+    @Body() body: { token: string },
+    @Res({ passthrough: true }) res: Response, // ← Добавь
+  ) {
     try {
       if (!body.token) throw new Error('Токен не предоставлен');
 
       const result = await this.authService.verifyEmail(body.token);
 
+      // ✅ Устанавливаем cookie для автовхода
+      res.cookie('token', result.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
       return {
         success: true,
         message: result.message,
-        user: {
-          userId: result.userId,
-          email: result.email,
-          fullName: result.fullName,
-        },
+        user: result.user, // ← Изменено с userId/email/fullName на result.user
       };
     } catch (err: any) {
       throw new HttpException(

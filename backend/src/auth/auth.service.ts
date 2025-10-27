@@ -195,11 +195,21 @@ export class AuthService {
 
     console.log('✅ Email verified for user:', user.id);
 
+    // ✅ Генерируем JWT для автовхода
+    const jwtToken = this.generateToken(user.id, user.email);
+
     return {
       userId: user.id,
       email: user.email,
       fullName: user.full_name,
       message: 'Email успешно подтвержден. Теперь вы можете войти в систему.',
+      token: jwtToken, // ← Добавь
+      user: {          // ← Добавь
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        emailVerified: user.email_verified,
+      },
     };
   }
 
