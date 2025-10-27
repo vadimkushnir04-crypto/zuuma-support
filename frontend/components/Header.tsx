@@ -396,7 +396,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
             </div>
 
             <button
-              onClick={handleGoogleSignIn}
+              onClick={handleGoogleLogin}
               style={modalStyles.alternativeButton}
             >
               Продолжить с Google
