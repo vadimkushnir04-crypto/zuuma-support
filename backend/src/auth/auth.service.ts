@@ -48,11 +48,20 @@ export class AuthService {
       user = await this.userRepository.save(user);
       console.log('✅ New Google user created:', user.id);
     } else if (!user.google_id) {
+      // ✅ КРИТИЧНО: Разрешаем связывание ТОЛЬКО если email уже подтвержден
+      if (!user.email_verified) {
+        console.log('❌ Cannot link Google to unverified account:', user.id);
+        throw new BadRequestException({
+          message: 'Сначала подтвердите ваш email. Проверьте почту или запросите новое письмо.',
+          requiresVerification: true,
+          email: user.email,
+        });
+      }
+      
       console.log(`🔗 Linking Google to existing ${user.provider} account:`, user.id);
       user.google_id = googleData.googleId;
       user.full_name = googleData.fullName;
       user.avatar_url = googleData.picture || user.avatar_url;
-      user.email_verified = true; // Google OAuth верифицирует email
       user = await this.userRepository.save(user);
     } else {
       console.log('✅ Existing Google user login:', user.id);
@@ -83,42 +92,22 @@ export class AuthService {
     });
     
     if (existingUser) {
-      // Случай: пользователь зарегистрирован через Google, хочет добавить пароль
-      if (!existingUser.password) {
-        console.log('🔗 Adding password to existing Google account:', existingUser.id);
-        
-        if (password.length < 8) {
-          throw new BadRequestException('Пароль должен содержать минимум 8 символов');
-        }
-        
-        const hashedPassword = await bcrypt.hash(password, 10);
-        
-        existingUser.password = hashedPassword;
-        existingUser.updated_at = new Date();
-        
-        const updatedUser = await this.userRepository.save(existingUser);
-        const token = this.generateToken(updatedUser.id, updatedUser.email);
-        
-        console.log('✅ Password added to Google account:', updatedUser.id);
-        
-        return {
-          user: {
-            id: updatedUser.id,
-            email: updatedUser.email,
-            fullName: updatedUser.full_name,
-            avatarUrl: updatedUser.avatar_url,
-            plan: updatedUser.plan,
-            tokensUsed: updatedUser.tokens_used,
-            tokensLimit: updatedUser.tokens_limit,
-            assistantsLimit: updatedUser.assistants_limit,
-            createdAt: updatedUser.created_at?.toISOString(),
-            emailVerified: updatedUser.email_verified,
-          },
-          token,
-        };
+      // ❌ КРИТИЧНО: Блокируем регистрацию если email уже используется
+      if (existingUser.provider === 'google') {
+        console.log('❌ Email already registered via Google:', existingUser.id);
+        throw new BadRequestException({
+          message: 'Этот email уже зарегистрирован через Google. Используйте вход через Google.',
+          provider: 'google',
+        });
       }
       
-      throw new BadRequestException('Email уже зарегистрирован');
+      // Если пользователь уже существует с паролем
+      if (existingUser.password) {
+        throw new BadRequestException('Email уже зарегистрирован');
+      }
+      
+      // Если пользователь существует без пароля (неожиданная ситуация)
+      throw new BadRequestException('Этот email уже используется. Попробуйте войти.');
     }
 
     // 2. Валидация нового пользователя
@@ -157,8 +146,13 @@ export class AuthService {
       await this.emailService.sendVerificationEmail(savedUser.email, verificationToken);
       console.log('📧 Verification email sent to:', email);
     } catch (emailError) {
-      console.error('⚠️ Failed to send verification email:', emailError.message);
-      // Не бросаем ошибку - регистрация прошла успешно
+      console.error('❌ Failed to send verification email:', emailError);
+      // ⚠️ ВАЖНО: Удаляем пользователя если письмо не отправлено
+      await this.userRepository.remove(savedUser);
+      throw new BadRequestException({
+        message: 'Не удалось отправить письмо с подтверждением. Проверьте правильность email или попробуйте позже.',
+        emailError: true,
+      });
     }
 
     // 6. ❗ НЕ генерируем JWT токен - пользователь должен подтвердить email!
@@ -235,15 +229,18 @@ export class AuthService {
     try {
       await this.emailService.sendVerificationEmail(email, verificationToken);
       console.log('📧 Verification email resent to:', email);
+      
+      return {
+        success: true,
+        message: 'Письмо с подтверждением отправлено повторно. Проверьте почту.',
+      };
     } catch (emailError) {
-      console.error('⚠️ Failed to resend verification email:', emailError.message);
-      throw new BadRequestException('Не удалось отправить письмо. Попробуйте позже.');
+      console.error('❌ Failed to resend verification email:', emailError);
+      throw new BadRequestException({
+        message: 'Не удалось отправить письмо. Попробуйте позже.',
+        error: emailError.message,
+      });
     }
-
-    return {
-      success: true,
-      message: 'Письмо с подтверждением отправлено повторно. Проверьте почту.',
-    };
   }
 
   // ================================
@@ -269,7 +266,7 @@ export class AuthService {
     // Проверка: если аккаунт через Google без пароля
     if (!user.password) {
       throw new BadRequestException({
-        message: 'Этот email зарегистрирован через Google. Используйте вход через Google или установите пароль через регистрацию.',
+        message: 'Этот email зарегистрирован через Google. Используйте вход через Google.',
         provider: 'google',
         hasGoogleAccount: true
       });
