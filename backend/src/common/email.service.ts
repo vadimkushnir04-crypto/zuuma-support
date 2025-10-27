@@ -65,15 +65,17 @@ export class EmailService {
       if (error) {
         console.error('❌ [EmailService] SMTP connection FAILED!');
         console.error('❌ [EmailService] Error:', error.message);
-        console.error('❌ [EmailService] Error code:', error.code);
         
         // Детальная диагностика
         if (error.message.includes('authentication failed')) {
           console.error('❌ [EmailService] Authentication problem:');
-          console.error('   1. Check SMTP_USER and SMTP_PASS are correct');
-          console.error('   2. For Gmail: Enable App Passwords (https://myaccount.google.com/apppasswords)');
-          console.error('   3. For Yandex: Create App Password (https://id.yandex.ru/security/app-passwords)');
-          console.error('   4. For Mail.ru: Check password for external apps is enabled');
+          console.error('   ⚠️  You are using WRONG password!');
+          console.error('   ✅ Solution:');
+          console.error('   1. Go to: https://id.yandex.ru/security/app-passwords');
+          console.error('   2. Create App Password for "Mail"');
+          console.error('   3. Copy the 16-character password (without spaces!)');
+          console.error('   4. Update SMTP_PASS in Dokploy with this password');
+          console.error('   5. Restart the backend service');
         } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
           console.error('❌ [EmailService] Connection problem:');
           console.error('   1. Check SMTP_HOST is correct:', smtpHost);
@@ -134,7 +136,7 @@ export class EmailService {
       console.log('✅ [EmailService] Email sent successfully!');
       console.log('✅ [EmailService] Message ID:', info.messageId);
       console.log('✅ [EmailService] Response:', info.response);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ [EmailService] Failed to send email');
       console.error('❌ [EmailService] To:', email);
       console.error('❌ [EmailService] Error:', error.message);
