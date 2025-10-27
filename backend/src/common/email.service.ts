@@ -18,79 +18,69 @@ export class EmailService {
     console.log('📧 [EmailService] From Email:', this.fromEmail);
     console.log('📧 [EmailService] Frontend URL:', this.frontendUrl);
 
-    // Проверяем SMTP настройки
-    const smtpHost = this.configService.get<string>('SMTP_HOST');
-    const smtpPort = this.configService.get<number>('SMTP_PORT');
-    const smtpUser = this.configService.get<string>('SMTP_USER');
-    const smtpPass = this.configService.get<string>('SMTP_PASS');
-    const smtpSecure = this.configService.get<boolean>('SMTP_SECURE') ?? true;
+    // ✅ Yandex Cloud Postbox использует AWS SES-совместимый SMTP
+    const smtpHost = this.configService.get<string>('SMTP_HOST') || 'smtp.postbox.cloud.yandex.net';
+    const smtpPort = this.configService.get<number>('SMTP_PORT') || 587;
+    const smtpUser = this.configService.get<string>('POSTBOX_SMTP_USER');
+    const smtpPass = this.configService.get<string>('POSTBOX_SMTP_PASS');
 
-    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-      console.error('❌ [EmailService] CRITICAL: SMTP credentials not configured!');
+    if (!smtpUser || !smtpPass) {
+      console.error('❌ [EmailService] CRITICAL: Postbox SMTP credentials not configured!');
       console.error('❌ [EmailService] Required variables:');
-      console.error('   - SMTP_HOST:', smtpHost ? '✓' : '✗');
-      console.error('   - SMTP_PORT:', smtpPort ? '✓' : '✗');
-      console.error('   - SMTP_USER:', smtpUser ? '✓' : '✗');
-      console.error('   - SMTP_PASS:', smtpPass ? '✓' : '✗');
-      console.error('❌ [EmailService] Email sending is DISABLED');
-      console.error('❌ [EmailService] Registration will NOT work without email verification!');
+      console.error('   - POSTBOX_SMTP_USER (from Yandex Cloud Postbox)');
+      console.error('   - POSTBOX_SMTP_PASS (from Yandex Cloud Postbox)');
+      console.error('');
+      console.error('📝 How to get credentials:');
+      console.error('   1. Go to: https://console.cloud.yandex.ru/folders');
+      console.error('   2. Select your folder');
+      console.error('   3. Go to: Postbox → Addresses → zuuma.ru');
+      console.error('   4. Click "Generate SMTP credentials"');
+      console.error('   5. Copy username and password');
+      console.error('');
       this.isEnabled = false;
       return;
     }
 
-    console.log('📧 [EmailService] SMTP Configuration:');
+    console.log('📧 [EmailService] Postbox SMTP Configuration:');
     console.log('   - Host:', smtpHost);
     console.log('   - Port:', smtpPort);
     console.log('   - User:', smtpUser);
-    console.log('   - Secure:', smtpSecure);
 
-    // Создаем транспорт
+    // Создаем транспорт для Yandex Cloud Postbox
     this.transporter = nodemailer.createTransport({
       host: smtpHost,
       port: smtpPort,
-      secure: smtpSecure, // true for 465, false for 587
+      secure: false, // Postbox uses STARTTLS on port 587
       auth: {
         user: smtpUser,
         pass: smtpPass,
       },
-      // Добавляем таймауты
-      connectionTimeout: 10000, // 10 секунд
+      tls: {
+        rejectUnauthorized: false, // Для совместимости
+      },
+      connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 10000,
     });
 
     // Проверка подключения
-    console.log('📧 [EmailService] Testing SMTP connection...');
+    console.log('📧 [EmailService] Testing Postbox SMTP connection...');
     this.transporter.verify((error, success) => {
       if (error) {
-        console.error('❌ [EmailService] SMTP connection FAILED!');
+        console.error('❌ [EmailService] Postbox SMTP connection FAILED!');
         console.error('❌ [EmailService] Error:', error.message);
-        
-        // Детальная диагностика
-        if (error.message.includes('authentication failed')) {
-          console.error('❌ [EmailService] Authentication problem:');
-          console.error('   ⚠️  You are using WRONG password!');
-          console.error('   ✅ Solution:');
-          console.error('   1. Go to: https://id.yandex.ru/security/app-passwords');
-          console.error('   2. Create App Password for "Mail"');
-          console.error('   3. Copy the 16-character password (without spaces!)');
-          console.error('   4. Update SMTP_PASS in Dokploy with this password');
-          console.error('   5. Restart the backend service');
-        } else if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
-          console.error('❌ [EmailService] Connection problem:');
-          console.error('   1. Check SMTP_HOST is correct:', smtpHost);
-          console.error('   2. Check SMTP_PORT is correct:', smtpPort);
-          console.error('   3. Check firewall/network settings');
-        } else if (error.message.includes('certificate')) {
-          console.error('❌ [EmailService] SSL/TLS problem:');
-          console.error('   1. For port 465: Set SMTP_SECURE=true');
-          console.error('   2. For port 587: Set SMTP_SECURE=false');
-        }
-        
+        console.error('');
+        console.error('🔧 Troubleshooting:');
+        console.error('   1. Check POSTBOX_SMTP_USER and POSTBOX_SMTP_PASS are correct');
+        console.error('   2. Make sure credentials are from Yandex Cloud Postbox');
+        console.error('   3. Verify domain zuuma.ru is verified in Postbox');
+        console.error('   4. Check if Postbox address is active');
+        console.error('');
         this.isEnabled = false;
       } else {
-        console.log('✅ [EmailService] SMTP connection successful!');
+        console.log('✅ [EmailService] Postbox SMTP connection successful!');
         console.log('✅ [EmailService] Email sending is ENABLED');
+        console.log('✅ [EmailService] Using Yandex Cloud Postbox');
         this.isEnabled = true;
       }
     });
@@ -98,8 +88,8 @@ export class EmailService {
 
   async sendVerificationEmail(email: string, token: string): Promise<void> {
     if (!this.isEnabled || !this.transporter) {
-      const errorMsg = 'Email sending is temporarily unavailable. Please contact administrator to configure SMTP settings.';
-      console.error('❌ [EmailService] Cannot send email - SMTP not configured');
+      const errorMsg = 'Email sending is temporarily unavailable. Please configure Yandex Cloud Postbox credentials.';
+      console.error('❌ [EmailService] Cannot send email - Postbox not configured');
       throw new Error(errorMsg);
     }
 
@@ -108,6 +98,7 @@ export class EmailService {
     console.log('📧 [EmailService] Preparing verification email...');
     console.log('📧 [EmailService] To:', email);
     console.log('📧 [EmailService] From:', this.fromEmail);
+    console.log('📧 [EmailService] Via: Yandex Cloud Postbox');
     console.log('📧 [EmailService] Verification URL:', verificationUrl);
 
     try {
@@ -133,11 +124,11 @@ export class EmailService {
         `,
       });
 
-      console.log('✅ [EmailService] Email sent successfully!');
+      console.log('✅ [EmailService] Email sent successfully via Postbox!');
       console.log('✅ [EmailService] Message ID:', info.messageId);
       console.log('✅ [EmailService] Response:', info.response);
     } catch (error: any) {
-      console.error('❌ [EmailService] Failed to send email');
+      console.error('❌ [EmailService] Failed to send email via Postbox');
       console.error('❌ [EmailService] To:', email);
       console.error('❌ [EmailService] Error:', error.message);
       
