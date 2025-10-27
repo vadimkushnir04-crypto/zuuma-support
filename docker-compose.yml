@@ -54,7 +54,8 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
-      - RESEND_API_KEY=${RESEND_API_KEY}  # ✅ ДОБАВЛЕНО!
+      - YANDEX_OAUTH_TOKEN=${YANDEX_OAUTH_TOKEN}
+      - POSTBOX_FROM_EMAIL=${POSTBOX_FROM_EMAIL}
     networks:
       - app_network
 
@@ -68,7 +69,7 @@ services:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXT_PUBLIC_SUPPORT_ASSISTANT_ID=${NEXT_PUBLIC_SUPPORT_ASSISTANT_ID}  # ✅ ДОБАВЛЕНО!
+      - NEXT_PUBLIC_SUPPORT_ASSISTANT_ID=${NEXT_PUBLIC_SUPPORT_ASSISTANT_ID}
     networks:
       - app_network
 
