@@ -20,7 +20,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [agreedToDataTransfer, setAgreedToDataTransfer] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -34,6 +33,13 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
       const res = await fetch('/api/auth/profile', {
         credentials: 'include',
       });
+      
+      if (res.status === 401) {
+        // Токен истёк или недействителен
+        setIsLoggedIn(false);
+        return;
+      }
+
       const data = await res.json();
       if (data.success && data.user) {
         setIsLoggedIn(true);
@@ -51,6 +57,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   useEffect(() => {
     setError('');
     setSuccessMessage('');
+    setShowResendButton(false);
   }, [authMode]);
 
   const handleLogout = async () => {
@@ -70,33 +77,40 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
     router.push('/');
   };
 
-    const handleGoogleLogin = async () => {
-      setError('');
-      if (!agreedToTerms || !agreedToDataTransfer) {
-        setError('Примите все условия для продолжения');
-        return;
-      }
-      window.location.href = '/api/auth/google';
-    };
+  const handleGoogleLogin = async () => {
+    setError('');
+    
+    // ✅ ФИКС: Для Google OAuth не требуем галочки заранее
+    // Yandex/Google сами покажут согласие
+    window.location.href = '/api/auth/google';
+  };
 
-    const handleEmailAuth = async () => {
+  const handleEmailAuth = async () => {
     setError('');
     setSuccessMessage('');
+    setShowResendButton(false);
 
-    if (!agreedToTerms) {
-      setError('Примите условия для продолжения');
-      return;
-    }
-
-    // ✅ Проверка корректности email
+    // ✅ Проверка email формата
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Введите корректный email-адрес');
       return;
     }
 
+    // ✅ Проверка пароля
+    if (password.length < 8) {
+      setError('Пароль должен содержать минимум 8 символов');
+      return;
+    }
+
     try {
       if (authMode === 'register') {
+        // ✅ РЕГИСТРАЦИЯ
+        if (!agreedToTerms) {
+          setError('Примите условия для регистрации');
+          return;
+        }
+
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -107,6 +121,11 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
+          // Показываем кнопку повторной отправки если это проблема с email
+          if (data.emailError || data.message?.includes('письмо')) {
+            setShowResendButton(true);
+            setResendEmail(email);
+          }
           throw new Error(data.message || data.error || 'Ошибка регистрации');
         }
 
@@ -115,18 +134,20 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           setSuccessMessage('✅ Регистрация успешна! Проверьте почту — мы отправили письмо с подтверждением.');
           setShowResendButton(true);
           setResendEmail(email);
+          // Переключаем на вход после успешной регистрации
+          setTimeout(() => {
+            setAuthMode('login');
+            setEmail('');
+            setPassword('');
+            setFullName('');
+            setAgreedToTerms(false);
+          }, 2000);
         } else {
-          setSuccessMessage('Проверьте почту — мы отправили письмо для подтверждения.');
+          setSuccessMessage('✅ Проверьте почту для подтверждения.');
         }
 
-        // Очищаем форму
-        setAuthMode('login');
-        setEmail('');
-        setPassword('');
-        setFullName('');
-        setAgreedToTerms(false);
       } else {
-        // 🔐 ЛОГИН
+        // ✅ ВХОД
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -137,16 +158,24 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         const data = await res.json();
 
         if (!res.ok) {
+          // ✅ ФИКС: Показываем кнопку повторной отправки если email не подтверждён
           if (data.requiresVerification) {
             setError('⚠️ Подтвердите email перед входом. Проверьте почту.');
             setShowResendButton(true);
             setResendEmail(data.email || email);
-            throw new Error(data.error || 'Email не подтвержден');
+            return;
+          }
+
+          // ✅ ФИКС: Если это Google аккаунт
+          if (data.hasGoogleAccount || data.provider === 'google') {
+            setError('Этот email зарегистрирован через Google. Используйте вход через Google.');
+            return;
           }
 
           throw new Error(data.message || data.error || 'Ошибка входа');
         }
 
+        // ✅ Успешный вход
         setAuthModalType(null);
         await checkAuth();
         router.push('/assistants');
@@ -157,31 +186,31 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
   };
 
   const handleResendVerification = async () => {
-  setResendLoading(true);
-  setError('');
-  setSuccessMessage('');
+    setResendLoading(true);
+    setError('');
+    setSuccessMessage('');
 
-  try {
-    const res = await fetch('/api/auth/resend-verification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email: resendEmail }),
-    });
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: resendEmail }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.error || 'Ошибка отправки письма');
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Ошибка отправки письма');
+      }
+
+      setSuccessMessage('✅ Письмо отправлено! Проверьте почту.');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setResendLoading(false);
     }
-
-    setSuccessMessage('✅ Письмо отправлено! Проверьте почту.');
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setResendLoading(false);
-  }
-};
+  };
 
   return (
     <header style={styles.header}>
@@ -219,7 +248,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           ) : (
             <>
               <button onClick={() => setAuthModalType('email')} style={styles.loginButton}>
-                Вход по Email
+                Вход
               </button>
               <button onClick={() => setAuthModalType('google')} style={styles.googleButtonHeader}>
                 Вход через Google
@@ -238,7 +267,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
             </button>
 
             <h2 style={modalStyles.title}>
-              {authMode === 'login' ? 'Вход по Email' : 'Регистрация по Email'}
+              {authMode === 'login' ? 'Вход' : 'Регистрация'}
             </h2>
 
             <div style={modalStyles.tabs}>
@@ -262,11 +291,11 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               </button>
             </div>
 
-            {/* ✅ Отображение ошибок */}
+            {/* ✅ Ошибки и успех */}
             {error && <div style={modalStyles.error}>{error}</div>}
             {successMessage && <div style={modalStyles.successBox}>{successMessage}</div>}
 
-            {/* После блока с ошибками и успехом, перед инпутами */}
+            {/* ✅ Кнопка повторной отправки */}
             {showResendButton && (
               <div style={modalStyles.resendSection}>
                 <p style={modalStyles.resendText}>
@@ -278,33 +307,13 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
                   style={{
                     ...modalStyles.resendButton,
                     opacity: resendLoading ? 0.5 : 1,
+                    cursor: resendLoading ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {resendLoading ? 'Отправка...' : 'Отправить письмо повторно'}
+                  {resendLoading ? 'Отправка...' : 'Отправить повторно'}
                 </button>
               </div>
             )}
-
-            <div style={modalStyles.consents}>
-              <label style={modalStyles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  style={modalStyles.checkbox}
-                />
-                <span style={modalStyles.checkboxText}>
-                  Я принимаю{' '}
-                  <a href="/terms" target="_blank" style={modalStyles.link}>
-                    Пользовательское соглашение
-                  </a>
-                  {' '}и{' '}
-                  <a href="/privacy" target="_blank" style={modalStyles.link}>
-                    Политику конфиденциальности
-                  </a>
-                </span>
-              </label>
-            </div>
 
             <div style={modalStyles.section}>
               {authMode === 'register' && (
@@ -345,13 +354,37 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
                 />
               </div>
 
+              {/* ✅ ФИКС: Галочка ПЕРЕД кнопкой, только для регистрации */}
+              {authMode === 'register' && (
+                <div style={modalStyles.consents}>
+                  <label style={modalStyles.checkboxLabel}>
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      style={modalStyles.checkbox}
+                    />
+                    <span style={modalStyles.checkboxText}>
+                      Я принимаю{' '}
+                      <a href="/terms" target="_blank" style={modalStyles.link}>
+                        Пользовательское соглашение
+                      </a>
+                      {' '}и{' '}
+                      <a href="/privacy" target="_blank" style={modalStyles.link}>
+                        Политику конфиденциальности
+                      </a>
+                    </span>
+                  </label>
+                </div>
+              )}
+
               <button
                 onClick={handleEmailAuth}
-                disabled={!agreedToTerms}
+                disabled={authMode === 'register' && !agreedToTerms}
                 style={{
                   ...modalStyles.submitButton,
-                  opacity: !agreedToTerms ? 0.5 : 1,
-                  cursor: !agreedToTerms ? 'not-allowed' : 'pointer',
+                  opacity: (authMode === 'register' && !agreedToTerms) ? 0.5 : 1,
+                  cursor: (authMode === 'register' && !agreedToTerms) ? 'not-allowed' : 'pointer',
                 }}
               >
                 {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
@@ -363,13 +396,8 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
             </div>
 
             <button
-              onClick={handleGoogleLogin}
-              disabled={!agreedToTerms}
-              style={{
-                ...modalStyles.alternativeButton,
-                opacity: !agreedToTerms ? 0.5 : 1,
-                cursor: !agreedToTerms ? 'not-allowed' : 'pointer',
-              }}
+              onClick={handleGoogleSignIn}
+              style={modalStyles.alternativeButton}
             >
               Продолжить с Google
             </button>
@@ -377,7 +405,7 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         </div>
       )}
 
-      {/* Google Auth Modal */}
+      {/* ✅ ФИКС: Упрощённое Google Auth Modal */}
       {authModalType === 'google' && (
         <div style={modalStyles.overlay} onClick={() => setAuthModalType(null)}>
           <div style={modalStyles.modal} onClick={(e) => e.stopPropagation()}>
@@ -389,55 +417,27 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
 
             {error && <div style={modalStyles.error}>{error}</div>}
 
-            <div style={modalStyles.consents}>
-              <label style={modalStyles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  style={modalStyles.checkbox}
-                />
-                <span style={modalStyles.checkboxText}>
-                  Я принимаю{' '}
-                  <a href="/terms" target="_blank" style={modalStyles.link}>
-                    Пользовательское соглашение
-                  </a>
-                  {' '}и{' '}
-                  <a href="/privacy" target="_blank" style={modalStyles.link}>
-                    Политику конфиденциальности
-                  </a>
-                </span>
-              </label>
-
-              <label style={modalStyles.checkboxLabel}>
-                <input
-                  type="checkbox"
-                  checked={agreedToDataTransfer}
-                  onChange={(e) => setAgreedToDataTransfer(e.target.checked)}
-                  style={modalStyles.checkbox}
-                />
-                <span style={modalStyles.checkboxText}>
-                  Я согласен на передачу данных Google
-                </span>
-              </label>
+            {/* ✅ Информация о согласии */}
+            <div style={modalStyles.infoBox}>
+              <p style={modalStyles.infoText}>
+                При входе через Google вы автоматически соглашаетесь с{' '}
+                <a href="/terms" target="_blank" style={modalStyles.link}>
+                  Пользовательским соглашением
+                </a>
+                {' '}и{' '}
+                <a href="/privacy" target="_blank" style={modalStyles.link}>
+                  Политикой конфиденциальности
+                </a>.
+              </p>
+              <p style={modalStyles.infoText}>
+                Google запросит ваше согласие на передачу данных.
+              </p>
             </div>
 
-            {(!agreedToTerms || !agreedToDataTransfer) && (
-              <div style={modalStyles.warningBox}>
-                <p style={modalStyles.warningText}>
-                  Примите оба условия для продолжения
-                </p>
-              </div>
-            )}
-
+            {/* ✅ ФИКС: Убрали все галочки, просто кнопка */}
             <button
               onClick={handleGoogleLogin}
-              disabled={!agreedToTerms || !agreedToDataTransfer}
-              style={{
-                ...modalStyles.googleButton,
-                opacity: (!agreedToTerms || !agreedToDataTransfer) ? 0.5 : 1,
-                cursor: (!agreedToTerms || !agreedToDataTransfer) ? 'not-allowed' : 'pointer',
-              }}
+              style={modalStyles.googleButton}
             >
               Войти через Google
             </button>
@@ -583,6 +583,7 @@ const modalStyles = {
     overflowY: 'auto' as const,
     border: '1px solid #444444',
     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+    position: 'relative' as const,
   },
   closeButton: {
     position: 'absolute' as const,
@@ -649,7 +650,7 @@ const modalStyles = {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '12px',
-    marginBottom: '24px',
+    marginBottom: '16px',
   },
   checkboxLabel: {
     display: 'flex',
@@ -705,20 +706,6 @@ const modalStyles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
-  hint: {
-    textAlign: 'center' as const,
-    fontSize: '14px',
-    color: '#B0B0B0',
-    marginTop: '16px',
-  },
-  linkButton: {
-    background: 'none',
-    border: 'none',
-    color: '#888888',
-    textDecoration: 'underline',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
   alternative: {
     marginTop: '24px',
     textAlign: 'center' as const,
@@ -738,17 +725,18 @@ const modalStyles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
-  warningBox: {
-    padding: '12px',
-    background: '#ff9800',
+  infoBox: {
+    padding: '16px',
+    background: '#1a1a1a',
     borderRadius: '8px',
-    marginBottom: '16px',
+    marginBottom: '20px',
+    border: '1px solid #444444',
   },
-  warningText: {
+  infoText: {
     fontSize: '13px',
-    color: 'white',
-    margin: 0,
-    textAlign: 'center' as const,
+    color: '#B0B0B0',
+    margin: '0 0 8px 0',
+    lineHeight: '1.5',
   },
   googleButton: {
     display: 'flex',
@@ -763,18 +751,20 @@ const modalStyles = {
     fontWeight: 600,
     cursor: 'pointer',
     transition: 'all 0.2s',
+    width: '100%',
   },
-
-    resendSection: {
+  resendSection: {
     marginTop: '16px',
+    marginBottom: '16px',
     padding: '12px',
-    background: '#f8f9fa',
+    background: '#1a1a1a',
     borderRadius: '8px',
     textAlign: 'center' as const,
+    border: '1px solid #444444',
   },
   resendText: {
     fontSize: '14px',
-    color: '#666',
+    color: '#B0B0B0',
     marginBottom: '8px',
   },
   resendButton: {
@@ -787,5 +777,4 @@ const modalStyles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
-
 };
