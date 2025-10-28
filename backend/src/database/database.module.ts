@@ -17,6 +17,7 @@ import { SupportManager } from '../support/entities/support-manager.entity';
 import { Subscription } from '../entities/subscription.entity';
 import { Payment } from '../entities/payment.entity';
 import { LoginVerificationToken } from '../entities/login-verification-token.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { LoginVerificationToken } from '../entities/login-verification-token.ent
         Subscription,
         Payment,
         LoginVerificationToken,
+        PasswordResetToken,
       ],
       synchronize: false,
       logging: process.env.NODE_ENV === 'development',

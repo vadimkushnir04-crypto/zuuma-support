@@ -134,14 +134,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           setSuccessMessage('✅ Регистрация успешна! Проверьте почту — мы отправили письмо с подтверждением.');
           setShowResendButton(true);
           setResendEmail(email);
-          // Переключаем на вход после успешной регистрации
-          setTimeout(() => {
-            setAuthMode('login');
-            setEmail('');
-            setPassword('');
-            setFullName('');
-            setAgreedToTerms(false);
-          }, 6000);
         } else {
           setSuccessMessage('✅ Проверьте почту для подтверждения.');
         }
@@ -179,10 +171,6 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
         if (data.requiresLoginVerification) {
           setSuccessMessage('📧 Письмо для подтверждения входа отправлено! Проверьте почту.');
           setShowResendButton(false);
-          setTimeout(() => {
-            setAuthModalType(null); // ← Вместо closeAuthModal()
-          }, 6000);
-          return;
         }
 
         // ✅ Проверка emailVerified (на случай прямого входа без email verification)
@@ -219,12 +207,17 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
       const data = await res.json();
 
       if (!res.ok) {
+        // ✅ Специальная обработка rate limit
+        if (data.error?.includes('Слишком много') || data.error?.includes('много запросов')) {
+          throw new Error('⚠️ Слишком много попыток. Подождите немного.');
+        }
+        
         throw new Error(data.error || data.message || 'Ошибка отправки письма');
       }
 
-      setSuccessMessage('✅ Письмо отправлено! Проверьте почту.');
+      setSuccessMessage('✅ Письмо отправлено! Проверьте почту (включая Спам).');
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Произошла ошибка. Попробуйте позже.');
     } finally {
       setResendLoading(false);
     }
@@ -311,7 +304,17 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
 
             {/* ✅ Ошибки и успех */}
             {error && <div style={modalStyles.error}>{error}</div>}
-            {successMessage && <div style={modalStyles.successBox}>{successMessage}</div>}
+            {successMessage && (
+              <>
+                <div style={modalStyles.successBox}>{successMessage}</div>
+                {/* ✅ ДОБАВЬ ЭТО: */}
+                <div style={modalStyles.infoBox}>
+                  <p style={modalStyles.infoText}>
+                    💡 Письмо может прийти с задержкой до 2-3 минут. Проверьте папку "Спам".
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* ✅ Кнопка повторной отправки */}
             {showResendButton && (
@@ -760,11 +763,12 @@ const modalStyles = {
     transition: 'all 0.2s',
   },
   infoBox: {
-    padding: '16px',
     background: '#1a1a1a',
-    borderRadius: '8px',
-    marginBottom: '20px',
     border: '1px solid #444444',
+    borderRadius: '8px',
+    padding: '12px',
+    marginTop: '12px',
+    marginBottom: '16px',
   },
   infoText: {
     fontSize: '13px',
@@ -824,5 +828,4 @@ const modalStyles = {
     cursor: 'pointer',
     padding: '4px',
   },
-
 };

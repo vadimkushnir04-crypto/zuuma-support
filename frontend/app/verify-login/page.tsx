@@ -1,14 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 export default function VerifyLoginPage() {
   const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
   const [message, setMessage] = useState('Подтверждаем вход...');
-  const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token');
+    const token = searchParams.get('token');
     
     if (!token) {
       setStatus('error');
@@ -38,7 +38,7 @@ export default function VerifyLoginPage() {
         setStatus('error');
         setMessage(err.message);
       });
-  }, [router]);
+  }, [searchParams]);
 
   return (
     <div style={styles.container}>
@@ -47,8 +47,10 @@ export default function VerifyLoginPage() {
         {status === 'success' && <div style={styles.successIcon}>✓</div>}
         {status === 'error' && <div style={styles.errorIcon}>✕</div>}
         
-        <h2>{status === 'success' ? 'Успешно!' : status === 'error' ? 'Ошибка' : 'Проверка...'}</h2>
-        <p>{message}</p>
+        <h2 style={styles.title}>
+          {status === 'success' ? 'Успешно!' : status === 'error' ? 'Ошибка' : 'Проверка...'}
+        </h2>
+        <p style={styles.message}>{message}</p>
       </div>
     </div>
   );
@@ -73,15 +75,6 @@ const styles = {
     textAlign: 'center' as const,
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
   },
-  iconContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '80px',
-    height: '80px',
-    margin: '0 auto 24px',
-    borderRadius: '50%',
-  },
   spinner: {
     width: '48px',
     height: '48px',
@@ -89,6 +82,7 @@ const styles = {
     borderTop: '4px solid #888888',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
+    margin: '0 auto 24px',
   },
   successIcon: {
     width: '80px',
@@ -101,6 +95,7 @@ const styles = {
     fontSize: '48px',
     color: 'white',
     fontWeight: 'bold' as const,
+    margin: '0 auto 24px',
   },
   errorIcon: {
     width: '80px',
@@ -113,9 +108,10 @@ const styles = {
     fontSize: '48px',
     color: 'white',
     fontWeight: 'bold' as const,
+    margin: '0 auto 24px',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '24px',
     fontWeight: 600,
     marginBottom: '12px',
     color: '#E0E0E0',
@@ -123,41 +119,6 @@ const styles = {
   message: {
     fontSize: '16px',
     color: '#B0B0B0',
-    marginBottom: '32px',
     lineHeight: '1.6',
-  },
-  progressContainer: {
-    width: '100%',
-    height: '4px',
-    background: '#444444',
-    borderRadius: '2px',
-    overflow: 'hidden',
-    marginBottom: '24px',
-  },
-  progressBar: {
-    height: '100%',
-    background: '#888888',
-    animation: 'progress 4s linear', // 4 секунды до редиректа
-  },
-  button: {
-    padding: '12px 32px',
-    background: '#888888',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '16px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  actions: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '16px',
-  },
-  link: {
-    color: '#888888',
-    textDecoration: 'none',
-    fontSize: '14px',
   },
 };
