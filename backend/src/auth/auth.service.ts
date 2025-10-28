@@ -13,6 +13,7 @@ import { EmailService } from '../common/email.service';
 import { LoginVerificationToken } from '../entities/login-verification-token.entity';
 import { MoreThan } from 'typeorm';
 import { randomBytes } from 'crypto';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +24,8 @@ export class AuthService {
     private readonly emailService: EmailService,
     @InjectRepository(LoginVerificationToken)
     private loginTokenRepository: Repository<LoginVerificationToken>,
+    @InjectRepository(PasswordResetToken)
+    private passwordResetRepository: Repository<PasswordResetToken>,
   ) {}
 
   // ================================
@@ -463,4 +466,102 @@ export class AuthService {
       emailVerified: user.email_verified,
     };
   }
+
+  // ✅ Запрос на сброс пароля
+  async requestPasswordReset(email: string) {
+    const user = await this.userRepository.findOne({ where: { email } });
+
+    if (!user) {
+      // ⚠️ Не говорим что пользователя нет (безопасность)
+      return {
+        success: true,
+        message: 'Если аккаунт существует, письмо будет отправлено на указанный email.',
+      };
+    }
+
+    // Проверка Google аккаунта
+    if (user.provider === 'google' && !user.password) {
+      throw new BadRequestException(
+        'Этот аккаунт зарегистрирован через Google. Используйте вход через Google.'
+      );
+    }
+
+    // Rate limiting: не более 3 запросов за 15 минут
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const recentTokens = await this.passwordResetRepository.count({
+      where: {
+        user_id: user.id,
+        created_at: MoreThan(fifteenMinutesAgo),
+      },
+    });
+
+    if (recentTokens >= 3) {
+      throw new BadRequestException(
+        'Слишком много запросов на сброс пароля. Подождите 15 минут.'
+      );
+    }
+
+    // Генерируем токен
+    const resetToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1 час
+
+    await this.passwordResetRepository.save({
+      user_id: user.id,
+      token: resetToken,
+      expires_at: expiresAt,
+      used: false,
+    });
+
+    // Отправляем письмо
+    try {
+      await this.emailService.sendPasswordResetEmail(user.email, resetToken);
+      console.log('📧 Password reset email sent to:', email);
+    } catch (error) {
+      console.error('❌ Failed to send reset email:', error);
+      throw new BadRequestException('Не удалось отправить письмо. Попробуйте позже.');
+    }
+
+    return {
+      success: true,
+      message: 'Если аккаунт существует, письмо с инструкциями отправлено на email.',
+    };
+  }
+
+  // ✅ Сброс пароля
+  async resetPassword(token: string, newPassword: string) {
+    const resetToken = await this.passwordResetRepository.findOne({
+      where: { token, used: false },
+      relations: ['user'],
+    });
+
+    if (!resetToken) {
+      throw new BadRequestException('Недействительная или использованная ссылка.');
+    }
+
+    if (new Date() > resetToken.expires_at) {
+      throw new BadRequestException('Ссылка для сброса пароля истекла.');
+    }
+
+    if (newPassword.length < 8) {
+      throw new BadRequestException('Пароль должен содержать минимум 8 символов.');
+    }
+
+    // Обновляем пароль
+    const user = resetToken.user;
+    user.password = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.save(user);
+
+    // Помечаем токен как использованный
+    resetToken.used = true;
+    await this.passwordResetRepository.save(resetToken);
+
+    console.log('✅ Password reset for user:', user.id);
+
+    return {
+      success: true,
+      message: 'Пароль успешно изменён. Теперь вы можете войти с новым паролем.',
+    };
+  }
+
 }

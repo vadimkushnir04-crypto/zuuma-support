@@ -219,4 +219,62 @@ export class EmailService {
   isEmailServiceEnabled(): boolean {
     return this.isEnabled;
   }
+
+  async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    if (!this.isEnabled || !this.transporter) {
+      throw new Error('Email sending is temporarily unavailable.');
+    }
+
+    const resetUrl = `${this.frontendUrl}/reset-password?token=${token}`;
+
+    console.log('📧 [EmailService] Sending password reset email to:', email);
+
+    try {
+      await this.transporter.sendMail({
+        from: `Vadim from Zuuma <${this.fromEmail}>`,
+        to: email,
+        subject: '🔑 Сброс пароля - Zuuma',
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+              <h2>🔑 Сброс пароля</h2>
+              
+              <p>Вы запросили сброс пароля для аккаунта <strong>${email}</strong>.</p>
+              
+              <p>Нажмите на кнопку ниже чтобы создать новый пароль:</p>
+              
+              <a href="${resetUrl}" style="display: inline-block; background-color: #4a4a4a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+                Сбросить пароль
+              </a>
+
+              <p style="color: #999; font-size: 14px;">Ссылка действительна 1 час.</p>
+
+              <p>Или скопируйте ссылку:</p>
+              <p style="word-break: break-all; color: #666; font-size: 13px;">${resetUrl}</p>
+
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+
+              <p style="color: #d9534f; font-weight: bold;">⚠️ Если вы НЕ запрашивали сброс пароля:</p>
+              <ul style="color: #666;">
+                <li>Проигнорируйте это письмо</li>
+                <li>Ваш пароль не изменится</li>
+                <li>Возможно кто-то пытается получить доступ к вашему аккаунту</li>
+              </ul>
+
+              <p style="margin-top: 32px; font-size: 12px; color: #999;">
+                По вопросам: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a>
+              </p>
+            </body>
+          </html>
+        `,
+      });
+
+      console.log('✅ [EmailService] Password reset email sent');
+    } catch (error: any) {
+      console.error('❌ [EmailService] Failed to send reset email:', error.message);
+      throw new Error(`Failed to send password reset email: ${error.message}`);
+    }
+  }
+
 }

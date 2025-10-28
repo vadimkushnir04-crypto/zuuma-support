@@ -407,6 +407,22 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
               >
                 {authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
               </button>
+
+              {/* ✅ Забыли пароль? */}
+              {authMode === 'login' && (
+                <div style={modalStyles.forgotPasswordContainer}>
+                  <button
+                    onClick={() => {
+                      setAuthModalType(null);
+                      router.push('/forgot-password');
+                    }}
+                    style={modalStyles.forgotPasswordLink}
+                  >
+                    Забыли пароль?
+                  </button>
+                </div>
+              )}
+
             </div>
 
             <div style={modalStyles.alternative}>
@@ -795,4 +811,18 @@ const modalStyles = {
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
+
+    forgotPasswordContainer: {
+    marginTop: '12px',
+    textAlign: 'center' as const,
+  },
+  forgotPasswordLink: {
+    background: 'none',
+    border: 'none',
+    color: '#888888',
+    fontSize: '14px',
+    cursor: 'pointer',
+    padding: '4px',
+  },
+
 };

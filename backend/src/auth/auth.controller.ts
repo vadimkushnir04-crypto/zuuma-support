@@ -231,6 +231,47 @@ export class AuthController {
     }
   }
 
+  // ✅ Запрос на сброс пароля
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    console.log('📧 Password reset request for:', body.email);
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      throw new BadRequestException('Введите корректный email-адрес.');
+    }
+
+    try {
+      const result = await this.authService.requestPasswordReset(body.email);
+      return result;
+    } catch (err: any) {
+      throw new HttpException(
+        { success: false, error: err.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  // ✅ Сброс пароля
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; password: string }) {
+    console.log('🔑 Password reset attempt');
+
+    if (!body.token || !body.password) {
+      throw new BadRequestException('Токен и пароль обязательны.');
+    }
+
+    try {
+      const result = await this.authService.resetPassword(body.token, body.password);
+      return result;
+    } catch (err: any) {
+      throw new HttpException(
+        { success: false, error: err.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
   // ============================================
   // ПРОФИЛЬ
   // ============================================

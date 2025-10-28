@@ -15,6 +15,7 @@ import { AuditLog } from '../common/entities/audit-log.entity';
 import { AuditLogModule } from '../common/audit-log.module';
 import { EmailService } from '../common/email.service';
 import { LoginVerificationToken } from '../entities/login-verification-token.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { LoginVerificationToken } from '../entities/login-verification-token.ent
       TokenBalance, 
       Plan,
       AuditLog,
-      LoginVerificationToken 
+      LoginVerificationToken,
+      PasswordResetToken
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

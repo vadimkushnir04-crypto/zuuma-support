@@ -16,6 +16,7 @@ import { SupportManager } from '../support/entities/support-manager.entity';
 
 import { Subscription } from '../entities/subscription.entity';
 import { Payment } from '../entities/payment.entity';
+import { LoginVerificationToken } from '../entities/login-verification-token.entity';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { Payment } from '../entities/payment.entity';
         SupportManager,
         Subscription,
         Payment,
+        LoginVerificationToken,
       ],
       synchronize: false,
       logging: process.env.NODE_ENV === 'development',
