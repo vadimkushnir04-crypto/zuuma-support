@@ -273,6 +273,48 @@ export class AuthController {
   }
 
   // ============================================
+// ПОДТВЕРЖДЕНИЕ ВХОДА (Login Verification)
+// ============================================
+
+  @Post('verify-login')
+  async verifyLogin(
+    @Body() body: { token: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    console.log('🔐 Verifying login token');
+    
+    try {
+      if (!body.token) {
+        throw new BadRequestException('Токен не предоставлен');
+      }
+
+      const result = await this.authService.verifyLoginToken(body.token);
+
+      // Устанавливаем cookie для автовхода
+      res.cookie('token', result.token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      console.log('✅ Login token verified successfully');
+
+      return {
+        success: true,
+        message: 'Вход подтверждён!',
+        user: result.user,
+      };
+    } catch (err: any) {
+      console.error('❌ Login verification error:', err.message);
+      throw new HttpException(
+        { success: false, error: err.message },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  // ============================================
   // ПРОФИЛЬ
   // ============================================
 

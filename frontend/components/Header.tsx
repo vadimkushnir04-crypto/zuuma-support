@@ -138,54 +138,39 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           setSuccessMessage('✅ Проверьте почту для подтверждения.');
         }
 
-      } else if (authMode === 'login') {
-        // ✅ ВХОД
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ email, password }),
-        });
+        } else if (authMode === 'login') {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ email, password }),
+          });
 
-        const data = await res.json();
+          const data = await res.json();
 
-        if (!res.ok) {
-          // ✅ Проверка на неподтвержденный email при регистрации
-          if (data.requiresVerification) {
-            setError('⚠️ Подтвердите email перед входом. Проверьте почту.');
-            setShowResendButton(true);
-            setResendEmail(data.email || email);
-            return;
+          if (!res.ok) {
+            if (data.requiresVerification) {
+              setError('⚠️ Подтвердите email перед входом.');
+              setShowResendButton(true);
+              setResendEmail(data.email || email);
+              return;
+            }
+
+            if (data.hasGoogleAccount || data.provider === 'google') {
+              setError('Этот email через Google. Используйте вход через Google.');
+              return;
+            }
+
+            throw new Error(data.error || data.message || 'Ошибка входа');
           }
 
-          // ✅ Проверка на Google аккаунт
-          if (data.hasGoogleAccount || data.provider === 'google') {
-            setError('Этот email зарегистрирован через Google. Используйте вход через Google.');
-            return;
+          // ✅ Если requiresLoginVerification - ТОЛЬКО показываем сообщение
+          if (data.requiresLoginVerification) {
+            setSuccessMessage('📧 Письмо для входа отправлено! Проверьте почту (включая Спам).');
+            return; // ← ВАЖНО: return БЕЗ редиректа!
           }
 
-          throw new Error(data.message || data.error || 'Ошибка входа');
         }
-
-        // ✅ Если требуется подтверждение входа через email
-        if (data.requiresLoginVerification) {
-          setSuccessMessage('📧 Письмо для подтверждения входа отправлено! Проверьте почту.');
-          setShowResendButton(false);
-        }
-
-        // ✅ Проверка emailVerified (на случай прямого входа без email verification)
-        if (data.user && !data.user.emailVerified) {
-          setError('Пожалуйста, подтвердите ваш email. Письмо было отправлено при регистрации.');
-          setShowResendButton(true);
-          setResendEmail(email);
-          return;
-        }
-
-        // ✅ Успешный вход (если вдруг нет requiresLoginVerification)
-        setAuthModalType(null);
-        await checkAuth();
-        router.push('/assistants');
-      }
     } catch (err: any) {
       setError(err.message);
     }
