@@ -9,8 +9,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
 import { EmailService } from '../common/email.service';
+import { LoginVerificationToken } from '../entities/login-verification-token.entity';
+import { MoreThan } from 'typeorm';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,8 @@ export class AuthService {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly emailService: EmailService,
+    @InjectRepository(LoginVerificationToken)
+    private loginTokenRepository: Repository<LoginVerificationToken>,
   ) {}
 
   // ================================
@@ -298,30 +302,91 @@ export class AuthService {
       });
     }
 
-    // ✅ Все проверки пройдены - разрешаем вход
-    user.last_login_at = new Date();
-    await this.userRepository.save(user);
-
-    const token = this.generateToken(user.id, user.email);
-
-    console.log('✅ Login successful:', user.id);
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        avatarUrl: user.avatar_url,
-        plan: user.plan,
-        tokensUsed: user.tokens_used,
-        tokensLimit: user.tokens_limit,
-        assistantsLimit: user.assistants_limit,
-        createdAt: user.created_at?.toISOString(),
-        emailVerified: user.email_verified,
+    // ✅ Rate limiting: не более 3 писем за 15 минут
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    const recentTokens = await this.loginTokenRepository.count({
+      where: {
+        user_id: user.id,
+        created_at: MoreThan(fifteenMinutesAgo), // Импортируй: import { MoreThan } from 'typeorm';
       },
-      token,
+    });
+
+    if (recentTokens >= 3) {
+      console.log('⚠️ Rate limit exceeded for user:', user.id);
+      throw new BadRequestException(
+        'Слишком много попыток входа. Подождите 15 минут и попробуйте снова.'
+      );
+    }
+
+    // ✅ Генерируем токен для подтверждения входа
+    const loginToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // 15 минут
+
+    await this.loginTokenRepository.save({
+      user_id: user.id,
+      token: loginToken,
+      expires_at: expiresAt,
+      used: false,
+    });
+
+    // ✅ Отправляем письмо для подтверждения входа
+    try {
+      await this.emailService.sendLoginVerificationEmail(user.email, loginToken);
+      console.log('📧 Login verification email sent to:', email);
+    } catch (emailError) {
+      console.error('❌ Failed to send login verification email:', emailError);
+      throw new BadRequestException('Не удалось отправить письмо. Попробуйте позже.');
+    }
+
+    // ✅ Возвращаем флаг requiresLoginVerification
+    return {
+      requiresLoginVerification: true,
+      message: '📧 Письмо для подтверждения входа отправлено! Проверьте почту.',
+      email: user.email,
     };
   }
+
+  // Новый метод для подтверждения входа
+    async verifyLoginToken(token: string) {
+      const loginToken = await this.loginTokenRepository.findOne({
+        where: { token, used: false },
+        relations: ['user'],
+      });
+
+      if (!loginToken) {
+        throw new BadRequestException('Недействительная или устаревшая ссылка для входа');
+      }
+
+      if (new Date() > loginToken.expires_at) {
+        throw new BadRequestException('Ссылка для входа истекла. Попробуйте войти заново.');
+      }
+
+      // Помечаем токен как использованный
+      loginToken.used = true;
+      await this.loginTokenRepository.save(loginToken);
+
+      const user = loginToken.user;
+
+      // Обновляем last_login_at
+      user.last_login_at = new Date();
+      await this.userRepository.save(user);
+
+      // Генерируем JWT
+      const jwtToken = this.generateToken(user.id, user.email);
+
+      console.log('✅ Login verified for user:', user.id);
+
+      return {
+        token: jwtToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          emailVerified: user.email_verified,
+        },
+      };
+    }
 
   // ================================
   // ПРОФИЛЬ

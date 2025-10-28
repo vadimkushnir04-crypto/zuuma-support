@@ -158,6 +158,64 @@ export class EmailService {
     }
   }
 
+  async sendLoginVerificationEmail(email: string, token: string): Promise<void> {
+    if (!this.isEnabled || !this.transporter) {
+      throw new Error('Email sending is temporarily unavailable.');
+    }
+
+    const verificationUrl = `${this.frontendUrl}/verify-login?token=${token}`;
+
+    console.log('📧 [EmailService] Sending LOGIN verification email to:', email);
+
+    try {
+      await this.transporter.sendMail({
+        from: `Vadim from Zuuma <${this.fromEmail}>`,
+        to: email,
+        subject: '🔐 Подтвердите вход в Zuuma',
+        text: `Кто-то пытается войти в ваш аккаунт. Если это вы, перейдите по ссылке: ${verificationUrl}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+              <h2>🔐 Подтвердите вход</h2>
+              
+              <p>Кто-то пытается войти в ваш аккаунт <strong>${email}</strong>.</p>
+              
+              <p>Если это <strong>вы</strong>, подтвердите вход:</p>
+              
+              <a href="${verificationUrl}" style="display: inline-block; background-color: #4a4a4a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+                ✅ Подтвердить вход
+              </a>
+
+              <p style="color: #999; font-size: 14px;">Ссылка действительна 15 минут.</p>
+
+              <p>Или скопируйте ссылку:</p>
+              <p style="word-break: break-all; color: #666; font-size: 13px;">${verificationUrl}</p>
+
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+
+              <p style="color: #d9534f; font-weight: bold;">⚠️ Если это НЕ вы:</p>
+              <ul style="color: #666;">
+                <li>Не переходите по ссылке</li>
+                <li>Кто-то знает ваш пароль — срочно смените его</li>
+                <li>Свяжитесь с нами: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a></li>
+              </ul>
+
+              <p style="margin-top: 32px; font-size: 12px; color: #999;">
+                Это письмо отправлено автоматически. Не отвечайте на него.
+              </p>
+            </body>
+          </html>
+        `,
+      });
+
+      console.log('✅ [EmailService] Login verification email sent');
+    } catch (error: any) {
+      console.error('❌ [EmailService] Failed to send login email:', error.message);
+      throw new Error(`Failed to send login verification: ${error.message}`);
+    }
+  }
+
   isEmailServiceEnabled(): boolean {
     return this.isEnabled;
   }

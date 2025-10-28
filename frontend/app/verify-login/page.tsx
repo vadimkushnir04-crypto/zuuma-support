@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function VerifyEmailPage() {
+export default function VerifyLoginPage() {
   const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
-  const [message, setMessage] = useState('Подтверждение email...');
+  const [message, setMessage] = useState('Подтверждаем вход...');
   const router = useRouter();
 
   useEffect(() => {
@@ -16,10 +16,9 @@ export default function VerifyEmailPage() {
       return;
     }
 
-    // ✅ Отправляем токен для подтверждения
-    fetch('/api/auth/verify-email', {
+    fetch('/api/auth/verify-login', {
       method: 'POST',
-      credentials: 'include', // Для получения JWT cookie
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
     })
@@ -27,14 +26,12 @@ export default function VerifyEmailPage() {
         const data = await res.json();
         if (res.ok) {
           setStatus('success');
-          setMessage('Email успешно подтверждён! Входим в аккаунт...');
-          
-          // ✅ Автоматический вход и редирект через 4 секунды
+          setMessage('Вход подтверждён! Перенаправляем...');
           setTimeout(() => {
-            window.location.href = '/assistants'; // Полная перезагрузка страницы
-          }, 4000);
+            window.location.href = '/assistants';
+          }, 2000);
         } else {
-          throw new Error(data.error || 'Ошибка подтверждения.');
+          throw new Error(data.error || 'Ошибка подтверждения входа.');
         }
       })
       .catch((err) => {
@@ -46,73 +43,13 @@ export default function VerifyEmailPage() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        {/* Иконка статуса */}
-        <div style={styles.iconContainer}>
-          {status === 'pending' && (
-            <div style={styles.spinner}></div>
-          )}
-          {status === 'success' && (
-            <div style={styles.successIcon}>✓</div>
-          )}
-          {status === 'error' && (
-            <div style={styles.errorIcon}>✕</div>
-          )}
-        </div>
-
-        {/* Сообщение */}
-        <h2 style={styles.title}>
-          {status === 'pending' && 'Проверяем токен...'}
-          {status === 'success' && 'Успешно!'}
-          {status === 'error' && 'Ошибка'}
-        </h2>
-
-        <p style={styles.message}>{message}</p>
-
-        {/* Прогресс-бар для успешного подтверждения */}
-        {status === 'success' && (
-          <div style={styles.progressContainer}>
-            <div style={styles.progressBar}></div>
-          </div>
-        )}
-
-        {/* Кнопки действий */}
-        {status === 'success' && (
-          <button 
-            onClick={() => router.push('/assistants')}
-            style={styles.button}
-          >
-            Перейти к ассистентам
-          </button>
-        )}
-
-        {status === 'error' && (
-          <div style={styles.actions}>
-            <button 
-              onClick={() => router.push('/')}
-              style={styles.button}
-            >
-              Вернуться на главную
-            </button>
-            <a 
-              href="mailto:vadim.kushnir.04@gmail.com"
-              style={styles.link}
-            >
-              Связаться с поддержкой
-            </a>
-          </div>
-        )}
+        {status === 'pending' && <div style={styles.spinner}></div>}
+        {status === 'success' && <div style={styles.successIcon}>✓</div>}
+        {status === 'error' && <div style={styles.errorIcon}>✕</div>}
+        
+        <h2>{status === 'success' ? 'Успешно!' : status === 'error' ? 'Ошибка' : 'Проверка...'}</h2>
+        <p>{message}</p>
       </div>
-
-      {/* CSS для анимаций */}
-      <style jsx>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes progress {
-          from { width: 0%; }
-          to { width: 100%; }
-        }
-      `}</style>
     </div>
   );
 }

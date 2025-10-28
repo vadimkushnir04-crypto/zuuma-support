@@ -183,7 +183,6 @@ export class AuthController {
     const ipAddress = this.getClientIp(req);
     console.log('🔑 Login attempt:', { email: body.email });
 
-    // ✅ Проверка email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.email)) {
       throw new BadRequestException('Введите корректный email-адрес.');
@@ -192,28 +191,14 @@ export class AuthController {
     try {
       const result = await this.authService.login(body.email, body.password, ipAddress);
 
-      // 🚫 Если email не подтверждён — запрещаем вход
-      if (!result.user.emailVerified) {
-        throw new HttpException(
-          {
-            success: false,
-            message: 'Email не подтверждён. Проверьте почту.',
-            requiresVerification: true,
-            email: body.email,
-          },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      res.cookie('token', result.token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
+      // ✅ Всегда возвращаем requiresLoginVerification (после всех проверок)
+      return res.json({
+        success: true,
+        requiresLoginVerification: result.requiresLoginVerification,
+        message: result.message,
+        email: result.email,
       });
 
-      console.log('✅ Login successful:', result.user.id);
-      return res.json({ success: true, user: result.user });
     } catch (err: any) {
       console.error('❌ Login error:', err.message);
 
@@ -233,6 +218,10 @@ export class AuthController {
         throw new BadRequestException(
           'Этот email зарегистрирован через Google. Используйте вход через Google.',
         );
+      }
+
+      if (err.message.includes('Слишком много')) {
+        throw new BadRequestException(err.message);
       }
 
       throw new HttpException(

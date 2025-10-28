@@ -13,7 +13,8 @@ import { Plan } from '../tokens/plan.entity';
 import { GoogleStrategy } from './google.strategy';
 import { AuditLog } from '../common/entities/audit-log.entity';
 import { AuditLogModule } from '../common/audit-log.module';
-import { EmailService } from '../common/email.service'; // ✅ ИМПОРТИРУЕМ EmailService
+import { EmailService } from '../common/email.service';
+import { LoginVerificationToken } from '../entities/login-verification-token.entity';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { EmailService } from '../common/email.service'; // ✅ ИМПОРТИР�
       User, 
       TokenBalance, 
       Plan,
-      AuditLog
+      AuditLog,
+      LoginVerificationToken 
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

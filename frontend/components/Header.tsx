@@ -146,48 +146,58 @@ export default function Header({ isLoggedIn: externalLoggedIn, userName: externa
           setSuccessMessage('✅ Проверьте почту для подтверждения.');
         }
 
-        } else if (authMode === 'login') {
-          // ✅ СНАЧАЛА делаем запрос
-          const res = await fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ email, password }),
-          });
+      } else if (authMode === 'login') {
+        // ✅ ВХОД
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password }),
+        });
 
-          const data = await res.json(); // ← Объявляем data
+        const data = await res.json();
 
-          if (!res.ok) {
-            // ✅ Проверка на неподтвержденный email
-            if (data.requiresVerification) {
-              setError('⚠️ Подтвердите email перед входом. Проверьте почту.');
-              setShowResendButton(true);
-              setResendEmail(data.email || email);
-              return;
-            }
-
-            // ✅ Проверка на Google аккаунт
-            if (data.hasGoogleAccount || data.provider === 'google') {
-              setError('Этот email зарегистрирован через Google. Используйте вход через Google.');
-              return;
-            }
-
-            throw new Error(data.message || data.error || 'Ошибка входа');
-          }
-
-          // ✅ ТЕПЕРЬ проверяем emailVerified (после получения data)
-          if (!data.user.emailVerified) {
-            setError('Пожалуйста, подтвердите ваш email. Письмо было отправлено при регистрации.');
+        if (!res.ok) {
+          // ✅ Проверка на неподтвержденный email при регистрации
+          if (data.requiresVerification) {
+            setError('⚠️ Подтвердите email перед входом. Проверьте почту.');
             setShowResendButton(true);
-            setResendEmail(email);
+            setResendEmail(data.email || email);
             return;
           }
 
-          // ✅ Успешный вход
-          setAuthModalType(null);
-          await checkAuth();
-          router.push('/assistants');
+          // ✅ Проверка на Google аккаунт
+          if (data.hasGoogleAccount || data.provider === 'google') {
+            setError('Этот email зарегистрирован через Google. Используйте вход через Google.');
+            return;
+          }
+
+          throw new Error(data.message || data.error || 'Ошибка входа');
         }
+
+        // ✅ Если требуется подтверждение входа через email
+        if (data.requiresLoginVerification) {
+          setSuccessMessage('📧 Письмо для подтверждения входа отправлено! Проверьте почту.');
+          setShowResendButton(false);
+          setTimeout(() => {
+            setAuthModalType(null); // ← Вместо closeAuthModal()
+          }, 6000);
+          return;
+        }
+
+        // ✅ Проверка emailVerified (на случай прямого входа без email verification)
+        if (data.user && !data.user.emailVerified) {
+          setError('Пожалуйста, подтвердите ваш email. Письмо было отправлено при регистрации.');
+          setShowResendButton(true);
+          setResendEmail(email);
+          return;
+        }
+
+        // ✅ Успешный вход (если вдруг нет requiresLoginVerification)
+        setAuthModalType(null);
+        await checkAuth();
+        router.push('/assistants');
+      }
     } catch (err: any) {
       setError(err.message);
     }
