@@ -1,130 +1,171 @@
 import React from "react";
-import { FileText, Package, Truck, ShieldCheck, Mail, Phone, MapPin, User, CreditCard, AlertTriangle } from "lucide-react";
+import {
+  FileText,
+  Package,
+  Truck,
+  ShieldCheck,
+  Mail,
+  Phone,
+  MapPin,
+  User,
+  CreditCard,
+  AlertTriangle,
+} from "lucide-react";
+
+/**
+ * Юридически уточнённая версия публичной оферты для самозанятого (SaaS).
+ * Содержит дополнения: обработка персональных данных (ФЗ-152 с изменениями от 01.09.2025),
+ * статус самозанятого (ФЗ-422), положение о защите прав потребителей (№2300-1),
+ * согласие на рекуррентные платежи и другие обязательные формулировки.
+ *
+ * ПРИМЕЧАНИЕ:
+ * - Вставь реальные ссылки на Политику конфиденциальности и Пользовательское соглашение
+ *   в поля POLICY_URL и PRIVACY_URL.
+ * - Не является юридической консультацией — рекомендуется согласовать финальный текст с юристом.
+ */
+
+const POLICY_URL = "https://zuuma.ru/terms"; // <- вставь реальную ссылку
+const PRIVACY_URL = "https://zuuma.ru/privacy"; // <- вставь реальную ссылку
+const OFFER_EFFECTIVE_DATE = "28 октября 2025 г.";
 
 export default function OfferPage() {
   return (
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <FileText size={40} style={{ color: '#fff' }} />
+        <FileText size={40} style={{ color: "#fff" }} />
         <h1 style={styles.title}>Публичная оферта и реквизиты</h1>
-        <p style={styles.subtitle}>
-          Информация об услугах, ценах и условиях предоставления
-        </p>
+        <p style={styles.subtitle}>Информация об услугах, ценах и условиях предоставления</p>
       </div>
 
-      {/* 1. Услуги и тарифы */}
+      {/* 1. Предмет договора и тарифы */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
           <Package size={24} />
-          <h2 style={styles.sectionTitle}>1. Предоставляемые услуги и тарифы</h2>
+          <h2 style={styles.sectionTitle}>1. Предмет договора и тарифы</h2>
         </div>
-        
+
+        <p style={styles.paragraph}>
+          1.1. Настоящая публичная оферта (далее — «Оферта») регулирует отношения между
+          Исполнителем и Пользователем в части предоставления доступа к SaaS-платформе
+          <strong> Zuuma</strong> для создания, обучения и использования AI-ассистентов в соответствии с ГК РФ, ФЗ-422 и ЗоЗПП №2300-1.
+        </p>
+
         <div style={styles.servicesGrid}>
+          {/* Free Plan */}
           <div style={styles.serviceCard}>
             <div style={styles.planBadge}>Бесплатный</div>
             <h3 style={styles.serviceTitle}>Free Plan</h3>
-            <div style={styles.servicePrice}>0 ₽<span style={styles.pricePeriod}> / месяц</span></div>
-            <ul style={styles.serviceFeatures}>
-              <li>✓ 100,000 токенов в месяц</li>
-              <li>✓ 1 AI-ассистент</li>
-              <li>✓ Telegram Bot интеграция</li>
-              <li>✓ Интеграция в веб-виджет</li>
-            </ul>
-            <div style={styles.serviceNote}>
-              Идеально для тестирования платформы
+            <div style={styles.servicePrice}>
+              0 ₽<span style={styles.pricePeriod}> / месяц</span>
             </div>
+            <ul style={styles.serviceFeatures}>
+              <li>✓ 100 000 токенов в месяц</li>
+              <li>✓ 1 AI-ассистент</li>
+              <li>✓ Интеграция с Telegram</li>
+              <li>✓ Встраиваемый веб-виджет</li>
+            </ul>
+            <div style={styles.serviceNote}>Идеально для тестирования платформы</div>
           </div>
 
-          <div style={{...styles.serviceCard, ...styles.popularCard}}>
-            <div style={{...styles.planBadge, ...styles.popularBadge}}>Популярный</div>
+          {/* Pro Plan */}
+          <div style={{ ...styles.serviceCard, ...styles.popularCard }}>
+            <div style={{ ...styles.planBadge, ...styles.popularBadge }}>Популярный</div>
             <h3 style={styles.serviceTitle}>Pro Plan</h3>
-            <div style={styles.servicePrice}>990 ₽<span style={styles.pricePeriod}> / месяц</span></div>
+            <div style={styles.servicePrice}>
+              990 ₽<span style={styles.pricePeriod}> / месяц</span>
+            </div>
             <ul style={styles.serviceFeatures}>
-              <li>✓ <strong>2,000,000 токенов</strong> в месяц</li>
+              <li>✓ <strong>2 000 000 токенов</strong> в месяц</li>
               <li>✓ До 10 AI-ассистентов</li>
               <li>✓ Кастомизация интерфейса</li>
-              <li>✓ API доступ</li>
-              <li>✓ Telegram Bot интеграция</li>
-              <li>✓ Интеграция в веб-виджет</li>
+              <li>✓ API-доступ</li>
+              <li>✓ Интеграция с Telegram</li>
+              <li>✓ Веб-виджет</li>
             </ul>
-            <div style={styles.serviceNote}>
-              Для малого и среднего бизнеса
-            </div>
+            <div style={styles.serviceNote}>Для малого и среднего бизнеса</div>
           </div>
 
+          {/* Max Plan */}
           <div style={styles.serviceCard}>
             <div style={styles.planBadge}>Максимум</div>
             <h3 style={styles.serviceTitle}>Max Plan</h3>
-            <div style={styles.servicePrice}>2,990 ₽<span style={styles.pricePeriod}> / месяц</span></div>
+            <div style={styles.servicePrice}>
+              2 990 ₽<span style={styles.pricePeriod}> / месяц</span>
+            </div>
             <ul style={styles.serviceFeatures}>
-              <li>✓ <strong>6,000,000 токенов</strong> в месяц</li>
+              <li>✓ <strong>6 000 000 токенов</strong> в месяц</li>
               <li>✓ До 50 AI-ассистентов</li>
               <li>✓ Приоритетная поддержка</li>
               <li>✓ Кастомизация интерфейса</li>
-              <li>✓ API доступ</li>
-              <li>✓ Telegram Bot интеграция</li>
-              <li>✓ Интеграция в веб-виджет</li>
+              <li>✓ API-доступ</li>
+              <li>✓ Интеграция с Telegram</li>
+              <li>✓ Веб-виджет</li>
             </ul>
-            <div style={styles.serviceNote}>
-              Для крупного бизнеса и корпораций
-            </div>
+            <div style={styles.serviceNote}>Для крупного бизнеса и корпораций</div>
           </div>
         </div>
 
         <div style={styles.infoBox}>
-          <h4 style={styles.infoTitle}>Что входит в услугу:</h4>
+          <h4 style={styles.infoTitle}>Что входит в услугу</h4>
           <ul style={styles.list}>
-            <li>Доступ к платформе Zuuma для создания AI-ассистентов</li>
-            <li>Обучение ассистентов на ваших документах (TXT)</li>
-            <li>Векторная база данных для хранения знаний</li>
-            <li>Интеграция с Telegram ботами</li>
-            <li>API для интеграции с вашими системами</li>
-            <li>Техническая поддержка</li>
+            <li>Доступ к веб-интерфейсу и API платформы Zuuma;</li>
+            <li>Возможность обучения ассистентов на загруженных Пользователем документах (формат TXT и другие указанные форматы);</li>
+            <li>Хранение векторных представлений (векторная БД) для целей RAG/поиска по знаниям;</li>
+            <li>Интеграции с Telegram и иными внешними сервисами по запросу Пользователя;</li>
+            <li>Техническая поддержка в рамках выбранного тарифа.</li>
           </ul>
         </div>
       </section>
 
-      {/* 2. Порядок предоставления услуг */}
+      {/* 2. Порядок предоставления услуг и оплата */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
           <Truck size={24} />
-          <h2 style={styles.sectionTitle}>2. Порядок предоставления услуг</h2>
+          <h2 style={styles.sectionTitle}>2. Порядок предоставления услуг и оплата</h2>
         </div>
+
         <div style={styles.textBlock}>
           <p style={styles.paragraph}>
-            После оплаты подписки вы <strong>получаете доступ</strong> к платформе Zuuma:
+            2.1. После успешной оплаты подписки доступ к соответствующим услугам предоставляется автоматически.
+            Сроки активации и объём предоставляемых ресурсов соответствуют выбранному тарифу.
           </p>
+
           <ul style={styles.list}>
-            <li>Активация происходит автоматически</li>
-            <li>Доступ к функциям согласно выбранному тарифу</li>
-            <li>Токены зачисляются на ваш баланс автоматически</li>
-            <li>Возможность создания AI-ассистентов и обучения их на документах</li>
-            <li>Доступ к панели управления и аналитике</li>
+            <li>Активация: автоматическая, мгновенно после подтверждения платежа.</li>
+            <li>Токены: зачисляются на баланс Пользователя в соответствии с тарифом.</li>
+            <li>Продление: при выборе рекуррентных платежей подписка продлевается автоматически каждый платёжный период.</li>
           </ul>
+
           <div style={styles.highlightBox}>
-            <p style={{margin: 0}}>
-              ✅ <strong>Важно:</strong> Возврат средств возможен в течение 7 дней с момента оплаты, 
-              если услуга не была использована (токены не потрачены).
+            <p style={{ margin: 0 }}>
+              ✅ <strong>Возврат средств:</strong> В соответствии со ст. 32 ЗоЗПП №2300-1 и ст. 782 ГК РФ, Пользователь вправе отказаться от услуги в любой момент с возвратом средств за вычетом фактически понесенных расходов Исполнителя (например, на активацию доступа). Возврат возможен в течение 7 календарных дней с даты оплаты, если услуга не использовалась (токены не израсходованы). Для цифрового контента возврат не применяется после скачивания/использования (п. 4 ст. 26.1 ЗоЗПП). Возврат производится в порядке, предусмотренном законодательством и правилами платёжного провайдера.
             </p>
           </div>
+
+          <p style={styles.paragraph}>
+            2.2. <strong>Согласие на автосписание:</strong> оформляя подписку с автоматическим продлением,
+            Пользователь даёт согласие на регулярное списание средств через платёжную систему ЮKassa.
+            Пользователь вправе отозвать согласие (отменить автосписание) в личном кабинете или обратившись в
+            службу поддержки без автоматического возврата средств. Детали и порядок отмены автосписания также доступны в личном кабинете.
+          </p>
         </div>
       </section>
 
-      {/* 3. Публичная оферта */}
+      {/* 3. Публичная оферта — реквизиты и статус */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
           <ShieldCheck size={24} />
-          <h2 style={styles.sectionTitle}>3. Условия публичной оферты</h2>
+          <h2 style={styles.sectionTitle}>3. Условия публичной оферты и реквизиты</h2>
         </div>
+
         <div style={styles.textBlock}>
           <p style={styles.paragraph}>
-            Настоящая оферта является официальным публичным предложением 
-            самозанятого лица предоставить услуги на следующих условиях:
+            3.1. Исполнитель предоставляет услуги в статусе самозанятого (плательщика налога на профессиональный доход)
+            в соответствии с Федеральным законом №422-ФЗ. Реквизиты Исполнителя:
           </p>
-          
+
           <div style={styles.requisitesBox}>
-            <h4 style={styles.requisitesTitle}>Реквизиты исполнителя:</h4>
             <div style={styles.requisitesGrid}>
               <div style={styles.requisiteItem}>
                 <span style={styles.requisiteLabel}>ФИО:</span>
@@ -132,143 +173,101 @@ export default function OfferPage() {
               </div>
               <div style={styles.requisiteItem}>
                 <span style={styles.requisiteLabel}>Статус:</span>
-                <span style={styles.requisiteValue}>Самозанятый</span>
+                <span style={styles.requisiteValue}>Самозанятый (НПД)</span>
               </div>
               <div style={styles.requisiteItem}>
                 <span style={styles.requisiteLabel}>ИНН:</span>
                 <span style={styles.requisiteValue}>263516890557</span>
               </div>
+              <div style={styles.requisiteItem}>
+                <span style={styles.requisiteLabel}>Адрес регистрации:</span>
+                <span style={styles.requisiteValue}>[Укажите адрес для прозрачности]</span>
+              </div>
             </div>
           </div>
 
-          <h4 style={styles.subheading}>Условия оказания услуг:</h4>
+          <h4 style={styles.subheading}>Условия оказания услуг</h4>
           <ul style={styles.list}>
-            <li>Оплата услуг означает полное и безоговорочное принятие условий настоящей оферты</li>
-            <li>Подписка активируется автоматически после успешной оплаты</li>
-            <li>Подписка продлевается ежемесячно автоматически (при выборе рекуррентных платежей)</li>
-            <li>Вы можете отменить подписку в любой момент в личном кабинете</li>
-            <li>При отмене подписки токены сохраняются до конца оплаченного периода</li>
-            <li>Неиспользованные токены не переносятся на следующий период</li>
-            <li>Возврат средств возможен в течение 7 дней при условии неиспользования услуги</li>
+            <li>Оплата услуг означает акцепт настоящей Оферты и всех её условий;</li>
+            <li>Подписка активируется автоматически после успешной оплаты;</li>
+            <li>Пользователь может отменить подписку в личном кабинете; при отмене доступ сохраняется до окончания оплаченного периода;</li>
+            <li>Неиспользованные токены не переносятся на следующий период (если иное не согласовано отдельно).</li>
           </ul>
 
-          <h4 style={styles.subheading}>Права и обязанности:</h4>
+          <h4 style={styles.subheading}>Права и обязанности сторон</h4>
           <ul style={styles.list}>
-            <li>Исполнитель обязуется предоставить доступ к платформе в течение 1 минуты после оплаты</li>
-            <li>Исполнитель обеспечивает работоспособность сервиса 99% времени</li>
-            <li>Заказчик обязуется использовать сервис в соответствии с законодательством РФ</li>
-            <li>Все права на программное обеспечение и материалы защищены законодательством РФ</li>
-            <li>Запрещается использовать сервис для создания контента, нарушающего законодательство</li>
+            <li>Исполнитель обязуется предоставить доступ в сроки и объёмы, указанные в описании тарифа;</li>
+            <li>Исполнитель стремится обеспечивать доступность сервиса на уровне 99% времени, но не гарантирует отсутствие сбоев;</li>
+            <li>Пользователь обязуется использовать сервис в соответствии с законодательством РФ и условиями данной Оферты, не для незаконных целей;</li>
+            <li>Исполнитель сохраняет за собой исключительные права на программное обеспечение и документацию платформы;</li>
+            <li>Пользователь имеет права по ЗоЗПП №2300-1: на информацию, качество услуг, безопасность и защиту интересов.</li>
           </ul>
         </div>
       </section>
 
-      {/* 4. ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ - КРИТИЧНО! */}
+      {/* 4. Отказ от ответственности и обработка рисков */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
-          <AlertTriangle size={24} style={{ color: '#ff6b6b' }} />
-          <h2 style={styles.sectionTitle}>4. Отказ от ответственности</h2>
+          <AlertTriangle size={24} style={{ color: "#ff6b6b" }} />
+          <h2 style={styles.sectionTitle}>4. Отказ от ответственности и обработка рисков</h2>
         </div>
-        <div style={{...styles.textBlock, borderLeft: '4px solid #ff6b6b'}}>
-          <div style={styles.warningBox}>
-            <p style={{margin: '0 0 16px 0', fontSize: '16px', fontWeight: 'bold', color: '#ff6b6b'}}>
-              ⚠️ ВАЖНАЯ ИНФОРМАЦИЯ ОБ ОТВЕТСТВЕННОСТИ
-            </p>
-          </div>
 
+        <div style={{ ...styles.textBlock, borderLeft: "4px solid #ff6b6b" }}>
           <p style={styles.paragraph}>
-            Платформа Zuuma предоставляет инструменты для создания AI-ассистентов. 
-            <strong> Пользователь самостоятельно несет полную ответственность за:</strong>
+            4.1. <strong>Обработка персональных данных (ФЗ-152 с изменениями от 01.09.2025):</strong> Акцепт настоящей Оферты не является согласием на обработку персональных данных. Согласие на обработку персональных данных получается отдельно в соответствии со ст. 9 ФЗ-152 через специальную форму при регистрации на платформе. Оно должно быть конкретным, информированным и однозначным, содержать: ФИО субъекта, данные оператора, цели, перечень данных, третьи лица, действия, способы, срок, порядок отзыва, подпись. Отзыв согласия возможен в любое время через личный кабинет или email delovoi.acount@gmail.com; обработка прекращается в 30 дней. Исполнитель является оператором персональных данных (контактные данные, e-mail, IP и др.). Персональные данные локализуются в РФ (ч. 5 ст. 18 ФЗ-152). Политика конфиденциальности и порядок обработки данных доступны по адресу:
+            <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer"> {PRIVACY_URL}</a>. Нарушения влекут штрафы до 700 тыс. руб. (ст. 13.11 КоАП РФ).
           </p>
 
-          <h4 style={styles.subheading}>4.1. Ответственность за API-функции</h4>
+          <h4 style={styles.subheading}>4.2. Ответственность за API-функции и пользовательский код</h4>
           <ul style={styles.list}>
-            <li><strong>Создание и настройка:</strong> Пользователь самостоятельно создает, настраивает и управляет API-функциями.</li>
-            <li><strong>Содержимое кода:</strong> Платформа НЕ контролирует и НЕ проверяет код пользовательских функций.</li>
-            <li><strong>Последствия выполнения:</strong> Платформа НЕ несет ответственности за последствия выполнения функций, включая:
-              <ul style={{marginTop: '8px', paddingLeft: '20px'}}>
-                <li>Удаление данных из баз данных (DELETE, DROP, TRUNCATE)</li>
-                <li>Изменение структуры баз данных (ALTER TABLE)</li>
-                <li>Любые другие операции с данными пользователя</li>
-              </ul>
-            </li>
-            <li><strong>Обязанность тестирования:</strong> Пользователь ОБЯЗАН тестировать функции перед использованием в продакшене.</li>
+            <li>Пользователь самостоятельно создаёт и размещает пользовательские функции и интеграции;</li>
+            <li>Исполнитель не осуществляет обязательной проверки пользовательского кода и не несёт ответственности за его исполнение;</li>
+            <li>В частности, Исполнитель не отвечает за последствия выполнения операций, приводящих к удалению или порче данных (DELETE, DROP и т.п.).</li>
+            <li>Пользователь обязан тестировать код в безопасной среде перед использованием в production.</li>
           </ul>
 
-          <div style={styles.dangerBox}>
-            <p style={{margin: 0}}>
-              🔴 <strong>КРИТИЧНО:</strong> Если вы создаете функцию с операциями DELETE, DROP или другими 
-              деструктивными командами — вы делаете это на свой страх и риск. Платформа НЕ предупреждает 
-              об опасных операциях и НЕ может их заблокировать.
-            </p>
-          </div>
-
-          <h4 style={styles.subheading}>4.2. Ответственность за действия AI</h4>
+          <h4 style={styles.subheading}>4.3. Ответственность за результаты работы AI</h4>
           <ul style={styles.list}>
-            <li>AI-ассистенты генерируют контент на основе данных, предоставленных пользователем</li>
-            <li>Платформа НЕ гарантирует точность, полноту или актуальность ответов AI</li>
-            <li>Пользователь обязан проверять информацию, полученную от AI-ассистента</li>
-            <li>Платформа НЕ несет ответственности за решения, принятые на основе ответов AI</li>
+            <li>AI-ассистенты генерируют ответы на основе предоставленных данных и встроенных моделей;</li>
+            <li>Исполнитель не гарантирует полноту, точность или актуальность предоставляемых AI-ответов;</li>
+            <li>Исполнитель не является разработчиком внешних моделей ИИ и предоставляет только интерфейс доступа к ним;</li>
+            <li>Решения, принятые Пользователем на основании ответов AI, осуществляются на риск Пользователя.</li>
           </ul>
 
-          <h4 style={styles.subheading}>4.3. Ответственность за данные</h4>
-          <ul style={styles.list}>
-            <li>Пользователь несет полную ответственность за содержимое загружаемых документов</li>
-            <li>Платформа НЕ проверяет и НЕ модерирует загружаемые документы</li>
-            <li>Удаление данных является необратимым процессом</li>
-            <li>Пользователь обязан самостоятельно создавать резервные копии важных данных</li>
-            <li>Платформа НЕ несет ответственности за утерю данных по любым причинам</li>
-          </ul>
-
-          <h4 style={styles.subheading}>4.4. Ответственность за интеграции</h4>
-          <ul style={styles.list}>
-            <li>Подключение сторонних сервисов (Telegram, внешние API) осуществляется на риск пользователя</li>
-            <li>Платформа НЕ контролирует действия интегрированных сервисов</li>
-            <li>Пользователь обязан соблюдать условия использования сторонних сервисов</li>
-          </ul>
-
-          <h4 style={styles.subheading}>4.5. Ограничение ответственности</h4>
+          <h4 style={styles.subheading}>4.4. Ограничение ответственности</h4>
           <div style={styles.limitBox}>
-            <p style={{margin: '0 0 12px 0', fontWeight: 'bold'}}>
-              Максимальная ответственность платформы ограничена:
-            </p>
-            <ul style={{margin: 0, paddingLeft: '20px'}}>
-              <li>Стоимостью подписки пользователя за текущий месяц</li>
-              <li>Платформа НЕ возмещает упущенную выгоду</li>
-              <li>Платформа НЕ возмещает косвенные убытки</li>
-              <li>Платформа НЕ несет ответственности за действия третьих лиц</li>
+            <p style={{ margin: "0 0 12px 0", fontWeight: "bold" }}>Максимальная ответственность Исполнителя ограничена:</p>
+            <ul style={{ margin: 0, paddingLeft: "20px" }}>
+              <li>стоимостью подписки за текущий оплаченный период (ст. 400 ГК РФ), кроме случаев умысла или грубой неосторожности;</li>
+              <li>Исполнитель не возмещает упущенную выгоду или косвенные убытки;</li>
+              <li>Исполнитель не отвечает за действия третьих лиц, сторонних сервисов (Telegram, API) и сбои, не зависящие от него, с оговоркой на ст. 15 ЗоЗПП (компенсация вреда здоровью/имуществу).</li>
             </ul>
           </div>
 
-          <h4 style={styles.subheading}>4.6. Логирование действий</h4>
+          <h4 style={styles.subheading}>4.5. Логирование и хранение доказательств</h4>
           <p style={styles.paragraph}>
-            Для защиты обеих сторон платформа ведет полный журнал действий пользователя, включая:
+            Для защиты прав сторон платформа ведёт журнал действий: изменения конфигураций, исполнения функций,
+            IP-адреса и временные метки. Эти записи могут использоваться в качестве доказательной базы при рассмотрении споров.
           </p>
-          <ul style={styles.list}>
-            <li>Создание, изменение и удаление API-функций (с сохранением кода)</li>
-            <li>Выполнение API-функций с записью параметров и результатов</li>
-            <li>Все действия в личном кабинете с IP-адресом и временем</li>
-            <li>Эти данные могут быть использованы в качестве доказательств в спорных ситуациях</li>
-          </ul>
 
-          <div style={styles.highlightBox}>
-            <p style={{margin: 0}}>
-              📋 <strong>Важно:</strong> Используя платформу, вы подтверждаете, что ознакомились с данным 
-              отказом от ответственности и принимаете все связанные с этим риски.
-            </p>
-          </div>
+          <h4 style={styles.subheading}>4.6. Удаление данных и резервное копирование</h4>
+          <ul style={styles.list}>
+            <li>Удаление данных Пользователем считается необратимым — Исполнитель рекомендует иметь резервные копии;</li>
+            <li>Исполнитель не несёт ответственности за потерю данных, если она вызвана действиями Пользователя или третьих лиц.</li>
+          </ul>
         </div>
       </section>
 
-      {/* 5. Контактная информация */}
+      {/* 5. Контакты */}
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
           <Mail size={24} />
           <h2 style={styles.sectionTitle}>5. Контактная информация</h2>
         </div>
+
         <div style={styles.contactsGrid}>
           <div style={styles.contactCard}>
-            <User size={20} style={{ color: '#4CAF50' }} />
+            <User size={20} style={{ color: "#4CAF50" }} />
             <div>
               <div style={styles.contactLabel}>Исполнитель</div>
               <div style={styles.contactValue}>Кушнир Вадим Олегович</div>
@@ -276,7 +275,7 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <FileText size={20} style={{ color: '#4CAF50' }} />
+            <FileText size={20} style={{ color: "#4CAF50" }} />
             <div>
               <div style={styles.contactLabel}>ИНН</div>
               <div style={styles.contactValue}>263516890557</div>
@@ -284,38 +283,32 @@ export default function OfferPage() {
           </div>
 
           <div style={styles.contactCard}>
-            <Mail size={20} style={{ color: '#4CAF50' }} />
+            <Mail size={20} style={{ color: "#4CAF50" }} />
             <div>
               <div style={styles.contactLabel}>Email для связи</div>
-              <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>
-                delovoi.acount@gmail.com
-              </a>
+              <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>delovoi.acount@gmail.com</a>
             </div>
           </div>
 
           <div style={styles.contactCard}>
-            <Phone size={20} style={{ color: '#4CAF50' }} />
+            <Phone size={20} style={{ color: "#4CAF50" }} />
             <div>
               <div style={styles.contactLabel}>Телефон</div>
-              <a href="tel:+79633873434" style={styles.contactLink}>
-                +7 (963) 387-34-34
-              </a>
-              <div style={styles.contactNote}>Рабочие часы: 10:00-19:00 МСК</div>
+              <a href="tel:+79633873434" style={styles.contactLink}>+7 (963) 387-34-34</a>
+              <div style={styles.contactNote}>Рабочие часы: 10:00–19:00 МСК</div>
             </div>
           </div>
 
           <div style={styles.contactCard}>
-            <MapPin size={20} style={{ color: '#4CAF50' }} />
+            <MapPin size={20} style={{ color: "#4CAF50" }} />
             <div>
               <div style={styles.contactLabel}>Официальный сайт</div>
-              <a href="https://zuuma.ru" style={styles.contactLink} target="_blank" rel="noopener noreferrer">
-                https://zuuma.ru
-              </a>
+              <a href="https://zuuma.ru" style={styles.contactLink} target="_blank" rel="noopener noreferrer">https://zuuma.ru</a>
             </div>
           </div>
 
           <div style={styles.contactCard}>
-            <CreditCard size={20} style={{ color: '#4CAF50' }} />
+            <CreditCard size={20} style={{ color: "#4CAF50" }} />
             <div>
               <div style={styles.contactLabel}>Платёжная система</div>
               <div style={styles.contactValue}>ЮKassa (ООО «ЮМани»)</div>
@@ -324,8 +317,8 @@ export default function OfferPage() {
         </div>
 
         <div style={styles.infoBox}>
-          <p style={{margin: 0}}>
-            📧 <strong>По всем вопросам</strong> пишите на email: <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>delovoi.acount@gmail.com</a>
+          <p style={{ margin: 0 }}>
+            📧 <strong>По всем вопросам</strong> обращайтесь: <a href="mailto:delovoi.acount@gmail.com" style={styles.contactLink}>delovoi.acount@gmail.com</a>
           </p>
         </div>
       </section>
@@ -336,34 +329,62 @@ export default function OfferPage() {
           <CreditCard size={24} />
           <h2 style={styles.sectionTitle}>6. Способы оплаты</h2>
         </div>
+
         <div style={styles.textBlock}>
           <p style={styles.paragraph}>
-            Оплата производится через платёжную систему <strong>ЮKassa</strong>. 
-            Доступные способы оплаты:
+            Оплата производится через платёжную систему <strong>ЮKassa</strong>. Доступные способы зависят от настроек платёжного провайдера
+            и могут включать: банковские карты (Visa, MasterCard, Мир), ЮMoney, QIWI, Сбербанк-Онлайн, Альфа-Клик и т.д.
           </p>
-          <ul style={styles.list}>
-            <li>Банковские карты (Visa, MasterCard, Мир)</li>
-            <li>ЮMoney</li>
-            <li>QIWI кошелёк</li>
-            <li>Сбербанк Онлайн</li>
-            <li>Альфа-Клик</li>
-          </ul>
           <div style={styles.highlightBox}>
-            <p style={{margin: 0}}>
-              🔒 <strong>Безопасность:</strong> Все платежи защищены по стандарту PCI DSS. 
-              Мы не храним данные ваших банковских карт.
+            <p style={{ margin: 0 }}>
+              🔒 <strong>Безопасность:</strong> платёжная информация обрабатывается платёжным провайдером. Исполнитель не хранит данные карт.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Footer note */}
+      {/* 7. Разрешение споров и прочие условия */}
+      <section style={styles.section}>
+        <div style={styles.sectionHeader}>
+          <ShieldCheck size={24} />
+          <h2 style={styles.sectionTitle}>7. Прочие условия</h2>
+        </div>
+
+        <div style={styles.textBlock}>
+          <p style={styles.paragraph}>
+            7.1. Действие Оферты и применимое право: настоящая Оферта действует с момента публикации на сайте. Все споры
+            разрешаются в соответствии с законодательством Российской Федерации (ГК РФ, ЗоЗПП №2300-1, ФЗ-152). При возможных претензиях стороны
+            стремятся разрешить спор путем переговоров; при недостижении согласия спор рассматривается в суде по месту нахождения Исполнителя или жительства Пользователя (для потребителей, ст. 17 ЗоЗПП).
+          </p>
+
+          <h4 style={styles.subheading}>7.2. Форс-мажор</h4>
+          <p style={styles.paragraph}>
+            Стороны освобождаются от ответственности за неисполнение обязательств, если оно вызвано обстоятельствами непреодолимой силы (форс-мажор), подтвержденными документами.
+          </p>
+
+          <h4 style={styles.subheading}>7.3. Изменения Оферты</h4>
+          <p style={styles.paragraph}>
+            Исполнитель вправе вносить изменения в Оферту, уведомив Пользователя за 10 дней via email или на сайте. Продолжение использования = акцепт изменений.
+          </p>
+
+          <p style={styles.paragraph}>
+            7.4. Полезные ссылки:
+            <br />
+            — Политика конфиденциальности: <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer">{PRIVACY_URL}</a>
+            <br />
+            — Контакты поддержки: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a>
+          </p>
+        </div>
+      </section>
+
+      {/* Footer */}
       <div style={styles.footerNote}>
-        <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>
-          Дата публикации оферты: 21 октября 2025 года
+        <p style={{ margin: "0 0 8px 0", fontSize: "14px" }}>
+          Дата публикации оферты: {OFFER_EFFECTIVE_DATE}
         </p>
-        <p style={{margin: 0, fontSize: '12px', color: '#999'}}>
-          Совершая оплату, вы подтверждаете, что ознакомились с условиями оферты и согласны с ними.
+        <p style={{ margin: 0, fontSize: "12px", color: "#999" }}>
+          Совершая оплату, Вы подтверждаете, что ознакомились и согласны с условиями данной Публичной оферты.
+          Согласие на обработку персональных данных предоставляется отдельно.
         </p>
       </div>
     </div>
