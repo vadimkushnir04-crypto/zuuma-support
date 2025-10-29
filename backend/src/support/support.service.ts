@@ -261,11 +261,13 @@ export class SupportService {
       userIdentifier,
     };
 
+    const isLocalFrontendUser = senderType === 'user' && userIdentifier?.startsWith('frontend:');
+
     // ✅ ИСПРАВЛЕНО: WebSocket отправка ТОЛЬКО для AI и manager
     if (!this.gateway?.server) {
       console.warn('⚠️ Gateway not ready, delaying emit');
       setTimeout(() => this.saveMessage(chatSessionId, senderType, content, senderId, metadata, userIdentifier, files), 500);
-    } else if (senderType !== 'user') {  // ✅ ДОБАВЛЕНА ПРОВЕРКА
+    } else if (!isLocalFrontendUser) { // ✅ ДОБАВЛЕНА ПРОВЕРКА
       try {
         // ✅ Отправляем в настоящую комнату
         this.gateway.emitMessageToSession(chatSessionId, payload);
