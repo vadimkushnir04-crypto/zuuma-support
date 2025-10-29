@@ -45,6 +45,13 @@ export class ChatMessage {
     escalated?: boolean;
     reason?: string;
     urgency?: string;
+    hasContext?: boolean;  // ✅ ДОБАВЛЕНО
+    files?: Array<{  // ✅ ДОБАВЛЕНО
+      fileUrl: string;
+      fileName: string;
+      fileType: string;
+      pageNumber?: number;
+    }>;
   };
 
   @CreateDateColumn({ name: 'created_at' })

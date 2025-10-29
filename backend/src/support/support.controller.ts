@@ -305,9 +305,14 @@ export class SupportController {
         content: msg.content,
         senderType: msg.senderType,
         createdAt: msg.createdAt,
-        metadata: msg.metadata,
+        metadata: msg.metadata ? {
+          sources: typeof msg.metadata.sources === 'number' ? msg.metadata.sources : undefined,
+          files: Array.isArray(msg.metadata.files) ? msg.metadata.files : [],  // ✅ Теперь работает
+          hasContext: msg.metadata.hasContext,  // ✅ Теперь работает
+          functionCalled: msg.metadata.functionCalled,
+          escalated: msg.metadata.escalated,
+        } : undefined,
       })),
     };
   }
-
 }

@@ -82,17 +82,35 @@ export default function Chat() {
             console.log('📜 Loaded chat history:', data.messages.length, 'messages');
             setChatSessionId(data.session.id);
 
-            const loadedMessages: Message[] = data.messages.map((msg: any) => ({
-              id: msg.id,
-              text: msg.content,
-              sender: msg.senderType === 'user' ? 'user' : 'assistant',
-              timestamp: new Date(msg.createdAt),
-              sources: msg.metadata?.sources,
-              files: msg.metadata?.files || [],
-            }));
+            const loadedMessages: Message[] = data.messages.map((msg: any) => {
+              // ✅ ДЕБАГ: Проверяем содержимое сообщения
+              if (msg.content && typeof msg.content === 'string' && msg.content.endsWith('0')) {
+                console.warn('⚠️ Message with trailing 0 detected:', {
+                  id: msg.id,
+                  rawContent: msg.content,
+                  sources: msg.metadata?.sources,
+                });
+              }
+              
+              return {
+                id: msg.id,
+                text: msg.content,  // ✅ Берем content как есть
+                sender: msg.senderType === 'user' ? 'user' : 'assistant',
+                timestamp: new Date(msg.createdAt),
+                // ✅ Проверяем тип sources
+                sources: typeof msg.metadata?.sources === 'number' 
+                  ? msg.metadata.sources 
+                  : 0,
+                // ✅ Проверяем что files - это массив
+                files: Array.isArray(msg.metadata?.files) 
+                  ? msg.metadata.files 
+                  : [],
+              };
+            });
 
             setMessages(loadedMessages);
           } else {
+            // Нет истории - показываем приветствие
             setMessages([{
               id: `welcome-${Date.now()}`,
               text: t('welcomeMessage'),
@@ -101,6 +119,7 @@ export default function Chat() {
             }]);
           }
         } else {
+          console.error('❌ Failed to load chat history:', res.status);
           setMessages([{
             id: `welcome-${Date.now()}`,
             text: t('welcomeMessage'),
@@ -262,7 +281,7 @@ export default function Chat() {
     const socket = io('https://zuuma.ru', {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
-      // ✅ токен больше не нужен, сервер проверяет cookie
+      withCredentials: true,  // ← УБЕДИСЬ ЧТО ЭТО ЕСТЬ!
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -292,14 +311,22 @@ export default function Chat() {
 
     socket.on('assistant:message', (payload) => {
       console.log('📨 Received assistant message:', payload);
+      
       const newMessage: Message = {
         id: payload.id || `ws-${Date.now()}`,
         text: payload.content || 'No content',
         sender: payload.senderType === 'user' ? 'user' : 'assistant',
         timestamp: new Date(payload.createdAt || Date.now()),
-        sources: payload.metadata?.sources || payload.sources,
-        files: payload.files || [],
+        // ✅ Проверяем тип sources
+        sources: typeof (payload.metadata?.sources || payload.sources) === 'number' 
+          ? (payload.metadata?.sources || payload.sources) 
+          : 0,
+        // ✅ Проверяем что files - это массив
+        files: Array.isArray(payload.files) 
+          ? payload.files 
+          : (Array.isArray(payload.metadata?.files) ? payload.metadata.files : []),
       };
+      
       addMessageIfNotExists(newMessage);
       setIsLoading(false);
     });

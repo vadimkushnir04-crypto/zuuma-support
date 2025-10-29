@@ -59,6 +59,7 @@ export class ChatController {
   ) {
     console.log('📥 Incoming chat request:', {
       hasAuth: !!authHeader,
+      hasCookie: !!req?.cookies?.token,  // ✅ ДОБАВЛЕНО
       hasApiKey: !!body.apiKey,
       hasAssistantId: !!body.assistantId,
       hasTelegramUserId: !!body.telegramUserId,
@@ -70,9 +71,14 @@ export class ChatController {
     let conversationKey: string;
     let userIdentifier: string;
 
-    // Вариант A: Фронтенд с JWT токеном + assistantId
-    if (authHeader?.startsWith('Bearer ') && body.assistantId) {
-      const token = authHeader.substring(7);
+    // ✅ Вариант A: Фронтенд с JWT токеном (cookie ПРИОРИТЕТ, потом header) + assistantId
+    if ((req?.cookies?.token || authHeader?.startsWith('Bearer ')) && body.assistantId) {
+      // ✅ Приоритет cookie, fallback на header
+      const token = req?.cookies?.token || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null);
+      
+      if (!token) {
+        throw new BadRequestException('Токен не найден');
+      }
       
       try {
         const jwtPayload = this.authService.verifyToken(token);

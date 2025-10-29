@@ -12,8 +12,6 @@ import { TelegramWebhookService } from '../telegram/telegram-webhook.service';
 import { EncryptionService } from '../common/encryption.service';
 import { SupportGateway } from './support.gateway';
 import { ModuleRef } from '@nestjs/core';
-import { UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 
 @Injectable()
@@ -209,6 +207,19 @@ export class SupportService {
       throw new BadRequestException('Message content cannot be empty');
     }
 
+    // ✅ КРИТИЧНО: Очистка content от случайных добавлений
+    let cleanContent = content.trim();
+    
+    // Проверяем не добавился ли sources в конец
+    if (metadata?.sources !== undefined) {
+      const sourcesStr = String(metadata.sources);
+      if (cleanContent.endsWith(sourcesStr)) {
+        console.warn(`⚠️ Detected sources concatenated to content: "${cleanContent}"`);
+        cleanContent = cleanContent.slice(0, -sourcesStr.length).trim();
+        console.log(`✅ Cleaned content: "${cleanContent}"`);
+      }
+    }
+
     const session = await this.chatSessionRepo.findOne({ where: { id: chatSessionId } });
     if (!session) {
       throw new NotFoundException(`ChatSession ${chatSessionId} not found`);
@@ -216,14 +227,15 @@ export class SupportService {
 
     const messageMetadata = {
       ...metadata,
-      files: files || [],
+      sources: typeof metadata?.sources === 'number' ? metadata.sources : undefined,  // ✅ ПРОВЕРКА ТИПА
+      files: Array.isArray(files) ? files : [],  // ✅ ПРОВЕРКА МАССИВА
     };
 
     const message = this.chatMessageRepo.create({
       chatSessionId,
       senderType,
       senderId,
-      content,
+      content: cleanContent,  // ✅ Используем очищенный content
       metadata: messageMetadata,
     });
 
@@ -233,6 +245,7 @@ export class SupportService {
       id: message.id, 
       chatSessionId, 
       senderId,
+      contentLength: cleanContent.length,
       filesCount: files?.length || 0
     });
 
@@ -240,7 +253,7 @@ export class SupportService {
       id: message.id,
       chatSessionId,
       senderType,
-      content,
+      content: cleanContent,  // ✅ Очищенный content
       createdAt: message.createdAt || new Date().toISOString(),
       senderId,
       metadata: messageMetadata,

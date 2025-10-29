@@ -43,9 +43,27 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.logger.log(`✅ Client connected: ${client.id}`);
     
     try {
-      const token = client.handshake.auth?.token;
+      // ✅ Извлекаем токен из auth или cookie
+      let token = client.handshake.auth?.token;
+      
+      // Fallback: парсим cookie вручную
+      if (!token && client.handshake.headers.cookie) {
+        const cookies = client.handshake.headers.cookie
+          .split(';')
+          .map(c => c.trim());
+        
+        const tokenCookie = cookies.find(c => c.startsWith('token='));
+        if (tokenCookie) {
+          token = tokenCookie.split('=')[1];
+          this.logger.log(`🍪 Token extracted from cookie for ${client.id}`);
+        }
+      }
+      
       if (token) {
         this.socketToUser.set(client.id, `user-${client.id}`);
+        this.logger.log(`🔐 Token found for client ${client.id}`);
+      } else {
+        this.logger.warn(`⚠️ No token found for client ${client.id}`);
       }
     } catch (err) {
       this.logger.error('Error extracting user from socket:', err);
