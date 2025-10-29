@@ -40,9 +40,10 @@ export class SupportController {
   @Get('chats')
   @UseGuards(JwtAuthGuard)
   async getChatSessions(@Query() filters: ChatFilterDto, @Request() req: any) {
-    const user = await this.authService.getProfile(req.user.token || req.headers.authorization?.substring(7));
+    // ✅ Guard уже проверил токен, просто используем user.id
+    const userId = req.user.id;
     
-    return this.supportService.getChatSessions(filters, user.id);
+    return this.supportService.getChatSessions(filters, userId);
   }
 
   @Get('chats/:sessionId')
@@ -142,12 +143,12 @@ export class SupportController {
   @Post('managers')
   @UseGuards(JwtAuthGuard)
   async createManager(@Body() dto: CreateManagerDto, @Request() req: any) {
-    const user = await this.authService.getProfile(req.user.token || req.headers.authorization?.substring(7));
+    const userId = req.user.id;  // ✅ Используем напрямую
     
     const manager = await this.supportService.createManager(
       dto,
-      req.user.id,
-      user.id,
+      userId,
+      userId,  // companyId = userId
     );
 
     return {
@@ -164,9 +165,9 @@ export class SupportController {
   @Get('managers')
   @UseGuards(JwtAuthGuard)
   async getManagers(@Request() req: any) {
-    const user = await this.authService.getProfile(req.user.token || req.headers.authorization?.substring(7));
+    const userId = req.user.id;  // ✅ Используем напрямую
     
-    const managers = await this.supportService.getManagersByCompany(user.id);
+    const managers = await this.supportService.getManagersByCompany(userId);
 
     return {
       success: true,
@@ -199,16 +200,16 @@ export class SupportController {
   @Get('stats')
   @UseGuards(JwtAuthGuard)
   async getStats(@Request() req: any) {
-    const user = await this.authService.getProfile(req.user.token || req.headers.authorization?.substring(7));
+    const userId = req.user.id;  // ✅ Используем напрямую
     
     const pending = await this.supportService.getChatSessions(
       { status: 'pending_human', limit: 1000 },
-      user.id,
+      userId,
     );
     
     const active = await this.supportService.getChatSessions(
       { status: 'human_active', limit: 1000 },
-      user.id,
+      userId,
     );
 
     return {
