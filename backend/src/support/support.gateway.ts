@@ -133,16 +133,16 @@ export class SupportGateway implements OnGatewayConnection, OnGatewayDisconnect 
       this.logger.log(`📤 Room ${sessionId} has ${room.size} client(s)`);
     }
     
+    // ✅ Отправляем в комнату сессии
     this.server.to(sessionId).emit('message', payload);
     
+    // ✅ ВАЖНО: Также пробуем отправить в assistant room
     const assistantRoom = this.sessionToRoom.get(sessionId);
     if (assistantRoom) {
       const assistantRoomClients = this.server.sockets.adapter.rooms.get(assistantRoom);
       if (assistantRoomClients && assistantRoomClients.size > 0) {
         this.logger.log(`📤 Also emitting to assistant room: ${assistantRoom}`);
-        this.server.to(assistantRoom).emit('assistant:message', payload);
-      } else {
-        this.logger.warn(`⚠️ Assistant room ${assistantRoom} empty`);
+        this.server.to(assistantRoom).emit('message', payload);  // ✅ ДОБАВЛЕНО
       }
     }
   }

@@ -69,17 +69,22 @@ export default function ChatDetailPage() {
   }, [sessionId]);
 
   // Подключение WebSocket
-  useEffect(() => {
-    if (!sessionId || loading) return;
+// Подключение WebSocket
+useEffect(() => {
+  if (!sessionId || loading) return;
 
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
+  if (socketRef.current) {
+    socketRef.current.disconnect();
+    socketRef.current = null;
+  }
 
-    const socket = io(API_BASE_URL, {
+  console.log('🔌 Connecting to WebSocket for session:', sessionId);
+
+  // ✅ ИСПРАВЛЕНО: Подключаемся к правильному URL
+    const socket = io('https://zuuma.ru', {  // ← БЕЗ /api!
+      path: '/socket.io',  // ✅ ДОБАВЛЕНО
       transports: ['websocket', 'polling'],
-      // ✅ auth токен не нужен, сервер проверяет cookie
+      withCredentials: true,  // ✅ КРИТИЧНО для cookie!
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
@@ -88,16 +93,31 @@ export default function ChatDetailPage() {
     socketRef.current = socket;
 
     socket.on('connect', () => {
+      console.log('✅ WebSocket connected, socket ID:', socket.id);
       socket.emit('join', { sessionId });
+      console.log('📌 Joined session room:', sessionId);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connect error:', error.message);
     });
 
     socket.on('message', (payload: any) => {
-      if (payload.chatSessionId !== sessionId) return;
+      console.log('📨 Received message:', payload);
+      
+      if (payload.chatSessionId !== sessionId) {
+        console.warn('⚠️ Message for different session, ignoring');
+        return;
+      }
 
       setMessages(prev => {
         const exists = prev.some(m => m.id === payload.id);
-        if (exists) return prev;
+        if (exists) {
+          console.log('🚫 Duplicate message, ignoring');
+          return prev;
+        }
 
+        console.log('✅ Adding message to UI');
         return [
           ...prev,
           {
@@ -112,10 +132,16 @@ export default function ChatDetailPage() {
     });
 
     socket.on('session:update', (s: any) => {
+      console.log('🔄 Session updated:', s);
       setSession(s);
     });
 
+    socket.on('disconnect', (reason) => {
+      console.warn('❌ WebSocket disconnected:', reason);
+    });
+
     return () => {
+      console.log('🔌 Disconnecting WebSocket');
       socket.disconnect();
       socketRef.current = null;
     };
