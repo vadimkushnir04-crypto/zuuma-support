@@ -438,27 +438,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   justify-content: flex-start;
 }
 
-.chat-bubble {
-  max-width: 80%;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  background: #2a2a2a;
-  color: #E0E0E0;
-  white-space: pre-wrap;
-}
-
-.chat-message.user .chat-bubble {
-  background: #888888;
-  color: #fff;
-  border-radius: 1rem 1rem 0.25rem 1rem;
-}
-
-.chat-empty {
-  text-align: center;
-  color: #666666;
-  margin-top: 1rem;
-}
-
 .thinking {
   display: flex;
   align-items: center;
@@ -2057,7 +2036,6 @@ background: #111111;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   gap: 2rem;
-  max-width: 1400px;
   margin: 20px;
   position: relative;
   z-index: 1;
@@ -6011,15 +5989,6 @@ body.sidebar-open .sidebar {
   overflow: hidden;
 }
 
-/* Chat Messages Area */
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-xl);
-  background: var(--bg-main);
-  scroll-behavior: smooth;
-}
-
 .chat-message-list {
   display: flex;
   flex-direction: column;
@@ -6095,18 +6064,6 @@ body.sidebar-open .sidebar {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-}
-
-/* Empty Chat State */
-.chat-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  color: var(--text-secondary);
-  padding: var(--space-3xl);
 }
 
 .chat-empty svg {
