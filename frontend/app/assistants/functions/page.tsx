@@ -10,7 +10,7 @@ import {
 
 import AuthGuard from '../../../components/AuthGuard';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
 
 // Типы
 interface FunctionParameter {
@@ -83,6 +83,7 @@ export default function GlobalFunctionsPage() {
     const token = localStorage.getItem('auth_token');
     
     const response = await fetch(`${API_BASE_URL}/assistants/functions/global`, {
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -107,6 +108,7 @@ const loadAssistants = async () => {
     }
 
     const response = await fetch(`${API_BASE_URL}/assistants`, {
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -131,6 +133,7 @@ const loadUsageStats = async () => {
     const token = localStorage.getItem('auth_token');
     
     const response = await fetch(`${API_BASE_URL}/assistants/functions/usage-stats`, {
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -184,6 +187,7 @@ const deleteFunction = async (functionId: string) => {
     
     const response = await fetch(`${API_BASE_URL}/assistants/functions/global/${functionId}`, {
       method: 'DELETE',
+      credentials: 'include',
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -222,6 +226,7 @@ const testFunction = async () => {
 
     const response = await fetch(`${API_BASE_URL}/assistants/functions/global/${selectedFunction.id}/test`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -248,6 +253,7 @@ const assignFunctionToBot = async (assistantId: string, functionId: string) => {
     
     const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/functions/assign`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -372,15 +378,44 @@ const FunctionEditor = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/functions/${formData.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const token = localStorage.getItem('auth_token');
+      
+      const isNewFunction = !formData.id;
+      const url = isNewFunction 
+        ? `${API_BASE_URL}/api/assistants/functions/global`
+        : `${API_BASE_URL}/api/assistants/functions/global/${formData.id}`;
+      
+      const method = isNewFunction ? "POST" : "PUT";
+      
+      const res = await fetch(url, {
+        method: method,
+        credentials: 'include',
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(formData),
       });
-      if (!res.ok) throw new Error("Ошибка сохранения функции");
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Ошибка сохранения функции");
+      }
+      
+      const data = await res.json();
+      await loadFunctions();
+      await loadUsageStats();
+      
+      if (isNewFunction && data.data) {
+        setSelectedFunction(data.data);
+      }
+      
       setIsEditing(false);
+      alert(isNewFunction ? 'Функция создана!' : 'Функция обновлена!');
+      
     } catch (err) {
       console.error("Ошибка сохранения:", err);
+      alert('Ошибка сохранения: ' + (err instanceof Error ? err.message : 'Неизвестная ошибка'));
     } finally {
       setLoading(false);
     }
@@ -652,6 +687,7 @@ const FunctionEditor = () => {
       `${API_BASE_URL}/assistants/${assistantId}/functions/${functionId}`,
       {
         method: "DELETE",
+        credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
@@ -691,6 +727,7 @@ const AssignModal = () => {
       const token = localStorage.getItem('auth_token');
       
       const res = await fetch(`${API_BASE_URL}/assistants/${assistantId}/functions`, {
+        credentials: 'include',
         headers: {
           'Authorization': `Bearer ${token}`
         }
