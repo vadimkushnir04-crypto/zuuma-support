@@ -198,6 +198,10 @@ export default function Home() {
 
         {/* Стили для вкладок */}
         <style jsx>{`
+          .home-container {
+            padding-bottom: 200px; /* ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ - отступ для футера */
+          }
+
           .upload-tabs {
             display: flex;
             gap: 0.5rem;
