@@ -18,14 +18,13 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   return (
     <>
       <Header isLoggedIn={isLoggedIn} userName={userName} onLogout={logout} />
-      <div style={{ display: 'flex', paddingTop: '54px' }}>
+      <div style={{ display: 'flex', paddingTop: '54px', flex: 1 }}>
         {!hideSidebar && <Sidebar />}
         <main
           style={{
             flex: 1,
             marginLeft: hideSidebar ? '0' : '256px',
             padding: '0rem',
-            minHeight: 'calc(100vh - 54px)',
           }}
         >
           {children}

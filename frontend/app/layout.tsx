@@ -93,11 +93,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           padding: 0,
           minHeight: '100vh',
           fontFamily: 'Inter, sans-serif',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <I18nProvider>
-          <LayoutClient>{children}</LayoutClient>
-        </I18nProvider>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <I18nProvider>
+            <LayoutClient>{children}</LayoutClient>
+          </I18nProvider>
+        </div>
         <Footer />
       </body>
     </html>
