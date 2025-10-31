@@ -78,15 +78,10 @@ export default function GlobalFunctionsPage() {
     fetchData();
   }, []);
 
-  const loadFunctions = async () => {
+const loadFunctions = async () => {
   try {
-    const token = localStorage.getItem('auth_token');
-    
     const response = await fetch(`${API_BASE_URL}/assistants/functions/global`, {
-      credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      credentials: 'include', 
     });
     const data = await response.json();
     if (data.success) {
@@ -98,64 +93,60 @@ export default function GlobalFunctionsPage() {
 };
 
 const loadAssistants = async () => {
+  console.log('🔄 loadAssistants started');
+  
   try {
-    const token = localStorage.getItem('auth_token');
+    console.log('📡 Fetching assistants from:', `${API_BASE_URL}/assistants`);
     
-    if (!token) {
-      console.error('No auth token');
+    const response = await fetch(`${API_BASE_URL}/assistants`, {
+      credentials: 'include', // ✅ Cookie автоматически отправится
+    });
+    
+    console.log('📡 Response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('❌ Response not ok:', response.status);
       setAssistants([]);
       return;
     }
-
-    const response = await fetch(`${API_BASE_URL}/assistants`, {
-      credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    
     const data = await response.json();
+    console.log('📋 Full response:', data);
 
+    // Поддержка разных структур ответа
+    let assistantsList = [];
+    
     if (Array.isArray(data.data?.assistants)) {
-      setAssistants(data.data.assistants);
-    } else {
-      setAssistants([]);
+      assistantsList = data.data.assistants;
+    } else if (Array.isArray(data.assistants)) {
+      assistantsList = data.assistants;
+    } else if (Array.isArray(data.data)) {
+      assistantsList = data.data;
+    } else if (Array.isArray(data)) {
+      assistantsList = data;
     }
+
+    console.log('✅ Setting assistants:', assistantsList.length);
+    setAssistants(assistantsList);
+    
   } catch (err) {
-    console.error("Ошибка загрузки ассистентов:", err);
+    console.error("❌ Error:", err);
     setAssistants([]);
   }
 };
 
 // Загрузка статистики использования функций
 const loadUsageStats = async () => {
-  console.log("DEBUG: loadUsageStats вызван");
   try {
-    const token = localStorage.getItem('auth_token');
-    
     const response = await fetch(`${API_BASE_URL}/assistants/functions/usage-stats`, {
-      credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      credentials: 'include', // ✅ Только это
     });
-    console.log("DEBUG: response status:", response.status);
-    const text = await response.text();
-    console.log("DEBUG: raw response text:", text);
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error("DEBUG: не удалось распарсить JSON:", e);
-      return;
-    }
-
-    console.log("DEBUG usage-stats response (JSON):", data);
+    const data = await response.json();
     if (data.success) {
       const statsMap: Record<string, number> = {};
       data.data.forEach((stat: any) => {
         statsMap[stat.functionId] = stat.usageCount;
       });
-      console.log("DEBUG: построен statsMap:", statsMap);
       setUsageStats(statsMap);
     }
   } catch (error) {
@@ -180,17 +171,12 @@ const createNewFunction = () => {
 
 // Удаление функции
 const deleteFunction = async (functionId: string) => {
-  if (!confirm('Вы уверены, что хотите удалить эту функцию? Она будет удалена у всех ботов.')) return;
+  if (!confirm('Вы уверены?')) return;
 
   try {
-    const token = localStorage.getItem('auth_token');
-    
     const response = await fetch(`${API_BASE_URL}/assistants/functions/global/${functionId}`, {
       method: 'DELETE',
-      credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      credentials: 'include', // ✅ Только это
     });
 
     if (response.ok) {
@@ -209,7 +195,7 @@ const testFunction = async () => {
   if (!selectedFunction?.id) return;
 
   try {
-    const token = localStorage.getItem('auth_token');
+    
     const testParams: Record<string, any> = {};
 
     selectedFunction.parameters.forEach(param => {
@@ -229,7 +215,6 @@ const testFunction = async () => {
       credentials: 'include',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ testParameters: testParams }),
     });
@@ -249,14 +234,13 @@ const testFunction = async () => {
 // Назначение функции боту
 const assignFunctionToBot = async (assistantId: string, functionId: string) => {
   try {
-    const token = localStorage.getItem('auth_token');
+    
     
     const response = await fetch(`${API_BASE_URL}/assistants/${assistantId}/functions/assign`, {
       method: 'POST',
       credentials: 'include',
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({ globalFunctionId: functionId })
     });
@@ -378,7 +362,7 @@ const FunctionEditor = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('auth_token');
+      
       
       const isNewFunction = !formData.id;
       const url = isNewFunction 
@@ -392,7 +376,6 @@ const FunctionEditor = () => {
         credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(formData),
       });
@@ -681,7 +664,7 @@ const FunctionEditor = () => {
 
   const unassignFunctionFromBot = async (assistantId: string, functionId: string) => {
   try {
-    const token = localStorage.getItem('auth_token');
+    
     
     const response = await fetch(
       `${API_BASE_URL}/assistants/${assistantId}/functions/${functionId}`,
@@ -690,7 +673,6 @@ const FunctionEditor = () => {
         credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
         },
       }
     );
@@ -724,12 +706,12 @@ const AssignModal = () => {
     setLoadingFunctions(prev => ({ ...prev, [assistantId]: true }));
 
     try {
-      const token = localStorage.getItem('auth_token');
+      
       
       const res = await fetch(`${API_BASE_URL}/assistants/${assistantId}/functions`, {
         credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         }
       });
       const json = await res.json();
