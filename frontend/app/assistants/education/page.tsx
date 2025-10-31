@@ -199,7 +199,50 @@ export default function Home() {
         {/* Стили для вкладок */}
         <style jsx>{`
           .home-container {
-            padding-bottom: 200px; /* ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ - отступ для футера */
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            min-height: calc(100vh - 54px - 200px);
+          }
+
+          .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-height: calc(100vh - 54px - 4rem);
+            overflow-y: auto;
+          }
+
+          .chat-section {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 54px - 4rem);
+            max-height: calc(100vh - 54px - 4rem);
+            position: sticky;
+            top: 70px;
+            overflow: hidden;
+          }
+
+          .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+          }
+
+          @media (max-width: 1200px) {
+            .home-container {
+              grid-template-columns: 1fr;
+            }
+            
+            .chat-section {
+              position: static;
+              height: 600px;
+            }
           }
 
           .upload-tabs {

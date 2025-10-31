@@ -121,6 +121,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: 'auto',
     padding: '48px 20px 24px',
     color: '#E0E0E0',
+    position: 'relative',
+    width: '100%',
   },
   container: {
     maxWidth: '1200px',

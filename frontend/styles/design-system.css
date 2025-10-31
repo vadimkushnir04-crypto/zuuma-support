@@ -299,10 +299,13 @@
 
 .new-design-system .modal-footer {
   display: flex;
+  position: relative;
   gap: var(--ds-space-md);
   justify-content: flex-end;
   padding: var(--ds-space-xl);
   border-top: 1px solid var(--ds-border);
+  width: 100%;
+  margin-top: auto;
 }
 
 /* Badges */

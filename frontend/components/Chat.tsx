@@ -354,44 +354,48 @@ export default function Chat() {
     }
   }, [chatSessionId, selectedAssistantId, userIdentifier]);
 
-if (!selectedAssistantId) {
-    return (
-      <div className="chat-wrapper">
-        <div className="chat-messages">
-          <div className="chat-empty">
-            {t('noAssistant')}
+  // Если не выбран ассистент
+    if (!selectedAssistantId) {
+      return (
+        <div className="chat-wrapper">
+          <div className="chat-messages">
+            <div className="chat-empty">
+              {t('noAssistant')}
+            </div>
+          </div>
+          <div className="chat-input-wrapper">
+            <textarea
+              placeholder={t('placeholders.selectAssistant')}
+              disabled
+              className="disabled"
+              rows={1}
+            />
+            <button disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" 
+                      stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </button>
           </div>
         </div>
-        <div className="chat-input-wrapper">
-          <textarea
-            placeholder={t('placeholders.selectAssistant')}
-            disabled
-            className="disabled"
-            rows={1}
-          />
-          <button disabled>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" 
-                    stroke="currentColor" strokeWidth="2" />
-            </svg>
-          </button>
-        </div>
-      </div>
-    );
-  }
+      );
+    }
 
+  // Основной чат
   return (
     <div className="chat-wrapper">
+      {/* Контейнер сообщений - ВАЖНО: flex: 1, overflow-y: auto, min-height: 0 */}
       <div className="chat-messages">
         {messages.length === 0 ? (
           <div className="chat-empty">{t('askQuestion')}</div>
         ) : (
-          <div className="chat-message-list">
+          <>
             {messages.map((message) => (
               <div key={message.id} className={`chat-message ${message.sender}`}>
                 <div className="chat-bubble">
                   {message.text}
                   
+                  {/* Файлы */}
                   {message.files && message.files.length > 0 && (
                     <div className="message-files">
                       {message.files.map((file, idx) => (
@@ -407,7 +411,6 @@ if (!selectedAssistantId) {
                                 src={`${API_BASE_URL}${file.fileUrl}`} 
                                 alt={file.fileName}
                                 className="message-image"
-                                style={{ maxWidth: '300px', borderRadius: '8px', marginTop: '8px' }}
                               />
                               <div className="file-name">📷 {file.fileName}</div>
                             </a>
@@ -417,17 +420,6 @@ if (!selectedAssistantId) {
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="file-link"
-                              style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '8px',
-                                padding: '8px 12px',
-                                background: 'rgba(0,0,0,0.05)',
-                                borderRadius: '6px',
-                                marginTop: '8px',
-                                textDecoration: 'none',
-                                color: 'inherit'
-                              }}
                             >
                               <span className="file-icon">
                                 {file.fileType === 'pdf' ? '📄' : '📎'}
@@ -443,6 +435,7 @@ if (!selectedAssistantId) {
                     </div>
                   )}
                   
+                  {/* Источники */}
                   {message.sources && message.sources > 0 && (
                     <div className="message-sources">
                       📄 {t('sources', { count: message.sources })}
@@ -451,6 +444,8 @@ if (!selectedAssistantId) {
                 </div>
               </div>
             ))}
+            
+            {/* Индикатор загрузки */}
             {isLoading && (
               <div className="chat-message assistant">
                 <div className="chat-bubble thinking">
@@ -461,11 +456,14 @@ if (!selectedAssistantId) {
                 </div>
               </div>
             )}
+            
+            {/* Автоскролл к последнему сообщению */}
             <div ref={messagesEndRef} />
-          </div>
+          </>
         )}
       </div>
 
+      {/* Поле ввода - ВАЖНО: flex-shrink: 0 */}
       <div className="chat-input-wrapper">
         <textarea
           ref={textareaRef}
@@ -501,6 +499,252 @@ if (!selectedAssistantId) {
           </svg>
         </button>
       </div>
+
+      {/* ========================================
+          СТИЛИ - Добавь в конец компонента перед закрывающей скобкой
+          ======================================== */}
+      <style jsx>{`
+        /* Обёртка чата - flex контейнер */
+        .chat-wrapper {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          overflow: hidden;
+          background: var(--bg-default, #121212);
+        }
+
+        /* Контейнер сообщений - КРИТИЧЕСКИ ВАЖНЫЕ СВОЙСТВА */
+        .chat-messages {
+          flex: 1; /* Занимает всё доступное пространство */
+          overflow-y: auto; /* Скролл по вертикали */
+          overflow-x: hidden; /* Скрываем горизонтальный скролл */
+          padding: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          min-height: 0; /* КРИТИЧЕСКИ ВАЖНО для правильной работы flex и scroll */
+        }
+
+        /* Кастомный скроллбар */
+        .chat-messages::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+          background: var(--border-color, #2D2D2D);
+          border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+          background: var(--fg-muted, #666);
+        }
+
+        /* Пустое состояние */
+        .chat-empty {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100%;
+          color: var(--fg-muted, #999);
+          font-size: 0.95rem;
+        }
+
+        /* Сообщение */
+        .chat-message {
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 0.5rem;
+        }
+
+        .chat-message.user {
+          align-items: flex-end;
+        }
+
+        .chat-message.assistant {
+          align-items: flex-start;
+        }
+
+        /* Пузырь сообщения */
+        .chat-bubble {
+          padding: 0.75rem 1rem;
+          border-radius: 12px;
+          max-width: 80%;
+          word-wrap: break-word;
+          white-space: pre-wrap;
+        }
+
+        .chat-message.user .chat-bubble {
+          background: var(--primary-color, #4169E1);
+          color: white;
+        }
+
+        .chat-message.assistant .chat-bubble {
+          background: var(--bg-elevated, #1E1E1E);
+          border: 1px solid var(--border-color, #2D2D2D);
+          color: var(--fg-default, #E0E0E0);
+        }
+
+        /* Анимация "думает" */
+        .chat-bubble.thinking {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .dots {
+          display: flex;
+          gap: 4px;
+        }
+
+        .dots div {
+          width: 6px;
+          height: 6px;
+          background: var(--fg-muted, #999);
+          border-radius: 50%;
+          animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .dots div:nth-child(1) {
+          animation-delay: -0.32s;
+        }
+
+        .dots div:nth-child(2) {
+          animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+          0%, 80%, 100% {
+            transform: scale(0);
+          }
+          40% {
+            transform: scale(1);
+          }
+        }
+
+        /* Файлы */
+        .message-files {
+          margin-top: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .file-attachment a {
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .image-preview-link {
+          display: block;
+        }
+
+        .message-image {
+          max-width: 300px;
+          border-radius: 8px;
+          margin-top: 8px;
+          display: block;
+        }
+
+        .file-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 6px;
+          margin-top: 8px;
+          transition: background 0.2s;
+        }
+
+        .file-link:hover {
+          background: rgba(0, 0, 0, 0.1);
+        }
+
+        .file-name {
+          font-size: 0.9rem;
+        }
+
+        .page-number {
+          font-size: 0.85rem;
+          opacity: 0.7;
+        }
+
+        /* Источники */
+        .message-sources {
+          margin-top: 0.5rem;
+          font-size: 0.85rem;
+          opacity: 0.8;
+        }
+
+        /* Поле ввода - НЕ СЖИМАЕТСЯ */
+        .chat-input-wrapper {
+          padding: 1rem;
+          border-top: 1px solid var(--border-color, #2D2D2D);
+          background: var(--bg-elevated, #1E1E1E);
+          flex-shrink: 0; /* КРИТИЧЕСКИ ВАЖНО - не сжимается */
+          display: flex;
+          gap: 0.5rem;
+          align-items: flex-end;
+        }
+
+        /* Textarea */
+        .chat-input-wrapper textarea {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          background: var(--bg-default, #121212);
+          border: 1px solid var(--border-color, #2D2D2D);
+          border-radius: 8px;
+          color: var(--fg-default, #E0E0E0);
+          font-size: 0.95rem;
+          font-family: inherit;
+          outline: none;
+          transition: border-color 0.2s;
+          line-height: 24px;
+          min-height: 24px;
+        }
+
+        .chat-input-wrapper textarea:focus {
+          border-color: var(--primary-color, #4169E1);
+        }
+
+        .chat-input-wrapper textarea:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        /* Кнопка отправки */
+        .chat-input-wrapper button {
+          padding: 0.75rem;
+          background: var(--primary-color, #4169E1);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: opacity 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 40px;
+          height: 40px;
+        }
+
+        .chat-input-wrapper button:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        .chat-input-wrapper button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .chat-input-wrapper button svg {
+          transform: rotate(0deg);
+        }
+      `}</style>
     </div>
   );
 }

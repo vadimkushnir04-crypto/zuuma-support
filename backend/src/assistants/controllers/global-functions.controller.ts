@@ -4,7 +4,7 @@ import { GlobalFunctionsService } from '../services/global-functions.service';
 import { GlobalFunction } from '../entities/global-function.entity';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 
-@Controller('functions')
+@Controller('assistants/functions')
 export class GlobalFunctionsController {
   constructor(
     private readonly globalFunctionsService: GlobalFunctionsService,
