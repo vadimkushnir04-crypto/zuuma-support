@@ -25,11 +25,34 @@ export class AIFunctionCallingService {
   ): Promise<FunctionCallResult> {
     try {
       // Получаем активные функции ассистента через ManyToMany связь
+      console.log('🔍 Loading functions for assistant:', assistantId);
+      
       const availableFunctions = await this.globalFunctionsService.getAssistantFunctions(assistantId);
       
+      console.log('📋 Available functions:', {
+        count: availableFunctions.length,
+        functions: availableFunctions.map(f => ({
+          id: f.id,
+          name: f.name,
+          isActive: f.is_active,
+          endpoint: f.endpoint_url
+        }))
+      });
+      
       if (availableFunctions.length === 0) {
-        return { shouldCallFunction: false };
+        console.log('❌ No functions available for this assistant');
+        return { shouldCallFunction: false, reasoning: 'No functions available' };
       }
+      
+      // ✅ ВАЖНО: Фильтруем только активные функции
+      const activeFunctions = availableFunctions.filter(f => f.is_active);
+      
+      if (activeFunctions.length === 0) {
+        console.log('❌ No active functions available');
+        return { shouldCallFunction: false, reasoning: 'All functions are inactive' };
+      }
+      
+      console.log(`✅ Found ${activeFunctions.length} active functions`);
 
       // Создаем промпт для анализа
       const functionCallPrompt = this.buildFunctionSelectionPrompt(query, availableFunctions);

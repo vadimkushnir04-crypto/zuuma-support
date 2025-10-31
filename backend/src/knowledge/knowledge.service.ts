@@ -356,43 +356,75 @@ constructor(
       { role: 'user', content: query }
     ];
 
-    // Function Calling (если доступен assistantId)
-    if (assistantId && isRelevant) {
-      try {
-        const functionCallAnalysis = await this.aiFunctionService.analyzeQueryForFunctionCall(query, assistantId);
-
-        if (functionCallAnalysis.shouldCallFunction && functionCallAnalysis.functionToCall) {
-          console.log(`🔧 Calling function: ${functionCallAnalysis.functionToCall.name}`);
+      // ============================================
+      // 🔧 FUNCTION CALLING
+      // ============================================
+      
+      if (assistantId) {
+        console.log('🔧 Function calling check:', {
+          assistantId,
+          isRelevant,
+          hasContext: searchResults.length > 0
+        });
+        
+        try {
+          console.log('🔧 Starting function analysis...');
           
-          const result = await this.aiFunctionService.executeFunctionCall(
-            functionCallAnalysis.functionToCall,
-            functionCallAnalysis.extractedParameters || {}
+          const functionCallAnalysis = await this.aiFunctionService.analyzeQueryForFunctionCall(
+            query, 
+            assistantId
           );
+          
+          console.log('🔧 Function analysis result:', {
+            shouldCall: functionCallAnalysis.shouldCallFunction,
+            functionName: functionCallAnalysis.functionToCall?.name,
+            hasParameters: !!functionCallAnalysis.extractedParameters,
+            reasoning: functionCallAnalysis.reasoning
+          });
 
-          const integratedAnswer = await this.aiFunctionService.integrateFunctionResultIntoResponse(
-            query,
-            result,
-            functionCallAnalysis.functionToCall.name
-          );
+          if (functionCallAnalysis.shouldCallFunction && functionCallAnalysis.functionToCall) {
+            console.log(`🚀 Executing function: ${functionCallAnalysis.functionToCall.name}`);
+            console.log(`📋 Parameters:`, functionCallAnalysis.extractedParameters);
+            
+            const result = await this.aiFunctionService.executeFunctionCall(
+              functionCallAnalysis.functionToCall,
+              functionCallAnalysis.extractedParameters || {}
+            );
+            
+            console.log(`✅ Function result:`, result);
 
-          return {
-            answer: integratedAnswer,
-            hasContext: true,
-            sources: searchResults.length,
-            functionCalled: functionCallAnalysis.functionToCall.name,
-            functionResult: result,
-            searchResults: searchResults.slice(0, 3).map(r => ({
-              text: r.payload.text.substring(0, 200) + '...',
-              score: Math.round(r.score * 100) / 100,
-              title: r.payload.title ?? 'Документ',        // ✅ Используем ?? вместо ||
-              chunkIndex: r.payload.chunkIndex,
-            }))
-          };
+            const integratedAnswer = await this.aiFunctionService.integrateFunctionResultIntoResponse(
+              query,
+              result,
+              functionCallAnalysis.functionToCall.name
+            );
+            
+            console.log(`✅ Integrated answer ready`);
+
+            return {
+              answer: integratedAnswer,
+              hasContext: true,
+              sources: searchResults.length,
+              functionCalled: functionCallAnalysis.functionToCall.name,
+              functionResult: result,
+              searchResults: searchResults.slice(0, 3).map(r => ({
+                text: r.payload.text.substring(0, 200) + '...',
+                score: Math.round(r.score * 100) / 100,
+                title: r.payload.title ?? 'Документ',
+                chunkIndex: r.payload.chunkIndex,
+              }))
+            };
+          } else {
+            console.log('❌ Function calling skipped:', functionCallAnalysis.reasoning);
+          }
+          
+        } catch (error) {
+          console.error('❌ Function calling error:', error);
+          console.error('Stack:', error.stack);
         }
-      } catch (error) {
-        console.warn('⚠️ Function calling failed:', error.message);
+      } else {
+        console.log('⚠️ Function calling disabled: no assistantId');
       }
-    }
 
     // ============================================
     // 🤖 ГЕНЕРАЦИЯ ОТВЕТА ЧЕРЕЗ LLM
