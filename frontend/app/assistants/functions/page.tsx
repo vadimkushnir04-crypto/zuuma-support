@@ -10,7 +10,7 @@ import {
 
 import AuthGuard from '../../../components/AuthGuard';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
 
 // Типы
 interface FunctionParameter {
@@ -382,8 +382,8 @@ const FunctionEditor = () => {
       
       const isNewFunction = !formData.id;
       const url = isNewFunction 
-        ? `${API_BASE_URL}/api/assistants/functions/global`
-        : `${API_BASE_URL}/api/assistants/functions/global/${formData.id}`;
+        ? `${API_BASE_URL}/assistants/functions/global`
+        : `${API_BASE_URL}/assistants/functions/global/${formData.id}`;
       
       const method = isNewFunction ? "POST" : "PUT";
       
