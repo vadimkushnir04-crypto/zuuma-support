@@ -228,7 +228,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  width: 50%;
 }
 
 .left-column > .card:first-child {
@@ -1419,7 +1418,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 /* --- Create Assistant Page --- */
 .create-container {
   min-height: 100vh;
-  background: #f9fafb;
+  background: #111111;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1427,7 +1426,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 }
 
 .create-card {
-  background: #fff;
+  background: #333333;
   border-radius: 1rem;
   padding: 2rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
@@ -4652,6 +4651,7 @@ background: #111111;
   border: none;
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
+  margin: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;

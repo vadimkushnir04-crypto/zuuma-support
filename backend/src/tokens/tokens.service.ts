@@ -222,14 +222,24 @@ export class TokensService {
     return plans;
   }
 
-  async getDetailedAnalytics(userId: string, from: Date, to: Date) {
-    const txRepo = this.dataSource.getRepository(TokenTransaction);
+  async getDetailedAnalytics(userId: string, range: string = '30d') {
+    const txRepo = this.dataSource.getRepository('TokenTransaction');
     const userRepo = this.dataSource.getRepository(User);
     
     const user = await userRepo.findOne({ where: { id: userId }});
     
-    // Дневное использование токенов
-    const dailyUsage = await txRepo.createQueryBuilder('tx')
+    // ✅ Определяем даты на основе range
+    let daysAgo = 30;
+    if (range === '7d') daysAgo = 7;
+    else if (range === '30d') daysAgo = 30;
+    else if (range === '3m') daysAgo = 90;
+    
+    const from = new Date(Date.now() - daysAgo * 24 * 3600 * 1000);
+    const to = new Date();
+    
+    // ✅ Дневное использование токенов
+    const dailyUsage = await txRepo
+      .createQueryBuilder('tx')
       .select("TO_CHAR(tx.created_at, 'DD.MM') as date")
       .addSelect('SUM(CASE WHEN tx.type = \'consume\' THEN CAST(tx.amount AS bigint) ELSE 0 END) as tokens')
       .addSelect('COUNT(CASE WHEN tx.type = \'consume\' THEN 1 END) as chats')
@@ -239,31 +249,72 @@ export class TokensService {
       .orderBy('MIN(tx.created_at)', 'ASC')
       .getRawMany();
 
-    // Использование по ассистентам
-    const assistantUsage = await txRepo.createQueryBuilder('tx')
-      .select('tx.assistant_id')
-      .addSelect('COUNT(*) as requests')
-      .addSelect('SUM(CAST(tx.amount AS bigint)) as total_tokens')
-      .where('tx.user_id = :userId', { userId })
-      .andWhere('tx.type = :type', { type: 'consume' })
-      .andWhere('tx.created_at BETWEEN :from AND :to', { from, to })
-      .groupBy('tx.assistant_id')
-      .getRawMany();
+    // ✅ ИСПРАВЛЕНО: Использование по ассистентам С ИМЕНАМИ
+    const assistantUsage = await this.dataSource.query(`
+      SELECT 
+        a.id as assistant_id,
+        a.name as assistant_name,
+        COUNT(tx.id) as requests,
+        SUM(CAST(tx.amount AS bigint)) as total_tokens
+      FROM token_transactions tx
+      LEFT JOIN assistants a ON tx.assistant_id = a.id
+      WHERE tx.user_id = $1
+        AND tx.type = 'consume'
+        AND tx.created_at BETWEEN $2 AND $3
+      GROUP BY a.id, a.name
+      ORDER BY total_tokens DESC
+    `, [userId, from, to]);
 
-    // Активность по часам
-    const hourlyActivity = await txRepo.createQueryBuilder('tx')
+    // ✅ Активность по часам (последние 7 дней)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+    const hourlyActivity = await txRepo
+      .createQueryBuilder('tx')
       .select("EXTRACT(HOUR FROM tx.created_at) as hour")
       .addSelect('COUNT(*) as activity')
       .where('tx.user_id = :userId', { userId })
-      .andWhere('tx.created_at > NOW() - INTERVAL \'7 days\'')
+      .andWhere('tx.created_at > :sevenDaysAgo', { sevenDaysAgo })
       .groupBy('hour')
       .orderBy('hour')
       .getRawMany();
+
+    // ✅ НОВАЯ СТАТИСТИКА: Общая за период
+    const periodStats = await txRepo
+      .createQueryBuilder('tx')
+      .select('COUNT(*) as total_requests')
+      .addSelect('SUM(CAST(tx.amount AS bigint)) as total_tokens_used')
+      .addSelect('AVG(CAST(tx.amount AS bigint)) as avg_tokens_per_request')
+      .where('tx.user_id = :userId', { userId })
+      .andWhere('tx.type = :type', { type: 'consume' })
+      .andWhere('tx.created_at BETWEEN :from AND :to', { from, to })
+      .getRawOne();
+
+    // ✅ НОВАЯ СТАТИСТИКА: Топ-3 ассистента
+    const topAssistants = assistantUsage.slice(0, 3);
+
+    // ✅ НОВАЯ СТАТИСТИКА: Прогноз окончания токенов
+    const tokensUsed = Number(user?.tokens_used || 0);
+    const tokensLimit = Number(user?.tokens_limit || 0);
+    const remaining = tokensLimit - tokensUsed;
+    
+    const avgPerDay = periodStats.total_tokens_used 
+      ? Number(periodStats.total_tokens_used) / daysAgo 
+      : 0;
+    
+    const daysLeft = avgPerDay > 0 ? Math.floor(remaining / avgPerDay) : -1;
 
     return {
       dailyUsage,
       assistantUsage,
       hourlyActivity,
+      periodStats: {
+        totalRequests: Number(periodStats.total_requests || 0),
+        totalTokensUsed: Number(periodStats.total_tokens_used || 0),
+        avgTokensPerRequest: Math.round(Number(periodStats.avg_tokens_per_request || 0)),
+        daysInPeriod: daysAgo,
+        avgTokensPerDay: Math.round(avgPerDay),
+        daysLeft: daysLeft > 0 ? daysLeft : null,
+      },
+      topAssistants,
       user
     };
   }

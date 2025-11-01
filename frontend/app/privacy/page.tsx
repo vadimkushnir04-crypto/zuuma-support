@@ -206,7 +206,6 @@ export default function PrivacyPolicyPage() {
           <ul style={styles.list}>
             <li><strong>ЮKassa:</strong> Для обработки платежей (они имеют свою политику конфиденциальности)</li>
             <li><strong>Хостинг-провайдер:</strong> Для хранения данных на серверах</li>
-            <li><strong>OpenAI/Anthropic:</strong> Для обработки запросов к AI (без персональных данных)</li>
             <li><strong>Государственные органы:</strong> По требованию закона</li>
           </ul>
 

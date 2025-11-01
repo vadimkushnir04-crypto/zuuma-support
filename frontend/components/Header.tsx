@@ -514,7 +514,7 @@ const styles = {
     gap: '16px',
   },
   profileSection: {
-    padding: '10px 20px',
+    padding: '3px 5px',
     background: '#1a1a1a',
     color: '#E0E0E0',
     border: '1px solid #444444',

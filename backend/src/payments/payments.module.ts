@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { Plan } from '../tokens/plan.entity';
 import { TokensModule } from '../tokens/tokens.module';
 import { AuthModule } from '../auth/auth.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     TokensModule,
     AuthModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],

@@ -62,8 +62,8 @@ export default function OfferPage() {
             <ul style={styles.serviceFeatures}>
               <li>✓ 100 000 токенов в месяц</li>
               <li>✓ 1 AI-ассистент</li>
-              <li>✓ Интеграция с Telegram</li>
-              <li>✓ Встраиваемый веб-виджет</li>
+              <li>✓ Интеграция с Telegram Bot</li>
+              <li>✓ Веб-виджет</li>
             </ul>
             <div style={styles.serviceNote}>Идеально для тестирования платформы</div>
           </div>
@@ -78,9 +78,8 @@ export default function OfferPage() {
             <ul style={styles.serviceFeatures}>
               <li>✓ <strong>2 000 000 токенов</strong> в месяц</li>
               <li>✓ До 10 AI-ассистентов</li>
-              <li>✓ Кастомизация интерфейса</li>
               <li>✓ API-доступ</li>
-              <li>✓ Интеграция с Telegram</li>
+              <li>✓ Интеграция с Telegram Bot</li>
               <li>✓ Веб-виджет</li>
             </ul>
             <div style={styles.serviceNote}>Для малого и среднего бизнеса</div>
@@ -96,10 +95,8 @@ export default function OfferPage() {
             <ul style={styles.serviceFeatures}>
               <li>✓ <strong>6 000 000 токенов</strong> в месяц</li>
               <li>✓ До 50 AI-ассистентов</li>
-              <li>✓ Приоритетная поддержка</li>
-              <li>✓ Кастомизация интерфейса</li>
               <li>✓ API-доступ</li>
-              <li>✓ Интеграция с Telegram</li>
+              <li>✓ Интеграция с Telegram Bot</li>
               <li>✓ Веб-виджет</li>
             </ul>
             <div style={styles.serviceNote}>Для крупного бизнеса и корпораций</div>
@@ -199,7 +196,6 @@ export default function OfferPage() {
 
           <h4 style={styles.subheading}>Права и обязанности сторон</h4>
           <ul style={styles.list}>
-            <li>Исполнитель обязуется предоставить доступ в сроки и объёмы, указанные в описании тарифа;</li>
             <li>Исполнитель стремится обеспечивать доступность сервиса на уровне 99% времени, но не гарантирует отсутствие сбоев;</li>
             <li>Пользователь обязуется использовать сервис в соответствии с законодательством РФ и условиями данной Оферты, не для незаконных целей;</li>
             <li>Исполнитель сохраняет за собой исключительные права на программное обеспечение и документацию платформы;</li>

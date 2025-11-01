@@ -325,14 +325,6 @@ curl -X GET "${API_BASE_URL}/chat/history/CONVERSATION_ID" \\
       color: '#888888',
       badge: null
     },
-    {
-      id: 'whatsapp',
-      title: 'WhatsApp Business',
-      description: 'Подключите к WhatsApp Business API',
-      icon: <Smartphone size={24} />,
-      color: '#25d366',
-      badge: 'Скоро'
-    }
   ];
 
   const apiDocumentation = [

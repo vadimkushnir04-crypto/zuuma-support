@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { TokensService } from './tokens.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
+import { Query } from '@nestjs/common';
+import { DataSource } from 'typeorm';
 
 /**
  * Контроллер для работы с токенами
@@ -12,7 +14,8 @@ import { AuthService } from '../auth/auth.service';
 export class TokensController {
   constructor(
     private tokensService: TokensService,
-    private authService: AuthService
+    private authService: AuthService,
+    private dataSource: DataSource
   ) {}
 
   /**
@@ -91,14 +94,29 @@ export class TokensController {
     };
   }
 
+  @Get('history')
+  async getHistory(@Req() req: any, @Query('limit') limit: string = '50') {
+    const userId = req.user.id;
+    const limitNum = Math.min(parseInt(limit) || 50, 100);
+    const txRepo = this.dataSource.getRepository('TokenTransaction');
+    
+    const transactions = await txRepo
+      .createQueryBuilder('tx')
+      .where('tx.user_id = :userId', { userId })
+      .orderBy('tx.created_at', 'DESC')
+      .limit(limitNum)
+      .getMany();
+
+    return { transactions };
+  }
+
   /**
    * Аналитика использования токенов за последние 30 дней
    * GET /api/tokens/analytics
    */
   @Get('analytics')
-  async analytics(@Req() req: any) {
-    const from = new Date(Date.now() - 30*24*3600*1000);
-    const to = new Date();
-    return this.tokensService.getDetailedAnalytics(req.user.id, from, to);
+  async analytics(@Req() req: any, @Query('range') range?: string) {
+    const timeRange = range || '30d';
+    return this.tokensService.getDetailedAnalytics(req.user.id, timeRange);
   }
 }

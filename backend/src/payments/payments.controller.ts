@@ -152,4 +152,10 @@ export class PaymentsController {
       payments,
     };
   }
+
+  @Post('subscription/:id/toggle-auto-renew')
+    async toggleAutoRenew(@Req() req: any, @Param('id') subscriptionId: string) {
+    return this.paymentsService.toggleAutoRenew(req.user.id, subscriptionId);
+}
+
 }
