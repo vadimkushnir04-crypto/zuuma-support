@@ -1,291 +1,322 @@
 'use client';
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+interface AuditLog {
+  id: string;
+  action: string;
+  ipAddress: string;
+  status: 'success' | 'failure' | 'pending';
+  createdAt: string;
+  details: any;
+  metadata: any;
 }
 
-interface State {
-  hasError: boolean;
-  error?: Error;
-  errorInfo?: ErrorInfo;
+interface Stats {
+  action: string;
+  count: string;
+  status: string;
 }
 
-/**
- * Error Boundary для отлова ошибок React
- * Альтернатива Sentry - логирует в ваш backend
- */
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+export default function AuditLogsPage() {
+  const { isLoggedIn } = useAuth(); // ← Изменить на isLoggedIn
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [stats, setStats] = useState<Stats[]>([]);
+  const [dailyActivity, setDailyActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState({
+    action: '',
+    status: '',
+    days: '30',
+  });
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Логируем в консоль (для development)
-    console.error('Error caught by boundary:', error, errorInfo);
-
-    // Сохраняем в state
-    this.setState({
-      error,
-      errorInfo,
-    });
-
-    // Отправляем на backend для логирования
-    this.logErrorToBackend(error, errorInfo);
-
-    // Вызываем callback если есть
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+  useEffect(() => {
+    if (isLoggedIn) { // ← Изменить на isLoggedIn
+      fetchLogs();
+      fetchStats();
+      fetchDailyActivity();
     }
+  }, [isLoggedIn, filter]); // ← Изменить на isLoggedIn
 
-    // Логируем в Umami (если используете)
-    if (typeof window !== 'undefined' && window.umami) {
-      window.umami.track('react-error', {
-        error: error.message,
-        stack: error.stack?.substring(0, 500),
-        componentStack: errorInfo.componentStack?.substring(0, 500),
-      });
-    }
-  }
-
-  private async logErrorToBackend(error: Error, errorInfo: ErrorInfo) {
+  const fetchLogs = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      await fetch('/api/errors/log', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
-          type: 'react_error',
-          message: error.message,
-          stack: error.stack,
-          componentStack: errorInfo.componentStack,
-          userAgent: navigator.userAgent,
-          url: window.location.href,
-          timestamp: new Date().toISOString(),
-        }),
+      const params = new URLSearchParams({
+        limit: '50',
+        ...(filter.action && { action: filter.action }),
+        ...(filter.status && { status: filter.status }),
       });
-    } catch (err) {
-      // Не падаем, если не получилось отправить
-      console.error('Failed to log error to backend:', err);
+
+      const response = await fetch(`/api/audit-logs?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const data = await response.json();
+      setLogs(data.logs || []);
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`/api/audit-logs/stats?days=${filter.days}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const data = await response.json();
+      setStats(data.stats || []);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    }
+  };
+
+  const fetchDailyActivity = async () => {
+    try {
+      const response = await fetch(`/api/audit-logs/daily?days=${filter.days}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const data = await response.json();
+      setDailyActivity(data.activity || []);
+    } catch (error) {
+      console.error('Failed to fetch daily activity:', error);
+    }
+  };
+
+  const exportLogs = async (format: 'json' | 'csv') => {
+    try {
+      const response = await fetch(`/api/audit-logs/export?format=${format}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-logs-${Date.now()}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Failed to export logs:', error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'text-green-600 bg-green-50';
+      case 'failure':
+        return 'text-red-600 bg-red-50';
+      case 'pending':
+        return 'text-yellow-600 bg-yellow-50';
+      default:
+        return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const getActionLabel = (action: string) => {
+    return action
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
-  render() {
-    if (this.state.hasError) {
-      // Показываем fallback UI
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Audit Logs
+        </h1>
+        <p className="text-gray-600">
+          Просмотр и анализ действий пользователей
+        </p>
+      </div>
 
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4">
-              <svg
-                className="w-6 h-6 text-red-600"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            </div>
+      {/* Статистика */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">
+            Всего действий
+          </h3>
+          <p className="text-3xl font-bold text-gray-900">
+            {stats.reduce((sum, stat) => sum + parseInt(stat.count), 0)}
+          </p>
+        </div>
 
-            <h1 className="text-2xl font-bold text-center text-gray-900 mb-2">
-              Что-то пошло не так
-            </h1>
-            
-            <p className="text-center text-gray-600 mb-6">
-              Произошла ошибка при отображении страницы. Мы уже знаем о проблеме и работаем над её исправлением.
-            </p>
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">
+            Успешных действий
+          </h3>
+          <p className="text-3xl font-bold text-green-600">
+            {stats
+              .filter(s => s.status === 'success')
+              .reduce((sum, stat) => sum + parseInt(stat.count), 0)}
+          </p>
+        </div>
 
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="mb-6 bg-gray-50 rounded p-4">
-                <summary className="cursor-pointer text-sm font-medium text-gray-700 mb-2">
-                  Детали ошибки (только в development)
-                </summary>
-                <div className="text-xs text-gray-600 space-y-2">
-                  <div>
-                    <strong>Error:</strong> {this.state.error.message}
-                  </div>
-                  <div>
-                    <strong>Stack:</strong>
-                    <pre className="mt-1 overflow-auto bg-white p-2 rounded text-xs">
-                      {this.state.error.stack}
-                    </pre>
-                  </div>
-                  {this.state.errorInfo && (
-                    <div>
-                      <strong>Component Stack:</strong>
-                      <pre className="mt-1 overflow-auto bg-white p-2 rounded text-xs">
-                        {this.state.errorInfo.componentStack}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </details>
-            )}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-sm font-medium text-gray-500 mb-2">
+            Ошибок
+          </h3>
+          <p className="text-3xl font-bold text-red-600">
+            {stats
+              .filter(s => s.status === 'failure')
+              .reduce((sum, stat) => sum + parseInt(stat.count), 0)}
+          </p>
+        </div>
+      </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-                  window.location.reload();
-                }}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Перезагрузить страницу
-              </button>
-              
-              <button
-                onClick={() => window.location.href = '/'}
-                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                На главную
-              </button>
-            </div>
+      {/* Фильтры */}
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Действие
+            </label>
+            <select
+              value={filter.action}
+              onChange={(e) => setFilter({ ...filter, action: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2"
+            >
+              <option value="">Все действия</option>
+              <option value="assistant_created">Assistant Created</option>
+              <option value="function_created">Function Created</option>
+              <option value="login">Login</option>
+              <option value="file_uploaded">File Uploaded</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Статус
+            </label>
+            <select
+              value={filter.status}
+              onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2"
+            >
+              <option value="">Все статусы</option>
+              <option value="success">Success</option>
+              <option value="failure">Failure</option>
+              <option value="pending">Pending</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Период
+            </label>
+            <select
+              value={filter.days}
+              onChange={(e) => setFilter({ ...filter, days: e.target.value })}
+              className="w-full rounded-md border border-gray-300 px-3 py-2"
+            >
+              <option value="7">Последние 7 дней</option>
+              <option value="30">Последние 30 дней</option>
+              <option value="90">Последние 90 дней</option>
+            </select>
+          </div>
+
+          <div className="flex items-end gap-2">
+            <button
+              onClick={() => exportLogs('json')}
+              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+            >
+              Export JSON
+            </button>
+            <button
+              onClick={() => exportLogs('csv')}
+              className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm"
+            >
+              Export CSV
+            </button>
           </div>
         </div>
-      );
-    }
+      </div>
 
-    return this.props.children;
-  }
-}
+      {/* Таблица логов */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Время
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Действие
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                IP адрес
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Статус
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Детали
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {logs.map((log) => (
+              <tr key={log.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {new Date(log.createdAt).toLocaleString('ru-RU')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {getActionLabel(log.action)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {log.ipAddress || 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(log.status)}`}>
+                    {log.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {log.details && (
+                    <details className="cursor-pointer">
+                      <summary className="text-blue-600 hover:text-blue-800">
+                        Показать детали
+                      </summary>
+                      <pre className="mt-2 text-xs bg-gray-50 p-2 rounded overflow-auto max-w-md">
+                        {JSON.stringify(log.details, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-/**
- * Global Error Handler для необработанных ошибок
- */
-export function setupGlobalErrorHandlers() {
-  if (typeof window === 'undefined') return;
-
-  // Глобальные ошибки JavaScript
-  window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
-    
-    logErrorToBackend({
-      type: 'global_error',
-      message: event.message,
-      stack: event.error?.stack,
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno,
-    });
-
-    // Логируем в Umami
-    if (window.umami) {
-      window.umami.track('global-error', {
-        message: event.message,
-        filename: event.filename,
-      });
-    }
-  });
-
-  // Unhandled Promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled rejection:', event.reason);
-    
-    logErrorToBackend({
-      type: 'unhandled_rejection',
-      message: event.reason?.message || String(event.reason),
-      stack: event.reason?.stack,
-    });
-
-    // Логируем в Umami
-    if (window.umami) {
-      window.umami.track('unhandled-rejection', {
-        reason: String(event.reason),
-      });
-    }
-  });
-}
-
-/**
- * Хелпер для отправки ошибок на backend
- */
-async function logErrorToBackend(errorData: any) {
-  try {
-    const token = localStorage.getItem('token');
-    
-    await fetch('/api/errors/log', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: JSON.stringify({
-        ...errorData,
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-        timestamp: new Date().toISOString(),
-      }),
-    });
-  } catch (err) {
-    console.error('Failed to log error to backend:', err);
-  }
-}
-
-/**
- * Hook для ручного логирования ошибок
- */
-export function useErrorLogger() {
-  const logError = (error: Error, context?: string) => {
-    console.error('Error:', error);
-    
-    logErrorToBackend({
-      type: 'manual_error',
-      message: error.message,
-      stack: error.stack,
-      context,
-    });
-
-    if (window.umami) {
-      window.umami.track('manual-error', {
-        message: error.message,
-        context,
-      });
-    }
-  };
-
-  return { logError };
-}
-
-/**
- * HOC для обёртки компонентов в Error Boundary
- */
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: ReactNode,
-) {
-  return function ComponentWithErrorBoundary(props: P) {
-    return (
-      <ErrorBoundary fallback={fallback}>
-        <Component {...props} />
-      </ErrorBoundary>
-    );
-  };
-}
-
-// TypeScript декларации
-declare global {
-  interface Window {
-    umami?: {
-      track: (event: string, data?: Record<string, any>) => void;
-    };
-  }
+        {logs.length === 0 && (
+          <div className="text-center py-12 text-gray-500">
+            Нет данных для отображения
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
