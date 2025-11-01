@@ -10,7 +10,7 @@ services:
     environment:
       POSTGRES_DB: umami
       POSTGRES_USER: umami
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
     volumes:
       - umami-db-data:/var/lib/postgresql/data
     networks:
@@ -28,10 +28,9 @@ services:
     ports:
       - "3002:3000"
     environment:
-      DATABASE_URL: postgresql://umami:password@umami-db:5432/umami
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
       DATABASE_TYPE: postgresql
-      APP_SECRET: tNJALMYXTE5DH46Z4g2GY6BTn8TUlOAJ
-      # Опционально - отключить телеметрию Umami
+      APP_SECRET: ${UMAMI_APP_SECRET}
       DISABLE_TELEMETRY: "1"
     depends_on:
       umami-db:
@@ -94,13 +93,11 @@ services:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=VK2004on!
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3001
-      # Анонимный доступ (опционально)
       - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
-      # Alerting
       - GF_ALERTING_ENABLED=true
       - GF_UNIFIED_ALERTING_ENABLED=true
     volumes:
