@@ -1,0 +1,80 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'production'
+    replica: '0'
+
+# Alertmanager configuration (опционально)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Rules для алертов
+rule_files:
+  # - "alerts/*.yml"
+
+scrape_configs:
+  # ============================================
+  # Prometheus itself
+  # ============================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ============================================
+  # Node Exporter (system metrics)
+  # ============================================
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'server'
+
+  # ============================================
+  # cAdvisor (container metrics)
+  # ============================================
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'server'
+
+  # ============================================
+  # Loki
+  # ============================================
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+
+  # ============================================
+  # Grafana
+  # ============================================
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+
+  # ============================================
+  # NestJS Backend (если добавите /metrics endpoint)
+  # ============================================
+  - job_name: 'nestjs-backend'
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+    metrics_path: '/metrics'
+    scheme: http
+
+  # ============================================
+  # PostgreSQL (если добавите postgres_exporter)
+  # ============================================
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+
+  # ============================================
+  # Redis (если добавите redis_exporter)
+  # ============================================
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
