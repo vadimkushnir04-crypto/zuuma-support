@@ -1,15 +1,10 @@
 'use client';
 
 import Script from 'next/script';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
 
 interface UmamiAnalyticsProps {
   websiteId: string;
   src?: string;
-  domains?: string;
-  autoTrack?: boolean;
-  respectDoNotTrack?: boolean;
 }
 
 /**
@@ -18,37 +13,15 @@ interface UmamiAnalyticsProps {
  */
 export function UmamiAnalytics({
   websiteId,
-  src = process.env.NEXT_PUBLIC_UMAMI_URL + '/script.js',
-  domains,
-  autoTrack = true,
-  respectDoNotTrack = true,
+  src,
 }: UmamiAnalyticsProps) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (!autoTrack) return;
-
-    // Отслеживаем переходы между страницами
-    const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
-    
-    if (window.umami) {
-      window.umami.track((props: any) => ({
-        ...props,
-        url,
-      }));
-    }
-  }, [pathname, searchParams, autoTrack]);
-
   return (
     <Script
       async
       defer
       src={src}
       data-website-id={websiteId}
-      data-domains={domains}
-      data-auto-track={autoTrack}
-      data-do-not-track={respectDoNotTrack}
+      data-auto-track="true"
       strategy="afterInteractive"
     />
   );
@@ -164,7 +137,7 @@ export const umami = {
 declare global {
   interface Window {
     umami?: {
-      track: (event: string | ((props: any) => any), eventData?: Record<string, any>) => void;
+      track: (event: string, eventData?: Record<string, any>) => void;
     };
   }
 }
@@ -174,20 +147,4 @@ declare global {
  */
 export function useUmami() {
   return umami;
-}
-
-/**
- * HOC для автоматического отслеживания кликов
- */
-export function withUmamiTracking<P extends object>(
-  Component: React.ComponentType<P>,
-  eventName: string,
-) {
-  return function TrackedComponent(props: P) {
-    const handleClick = () => {
-      umami.track(eventName);
-    };
-
-    return <div onClick={handleClick}><Component {...props} /></div>;
-  };
 }
