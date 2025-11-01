@@ -3,14 +3,26 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ErrorFormatterInterceptor } from './common/error-formatter.interceptor';
-import cookieParser from 'cookie-parser'; // ✅ Default import
+import cookieParser from 'cookie-parser';
+import { CustomLogger, setupGlobalErrorHandlers } from './common/custom-logger.service';
+import { AuditLogInterceptor } from './common/audit-log.interceptor';
 
 
 async function bootstrap() {
+
+  // Создаём logger
+  const logger = new CustomLogger('Bootstrap');
+
   try {
     const app = await NestFactory.create(AppModule, {
       cors: true,
+      logger,
     });
+
+    setupGlobalErrorHandlers(logger);
+
+    const auditLogInterceptor = app.get(AuditLogInterceptor);
+    app.useGlobalInterceptors(auditLogInterceptor);
 
     app.setGlobalPrefix('api');
 

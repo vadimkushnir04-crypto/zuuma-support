@@ -59,15 +59,11 @@ export const metadata: Metadata = {
     description: "Создавайте умных AI-ассистентов за 5 минут",
     images: ["/og-image.png"],
   },
-  verification: {
-    // Добавишь позже после регистрации в Google Search Console
-    // google: 'your-verification-code',
-    // yandex: 'your-yandex-verification',
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
+  const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL;
   
   return (
     <html lang="ru">
@@ -76,11 +72,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="canonical" href="https://zuuma.ru" />
         
         {/* Umami Analytics */}
-        {umamiWebsiteId && (
+        {umamiWebsiteId && umamiUrl && (
           <Script
             async
-            src="https://zuuma.ru/analytics.js"
+            defer
+            src={`${umamiUrl}/script.js`}
             data-website-id={umamiWebsiteId}
+            data-auto-track="true"
             strategy="afterInteractive"
           />
         )}

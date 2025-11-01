@@ -17,12 +17,13 @@ import { CommonModule } from './common/common.module';
 import { TokensModule } from './tokens/tokens.module';
 import { FilesController } from './assistants/files.controller';
 import { LLMService } from './common/llm.service';
-
+import { ErrorsController } from './common/errors.controller';
 import { PaymentsModule } from './payments/payments.module';
 
 
 @Module({
   imports: [
+    AuditLogModule,
     ConfigModule.forRoot({
       isGlobal: true, // делает ConfigService доступным везде
       envFilePath: '.env',
@@ -41,6 +42,7 @@ import { PaymentsModule } from './payments/payments.module';
     AuditLogModule,
   ],
   controllers: [
+    ErrorsController,
     FilesController
   ],
   providers: [

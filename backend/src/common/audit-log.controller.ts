@@ -6,7 +6,8 @@ import {
   Req,
   HttpException,
   HttpStatus,
-  Res
+  Res,
+  Param,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -18,6 +19,9 @@ import { AuditAction } from './entities/audit-log.entity';
 export class AuditLogController {
   constructor(private readonly auditLogService: AuditLogService) {}
 
+  /**
+   * Получить логи пользователя
+   */
   @Get()
   async getUserLogs(
     @Req() req: any,
@@ -26,11 +30,13 @@ export class AuditLogController {
     @Query('offset') offset?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('status') status?: 'success' | 'failure' | 'pending',
   ) {
     const userId = req.user.id;
 
     const options = {
       action,
+      status,
       limit: limit ? parseInt(limit, 10) : 50,
       offset: offset ? parseInt(offset, 10) : 0,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -48,6 +54,9 @@ export class AuditLogController {
     };
   }
 
+  /**
+   * Статистика действий пользователя
+   */
   @Get('stats')
   async getUserStats(
     @Req() req: any,
@@ -65,10 +74,12 @@ export class AuditLogController {
     };
   }
 
+  /**
+   * Подозрительная активность
+   */
   @Get('suspicious')
   async getSuspiciousActivity(@Req() req: any) {
     const userId = req.user.id;
-
     const logs = await this.auditLogService.findSuspiciousActivity(userId);
 
     return {
@@ -78,6 +89,68 @@ export class AuditLogController {
     };
   }
 
+  /**
+   * Недавняя активность (для дашборда)
+   */
+  @Get('recent')
+  async getRecentActivity(
+    @Req() req: any,
+    @Query('limit') limit?: string,
+  ) {
+    const userId = req.user.id;
+    const limitCount = limit ? parseInt(limit, 10) : 10;
+
+    const logs = await this.auditLogService.getRecentActivity(userId, limitCount);
+
+    return {
+      success: true,
+      logs,
+    };
+  }
+
+  /**
+   * Активность по дням
+   */
+  @Get('daily')
+  async getDailyActivity(
+    @Req() req: any,
+    @Query('days') days?: string,
+  ) {
+    const userId = req.user.id;
+    const daysCount = days ? parseInt(days, 10) : 30;
+
+    const activity = await this.auditLogService.getDailyActivity(userId, daysCount);
+
+    return {
+      success: true,
+      activity,
+      period: `${daysCount} days`,
+    };
+  }
+
+  /**
+   * Статистика по IP адресам
+   */
+  @Get('ip-stats')
+  async getIpStats(
+    @Req() req: any,
+    @Query('days') days?: string,
+  ) {
+    const userId = req.user.id;
+    const daysCount = days ? parseInt(days, 10) : 30;
+
+    const stats = await this.auditLogService.getIpAddressStats(userId, daysCount);
+
+    return {
+      success: true,
+      stats,
+      period: `${daysCount} days`,
+    };
+  }
+
+  /**
+   * Экспорт логов
+   */
   @Get('export')
   async exportLogs(
     @Res() res: Response,
@@ -107,10 +180,13 @@ export class AuditLogController {
     }
   }
 
+  /**
+   * Детали конкретного действия
+   */
   @Get('actions/:action')
   async getActionDetails(
     @Req() req: any,
-    @Query('action') action: AuditAction,
+    @Param('action') action: AuditAction,
     @Query('limit') limit?: string,
   ) {
     const userId = req.user.id;
@@ -126,6 +202,49 @@ export class AuditLogController {
       action,
       logs: result.logs,
       total: result.total,
+    };
+  }
+
+  /**
+   * Получить количество неудачных попыток входа
+   */
+  @Get('security/failed-logins')
+  async getFailedLogins(
+    @Req() req: any,
+    @Query('hours') hours?: string,
+  ) {
+    const userId = req.user.id;
+    const hoursCount = hours ? parseInt(hours, 10) : 24;
+
+    const count = await this.auditLogService.getRecentFailedLogins(userId, hoursCount);
+
+    return {
+      success: true,
+      failedLoginCount: count,
+      period: `${hoursCount} hours`,
+    };
+  }
+
+  /**
+   * Глобальная статистика (только для админов)
+   */
+  @Get('admin/global-stats')
+  async getGlobalStats(
+    @Req() req: any,
+    @Query('days') days?: string,
+  ) {
+    // TODO: Добавить проверку на роль администратора
+    // if (!req.user.isAdmin) {
+    //   throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    // }
+
+    const daysCount = days ? parseInt(days, 10) : 30;
+    const stats = await this.auditLogService.getGlobalStats(daysCount);
+
+    return {
+      success: true,
+      stats,
+      period: `${daysCount} days`,
     };
   }
 }

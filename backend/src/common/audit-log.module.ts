@@ -1,4 +1,3 @@
-// backend/src/common/audit-log.module.ts
 import { Module, Global } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
@@ -9,11 +8,14 @@ import { AuditLogController } from './audit-log.controller';
 import { AuditLogInterceptor } from './audit-log.interceptor';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
-@Global() // Делаем модуль глобальным, чтобы использовать везде
+/**
+ * Глобальный модуль для аудита действий пользователей
+ * Используется во всех модулях приложения
+ */
+@Global()
 @Module({
   imports: [
     TypeOrmModule.forFeature([AuditLog]),
-    // ✅ ИСПРАВЛЕНО: Добавили JwtModule и ConfigModule
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -27,9 +29,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
   providers: [
     AuditLogService, 
     AuditLogInterceptor,
-    JwtAuthGuard, // ✅ Добавили JwtAuthGuard как provider
+    JwtAuthGuard,
   ],
   controllers: [AuditLogController],
-  exports: [AuditLogService, AuditLogInterceptor],
+  exports: [
+    AuditLogService, 
+    AuditLogInterceptor,
+  ],
 })
 export class AuditLogModule {}
