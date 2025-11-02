@@ -4,6 +4,7 @@ import I18nProvider from "../components/I18nProvider";
 import '../styles/globals.css';
 import Footer from '@/components/Footer';
 import Script from 'next/script';
+import { UmamiScript } from "@/components/UmamiScript";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zuuma.ru'),
@@ -62,26 +63,12 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const umamiWebsiteId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
-  const umamiUrl = process.env.NEXT_PUBLIC_UMAMI_URL;
-  
   return (
     <html lang="ru">
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="canonical" href="https://zuuma.ru" />
-        
-        {/* Umami Analytics */}
-        {umamiWebsiteId && umamiUrl && (
-          <Script
-            async
-            defer
-            src={`${umamiUrl}/script.js`}
-            data-website-id={umamiWebsiteId}
-            data-auto-track="true"
-            strategy="afterInteractive"
-          />
-        )}
+        <UmamiScript /> {/* ← Заменить на это */}
       </head>
       <body
         style={{
