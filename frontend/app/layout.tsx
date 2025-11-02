@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import LayoutClient from "./layout-client";
 import I18nProvider from "../components/I18nProvider";
+import { UmamiScript } from "@/components/UmamiScript";
 import '../styles/globals.css';
 import Footer from '@/components/Footer';
-import Script from 'next/script';
-import { UmamiScript } from "@/components/UmamiScript";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://zuuma.ru'),
@@ -68,7 +67,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="canonical" href="https://zuuma.ru" />
-        <UmamiScript /> {/* ← Заменить на это */}
       </head>
       <body
         style={{
@@ -82,6 +80,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           flexDirection: 'column',
         }}
       >
+        {/* ← Umami в самом начале body */}
+        <UmamiScript />
+        
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           <I18nProvider>
             <LayoutClient>{children}</LayoutClient>

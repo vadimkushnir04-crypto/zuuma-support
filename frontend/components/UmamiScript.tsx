@@ -1,29 +1,27 @@
 'use client';
 
 import Script from 'next/script';
-import { useEffect, useState } from 'react';
 
 export function UmamiScript() {
-  const [config, setConfig] = useState<{ id?: string; url?: string }>({});
-
-  useEffect(() => {
-    // Читаем из process.env на клиенте
-    setConfig({
-      id: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
-      url: process.env.NEXT_PUBLIC_UMAMI_URL,
-    });
-  }, []);
-
-  if (!config.id || !config.url) return null;
-
+  console.log('🔍 UmamiScript loading...'); // Для дебага
+  
   return (
-    <Script
-      async
-      defer
-      src={`${config.url}/script.js`}
-      data-website-id={config.id}
-      data-auto-track="true"
-      strategy="afterInteractive"
-    />
+    <>
+      <Script
+        id="umami-script"
+        async
+        defer
+        src="http://158.160.152.103:3002/script.js"
+        data-website-id="5724209b-4c15-46cd-bdba-4c5ed02f3e3f"
+        data-auto-track="true"
+        strategy="afterInteractive"
+        onLoad={() => {
+          console.log('✅ Umami script loaded!');
+        }}
+        onError={(e) => {
+          console.error('❌ Umami script failed:', e);
+        }}
+      />
+    </>
   );
 }
