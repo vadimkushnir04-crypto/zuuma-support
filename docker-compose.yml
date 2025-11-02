@@ -91,7 +91,6 @@ services:
       - backend
     networks:
       - app_network
-      - monitoring  # ← ДОБАВИТЬ
 
 volumes:
   postgres_data:
@@ -102,6 +101,3 @@ volumes:
 networks:
   app_network:
     driver: bridge
-  monitoring:  # ← ДОБАВИТЬ
-    external: true
-    name: zuumasupport-monitoring-bu3dbf_monitoring
