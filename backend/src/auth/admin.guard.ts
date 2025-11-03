@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 
 const ADMIN_EMAILS = [
-  'delovol.acount@gmail.com',
+  'delovoi.acount@gmail.com', 
 ];
 
 @Injectable()

@@ -10,7 +10,7 @@ interface AdminGuardProps {
 
 // ✅ Список email адресов администраторов
 const ADMIN_EMAILS = [
-  'delovol.acount@gmail.com',
+  'delovoi.acount@gmail.com', // ✅ Исправлено: добавлена "i"
   // Добавьте сюда другие email админов при необходимости
 ];
 
