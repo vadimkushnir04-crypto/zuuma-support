@@ -5,27 +5,28 @@ import { LifeBuoy, MessageCircle, Mail, FileText, Book } from "lucide-react";
 import Link from "next/link";
 
 export default function HelpPage() {
-useEffect(() => {
-  // Загружаем виджет поддержки
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       // Проверяем, не загружен ли уже виджет
       if ((window as any).ChatWidgetLoaded) {
-        // Если виджет уже загружен, просто открываем его
-        setTimeout(() => {
-          if ((window as any).ChatWidget) {
-            (window as any).ChatWidget.open();
-          }
-        }, 100);
+        // Виджет уже загружен, просто открываем
+        if ((window as any).ChatWidget) {
+          (window as any).ChatWidget.open();
+        }
         return;
       }
 
+      // ✅ Конфиг с автооткрытием для страницы помощи
       (window as any).chatConfig = {
         assistantId: '73486773-bc62-4be6-9e64-c72816baab6f',
         serverUrl: 'https://zuuma.ru/api',
         theme: 'light',
         assistantName: 'Служба поддержки zuuma.ru',
         customGreeting: 'Здравствуйте! Я помогу вам разобраться с платформой. Задайте ваш вопрос.',
-        primaryColor: '#10b981'
+        primaryColor: '#10b981',
+        autoOpen: true,           // ✅ Автоматически открываем
+        alwaysVisible: true,      // ✅ Всегда показываем кнопку
+        hideUntilUsed: false,     // ✅ Не скрываем
       };
 
       const script = document.createElement('script');
@@ -33,27 +34,8 @@ useEffect(() => {
       script.async = true;
       document.body.appendChild(script);
 
-      // Ждем полной инициализации виджета
-      const checkWidgetReady = setInterval(() => {
-        if ((window as any).ChatWidget && (window as any).ChatWidgetLoaded) {
-          clearInterval(checkWidgetReady);
-          // Открываем чат после инициализации
-          setTimeout(() => {
-            (window as any).ChatWidget.open();
-          }, 200);
-        }
-      }, 100); // Проверяем каждые 100ms
-
-      // Очистка через 10 секунд, если виджет не загрузился
-      const timeout = setTimeout(() => {
-        clearInterval(checkWidgetReady);
-      }, 10000);
-
       return () => {
-        clearInterval(checkWidgetReady);
-        clearTimeout(timeout);
-        // НЕ удаляем скрипт и НЕ сбрасываем ChatWidgetLoaded
-        // чтобы виджет работал при возврате на страницу
+        // Не удаляем скрипт при размонтировании
       };
     }
   }, []);

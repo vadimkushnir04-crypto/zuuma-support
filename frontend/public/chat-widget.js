@@ -7,11 +7,16 @@
     const config = window.chatConfig || {
         assistantId: 'YOUR_ASSISTANT_ID',
         serverUrl: 'https://zuuma.ru/api',
-        theme: 'dark', // dark или light
+        theme: 'dark',
         assistantName: 'AI Agent',
         customGreeting: 'Hi, how can I help?',
-        primaryColor: '#de8434', // Оранжевый
-        accentColor: '#1A1A2E' // Темный фон
+        primaryColor: '#de8434',
+        accentColor: '#1A1A2E',
+        
+        // ✅ Новые опции для управления поведением
+        autoOpen: false,           // Автоматически открывать чат
+        alwaysVisible: true,       // Всегда показывать кнопку
+        hideUntilUsed: false,      // Скрывать пока не использован
     };
 
     if (!config.assistantId || config.assistantId === 'YOUR_ASSISTANT_ID') {
@@ -534,10 +539,19 @@
     }
 
     function openChat() {
-        isOpen = true;
-        chatWindow.classList.add('open');
-        chatToggle.classList.add('open');
-        chatInput.focus();
+    isOpen = true;
+    chatWindow.classList.add('open');
+    chatToggle.classList.add('open');
+    chatInput.focus();
+    
+    // ✅ Помечаем что чат использован
+    localStorage.setItem('chatWidgetUsed', 'true');
+    
+    // Показываем контейнер если был скрыт
+    const container = document.querySelector('.chat-widget-container');
+    if (container) {
+        container.style.display = 'block';
+    }
     }
 
     function closeChat() {
@@ -671,10 +685,36 @@
     window._chatWidgetResolve = resolve;
     });
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initWidget);
-    } else {
-        initWidget();
+    // ===== ЛОГИКА ВИДИМОСТИ И АВТООТКРЫТИЯ =====
+    function initVisibility() {
+    const chatWasUsed = localStorage.getItem('chatWidgetUsed') === 'true';
+    const container = document.querySelector('.chat-widget-container');
+    
+    if (config.hideUntilUsed && !chatWasUsed && !config.autoOpen) {
+        // Скрываем кнопку если чат не использовался
+        if (container) {
+        container.style.display = 'none';
+        }
+    }
+    
+    if (config.autoOpen) {
+        // Автооткрываем чат если настроено
+        setTimeout(() => {
+        openChat();
+        localStorage.setItem('chatWidgetUsed', 'true');
+        }, 500);
+    }
     }
 
-})();
+    // ===== ИНИЦИАЛИЗАЦИЯ =====
+    if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initWidget();
+        initVisibility();
+    });
+    } else {
+    initWidget();
+    initVisibility();
+    }
+
+    })();  // ← Конец IIFE
