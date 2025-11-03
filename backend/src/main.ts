@@ -32,6 +32,15 @@ async function bootstrap() {
     // ✅ КРИТИЧЕСКИ ВАЖНО: cookie-parser ПЕРВЫМ, до всех middleware
     app.use(cookieParser());
 
+    // ✅ Увеличиваем таймаут для загрузки файлов
+    app.use((req, res, next) => {
+      if (req.path.includes('/upload-file')) {
+        req.setTimeout(120000); // 2 минуты для больших файлов
+        res.setTimeout(120000);
+      }
+      next();
+    });
+
     // ✅ CORS с правильными доменами
     app.enableCors({
       origin: isProd 

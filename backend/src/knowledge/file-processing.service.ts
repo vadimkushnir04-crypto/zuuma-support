@@ -53,18 +53,26 @@ export class FileProcessingService {
   /**
    * Извлекает текст из PDF
    */
-  async extractTextFromPDF(buffer: Buffer): Promise<{ text: string; pages: number }> {
-    try {
-      const data = await pdf(buffer);
-      return {
-        text: data.text,
-        pages: data.numpages
-      };
-    } catch (error) {
-      console.error('❌ PDF parsing error:', error);
-      throw new Error('Не удалось извлечь текст из PDF');
-    }
+async extractTextFromPDF(buffer: Buffer): Promise<{ text: string; pages: number }> {
+  try {
+    // ✅ Добавляем таймаут 30 секунд
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('PDF обработка заняла слишком много времени')), 30000);
+    });
+
+    const parsePromise = pdf(buffer);
+
+    const data = await Promise.race([parsePromise, timeoutPromise]);
+    
+    return {
+      text: data.text,
+      pages: data.numpages
+    };
+  } catch (error) {
+    console.error('❌ PDF parsing error:', error);
+    throw new Error('Не удалось извлечь текст из PDF');
   }
+}
 
   /**
    * Извлекает текст из изображения (OCR)

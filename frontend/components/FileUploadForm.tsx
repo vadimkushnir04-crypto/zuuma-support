@@ -62,8 +62,25 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
       return;
     }
 
+    // Проверка размера
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > 5) {
+      setMessage("❌ Файл слишком большой. Максимум 5MB");
+      return;
+    }
+
+    // Предупреждение для больших файлов
+    if (fileSizeMB > 2) {
+      const confirmed = confirm(
+        `⚠️ Файл большой (${fileSizeMB.toFixed(1)}MB).\n\n` +
+        `Обработка займет 30-60 секунд.\n\n` +
+        `Продолжить?`
+      );
+      if (!confirmed) return;
+    }
+
     setLoading(true);
-    setMessage("⏳ Загрузка файла...");
+    setMessage(`⏳ Загрузка файла (${fileSizeMB.toFixed(1)}MB)... Подождите.`);
 
     try {
       const formData = new FormData();
@@ -73,12 +90,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
         formData.append("description", description.trim());
       }
 
-      // ✅ Загружаем файл (куки передаются автоматически)
       const res = await fetch(
         `${API_BASE_URL}/assistants/${selectedAssistantId}/upload-file`,
         {
           method: "POST",
-          credentials: "include", // 🔥 отправляем cookie
+          credentials: "include",
           body: formData,
         }
       );
@@ -91,18 +107,17 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
         setTitle("");
         setDescription("");
 
-        // ✅ Обновляем ассистента (например, помечаем как "trained")
         await fetch(`${API_BASE_URL}/assistants/${selectedAssistantId}`, {
           method: "PATCH",
-          credentials: "include", // 🔥 cookie снова здесь
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ trained: true }),
         });
       } else if (res.status === 401) {
         setMessage("❌ Сессия истекла. Войдите снова.");
       } else {
-        const error = await res.text();
-        setMessage("❌ Ошибка загрузки: " + error);
+        const error = await res.json().catch(() => ({ message: 'Ошибка загрузки' }));
+        setMessage("❌ " + error.message);
       }
     } catch (err) {
       setMessage("❌ Ошибка сети: " + (err as Error).message);
