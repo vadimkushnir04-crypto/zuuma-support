@@ -40,9 +40,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
 COPY --chown=nodejs:nodejs rus.traineddata ./
 COPY --chown=nodejs:nodejs eng.traineddata ./
 
-RUN mkdir -p /app/uploads && \
-    chown -R nodejs:nodejs /app/uploads && \
-    chmod -R 777 /app/uploads
+RUN mkdir -p /app/uploads /app/logs && \
+    chown -R nodejs:nodejs /app/uploads /app/logs && \
+    chmod -R 777 /app/uploads /app/logs
 
 USER nodejs
 
