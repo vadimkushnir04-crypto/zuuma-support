@@ -129,7 +129,8 @@ export default function Home() {
   return (
     <AuthGuard requireAuth={true}>
       <AssistantsProvider>
-        <div className="home-container">
+        {/* ✅ Добавлен padding-bottom для отступа от футера */}
+        <div className="home-container" style={{ paddingBottom: '2rem' }}>
           <div className="left-column">
             {/* Загрузка обучающего материала */}
             <section className="card">
