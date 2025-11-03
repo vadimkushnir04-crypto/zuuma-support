@@ -20,6 +20,8 @@ import { LLMService } from './common/llm.service';
 import { ErrorsController } from './common/errors.controller';
 import { PaymentsModule } from './payments/payments.module';
 
+import { AdminModule } from './admin/admin.module';
+
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { PaymentsModule } from './payments/payments.module';
     SupportModule,
     PaymentsModule,
     AuditLogModule,
+    AdminModule,
   ],
   controllers: [
     ErrorsController,

@@ -32,11 +32,9 @@ interface Subscription {
   status: string;
   startedAt: string;
   expiresAt: string;
-  canRefund: boolean;
-  refundDeadline: string;
   cancelledAt?: string;
   
-  // ✅ ДОБАВЛЕНЫ ПОЛЯ для рекуррентных платежей
+  // Поля для рекуррентных платежей
   autoRenew: boolean;
   paymentMethodId?: string;
   nextBillingDate?: string;
@@ -56,7 +54,7 @@ export default function ProfilePage() {
   const { plans, loading: plansLoading } = usePlans();
   const { balance, mutate: mutateBalance } = useTokens();
   
- const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
 
   useEffect(() => {
     loadUserProfile();
@@ -67,16 +65,12 @@ export default function ProfilePage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment_success') === 'true') {
-      // ✅ Проверяем что план действительно изменился
       const checkPaymentSuccess = async () => {
         await loadUserProfile();
         await loadSubscription();
         
-        // Даем время на обработку webhook (1 секунда)
         setTimeout(async () => {
           await loadUserProfile();
-          
-          // Проверяем что пользователь не на Free плане
           
           const res = await fetch(`${API_BASE_URL}/auth/profile`, {
             credentials: 'include',
@@ -92,7 +86,6 @@ export default function ProfilePage() {
             }
           }
           
-          // Очищаем параметр
           window.history.replaceState({}, '', '/profile');
         }, 1000);
       };
@@ -102,10 +95,8 @@ export default function ProfilePage() {
   }, []);
 
   const loadUserProfile = async () => {
-
     try {
       const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-
         credentials: 'include',
         headers: {
           "Content-Type": "application/json",
@@ -117,7 +108,6 @@ export default function ProfilePage() {
         setUserProfile(data.user);
         setFullName(data.user.fullName || "");
       } else {
-        
         window.location.href = "/";
       }
     } catch (error) {
@@ -128,11 +118,9 @@ export default function ProfilePage() {
   };
 
   const loadSubscription = async () => {
-
-
     try {
       const res = await fetch(`${API_BASE_URL}/payments/subscription`, {
-          credentials: 'include',
+        credentials: 'include',
       });
 
       if (res.ok) {
@@ -156,7 +144,6 @@ export default function ProfilePage() {
     const confirmMessage = `Вы собираетесь оплатить план "${plan.title}"\n\n` +
       `Токенов в месяц: ${parseInt(plan.monthly_tokens).toLocaleString()}\n` +
       `Стоимость: ${(parseInt(plan.price_cents) / 100).toLocaleString('ru-RU')} ₽\n\n` +
-      `✅ Возврат возможен в течение 7 дней\n\n` +
       `Продолжить?`;
 
     if (!confirm(confirmMessage)) return;
@@ -164,7 +151,6 @@ export default function ProfilePage() {
     setProcessingPayment(true);
 
     try {
-      
       const res = await fetch(`${API_BASE_URL}/payments/create`, {
         method: 'POST',
         credentials: 'include',
@@ -178,7 +164,6 @@ export default function ProfilePage() {
         const data = await res.json();
         
         if (data.confirmationUrl) {
-          // Перенаправляем на страницу оплаты ЮКасса
           window.location.href = data.confirmationUrl;
         } else {
           alert('Ошибка: не получен URL для оплаты');
@@ -194,116 +179,6 @@ export default function ProfilePage() {
       setProcessingPayment(false);
     }
   };
-
-  const handleCancelSubscription = async () => {
-    if (!subscription) return;
-
-    const now = new Date();
-    const refundDeadline = new Date(subscription.refundDeadline);
-    // ✅ НОВАЯ ПРОВЕРКА: canRefund только если токены НЕ использованы
-    const canRefund = subscription.canRefund && now <= refundDeadline && tokensUsed === 0;
-
-    const message = canRefund
-      ? 'Вы действительно хотите отменить подписку?\n\nВы сможете запросить возврат средств на следующем шаге.'
-      : tokensUsed > 0
-        ? `Вы действительно хотите отменить подписку?\n\nВозврат средств недоступен, так как вы использовали ${tokensUsed.toLocaleString()} токенов.\nТокены останутся активными до конца периода.`
-        : 'Вы действительно хотите отменить подписку?\n\nВозврат средств недоступен, но токены останутся до конца периода.';
-
-    if (!confirm(message)) return;
-
-    try {
-      
-      const res = await fetch(`${API_BASE_URL}/payments/subscription/${subscription.id}/cancel`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-        credentials: 'include',
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        alert(data.message);
-        
-        if (data.canRefund) {
-          if (confirm('Хотите запросить возврат средств сейчас?')) {
-            await handleRefundSubscription();
-          }
-        }
-        
-        await loadSubscription();
-      }
-    } catch (error) {
-      console.error('Ошибка при отмене подписки:', error);
-      alert('Ошибка при отмене подписки');
-    }
-  };
-
-  const handleRefundSubscription = async () => {
-    if (!subscription) return;
-
-    if (!confirm('Вы действительно хотите запросить возврат средств?\n\nВаш план будет понижен до Free.')) {
-      return;
-    }
-
-    try {
-      
-      const res = await fetch(`${API_BASE_URL}/payments/subscription/${subscription.id}/refund`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        alert(`✅ ${data.message}`);
-        await loadUserProfile();
-        await loadSubscription();
-        await mutateBalance();
-      } else {
-        const error = await res.json();
-        alert('Ошибка: ' + (error.message || 'Не удалось выполнить возврат'));
-      }
-    } catch (error) {
-      console.error('Ошибка при возврате:', error);
-      alert('Ошибка при возврате средств');
-    }
-  };
-
-  const handleSave = async () => {
-    if (!userProfile) return;
-    
-    setSaving(true);
-    try {
-      
-      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
-        method: "PUT",
-        credentials: 'include',
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ fullName }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUserProfile(data.user);
-        alert("Профиль обновлен!");
-      } else {
-        alert("Ошибка при обновлении профиля");
-      }
-    } catch (error) {
-      alert("Ошибка при обновлении профиля");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleLogout = () => {
-    
-    window.location.href = "/";
-  };
-
-  // ======================================
-  // ✅ ДОБАВЬ ОБРАБОТЧИК (если его еще нет)
-  // ======================================
 
   const handleToggleAutoRenew = async () => {
     if (!subscription) return;
@@ -337,6 +212,38 @@ export default function ProfilePage() {
       console.error('Ошибка при изменении автопродления:', error);
       alert('Ошибка при изменении настроек');
     }
+  };
+
+  const handleSave = async () => {
+    if (!userProfile) return;
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: "PUT",
+        credentials: 'include',
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fullName }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUserProfile(data.user);
+        alert("Профиль обновлен!");
+      } else {
+        alert("Ошибка при обновлении профиля");
+      }
+    } catch (error) {
+      alert("Ошибка при обновлении профиля");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogout = () => {
+    window.location.href = "/";
   };
 
   // Преобразуем планы для отображения
@@ -570,209 +477,189 @@ export default function ProfilePage() {
           </>
         )}
 
-{activeTab === 'billing' && (
-  <>
-    {/* ✅ НОВЫЙ БЛОК: Информация об автопродлении */}
-    {subscription && subscription.status === 'active' && subscription.autoRenew && (
-      <div style={styles.autoRenewSection}>
-        <div style={styles.autoRenewHeader}>
-          <div>
-            <h3 style={styles.autoRenewTitle}>
-              Автоматическое продление
-            </h3>
-            <p style={styles.autoRenewDescription}>
-              {subscription.autoRenew ? (
-                <>
-                  ✅ Включено. Следующее списание: {' '}
-                  <strong>
-                    {subscription.nextBillingDate 
-                      ? new Date(subscription.nextBillingDate).toLocaleDateString('ru-RU', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      : new Date(subscription.expiresAt).toLocaleDateString('ru-RU')
-                    }
-                  </strong>
-                </>
-              ) : (
-                <>
-                  ❌ Отключено. Подписка истечет {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
-                </>
-              )}
-            </p>
-            {subscription.autoRenew && subscription.failedPaymentsCount > 0 && (
-              <p style={{ ...styles.autoRenewDescription, color: '#ff6b6b', marginTop: 8 }}>
-                ⚠️ Неудачных попыток списания: {subscription.failedPaymentsCount}/3
-              </p>
-            )}
-          </div>
-          
-          {subscription.autoRenew && (
-            <button
-              onClick={handleToggleAutoRenew}
-              style={styles.toggleAutoRenewButton}
-            >
-              Отключить автопродление
-            </button>
-          )}
-        </div>
-        
-        {subscription.autoRenew && (
-          <div style={styles.autoRenewDetails}>
-            <div style={styles.autoRenewDetailItem}>
-              <span style={styles.autoRenewDetailLabel}>Сохранен платежный метод:</span>
-              <span style={styles.autoRenewDetailValue}>
-                {subscription.paymentMethodId ? '✅ Да' : '❌ Нет'}
-              </span>
-            </div>
-            <div style={styles.autoRenewDetailItem}>
-              <span style={styles.autoRenewDetailLabel}>Сумма следующего списания:</span>
-              <span style={styles.autoRenewDetailValue}>
-                {plans?.find((p: Plan) => p.id === subscription.planId)
-                  ? `${(parseInt(plans.find((p: Plan) => p.id === subscription.planId)!.price_cents) / 100).toLocaleString('ru-RU')} ₽`
-                  : '—'
-                }
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-    )}
-
-    {/* Блок текущей подписки */}
-    {subscription && subscription.status === 'active' && (
-      <div style={styles.subscriptionAlert}>
-        <AlertCircle size={20} />
-        <div style={{ flex: 1 }}>
-          <strong>Активная подписка</strong>
-          <p style={{ margin: '4px 0 0 0', fontSize: 14, opacity: 0.8 }}>
-            Действует до {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
-          </p>
-          {subscription.canRefund && new Date() <= new Date(subscription.refundDeadline) && (
-            <p style={{ margin: '4px 0 0 0', fontSize: 14, color: tokensUsed > 0 ? '#ff6b6b' : '#de8434' }}>
-              {tokensUsed > 0 ? (
-                <>
-                  ❌ Возврат недоступен: использовано {tokensUsed.toLocaleString()} токенов
-                </>
-              ) : (
-                <>
-                  ✅ Возврат доступен до {new Date(subscription.refundDeadline).toLocaleDateString('ru-RU')}
-                </>
-              )}
-            </p>
-          )}
-        </div>
-        <div>
-          <button
-            onClick={handleCancelSubscription}
-            style={styles.cancelButton}
-          >
-            Отменить подписку
-          </button>
-        </div>
-      </div>
-    )}
-
-    <div style={styles.section}>
-      <h2 style={styles.sectionTitle}>Тарифные планы</h2>
-      <p style={styles.sectionDescription}>
-        Выберите тариф, который лучше всего подходит для ваших потребностей.<br/>
-        ✅ Возврат возможен в течение 7 дней после оплаты и если токены не были использованы
-      </p>
-      
-      <div style={styles.pricingGrid}>
-        {pricingPlans.map((plan: any) => {
-          const isCurrentPlan = isCurrent(plan.id);
-          
-          // Определяем текст кнопки
-          let buttonText = 'Выбрать план';
-          let buttonIcon = <CreditCard size={16} />;
-          
-          if (isCurrentPlan) {
-            buttonText = 'Текущий план';
-            buttonIcon = <Check size={16} />;
-          } else if (plan.id === 'free') {
-            buttonText = 'Перейти на план';
-            buttonIcon = <></>;
-          } else {
-            buttonText = 'Оплатить';
-            buttonIcon = <CreditCard size={16} />;
-          }
-          
-          return (
-            <div 
-              key={plan.id} 
-              style={{
-                ...styles.pricingCard,
-                ...(plan.popular ? styles.popularCard : {}),
-                ...(isCurrentPlan ? styles.currentCard : {})
-              }}
-            >
-              <div style={{ minHeight: '40px', marginBottom: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {plan.popular && !isCurrentPlan && (
-                  <div style={styles.pricingBadge}>
-                    <Crown size={16} />
-                    Рекомендуем
+        {activeTab === 'billing' && (
+          <>
+            {/* ✅ Информация об автопродлении */}
+            {subscription && subscription.status === 'active' && subscription.autoRenew && (
+              <div style={styles.autoRenewSection}>
+                <div style={styles.autoRenewHeader}>
+                  <div>
+                    <h3 style={styles.autoRenewTitle}>
+                      Автоматическое продление
+                    </h3>
+                    <p style={styles.autoRenewDescription}>
+                      {subscription.autoRenew ? (
+                        <>
+                          ✅ Включено. Следующее списание: {' '}
+                          <strong>
+                            {subscription.nextBillingDate 
+                              ? new Date(subscription.nextBillingDate).toLocaleDateString('ru-RU', {
+                                  day: 'numeric',
+                                  month: 'long',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })
+                              : new Date(subscription.expiresAt).toLocaleDateString('ru-RU')
+                            }
+                          </strong>
+                        </>
+                      ) : (
+                        <>
+                          ❌ Отключено. Подписка истечет {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
+                        </>
+                      )}
+                    </p>
+                    {subscription.autoRenew && subscription.failedPaymentsCount > 0 && (
+                      <p style={{ ...styles.autoRenewDescription, color: '#ff6b6b', marginTop: 8 }}>
+                        ⚠️ Неудачных попыток списания: {subscription.failedPaymentsCount}/3
+                      </p>
+                    )}
                   </div>
-                )}
-                {isCurrentPlan && (
-                  <div style={styles.currentBadge}>
-                    <Check size={16} />
-                    Текущий план
+                  
+                  {subscription.autoRenew && (
+                    <button
+                      onClick={handleToggleAutoRenew}
+                      style={styles.toggleAutoRenewButton}
+                    >
+                      Отключить автопродление
+                    </button>
+                  )}
+                </div>
+                
+                {subscription.autoRenew && (
+                  <div style={styles.autoRenewDetails}>
+                    <div style={styles.autoRenewDetailItem}>
+                      <span style={styles.autoRenewDetailLabel}>Сохранен платежный метод:</span>
+                      <span style={styles.autoRenewDetailValue}>
+                        {subscription.paymentMethodId ? '✅ Да' : '❌ Нет'}
+                      </span>
+                    </div>
+                    <div style={styles.autoRenewDetailItem}>
+                      <span style={styles.autoRenewDetailLabel}>Сумма следующего списания:</span>
+                      <span style={styles.autoRenewDetailValue}>
+                        {plans?.find((p: Plan) => p.id === subscription.planId)
+                          ? `${(parseInt(plans.find((p: Plan) => p.id === subscription.planId)!.price_cents) / 100).toLocaleString('ru-RU')} ₽`
+                          : '—'
+                        }
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
+            )}
+
+            {/* ✅ Блок информации о подписке (БЕЗ кнопки отмены) */}
+            {subscription && subscription.status === 'active' && (
+              <div style={styles.subscriptionAlert}>
+                <AlertCircle size={20} />
+                <div style={{ flex: 1 }}>
+                  <strong>Активная подписка</strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 14, opacity: 0.8 }}>
+                    Действует до {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
+                  </p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: 13, opacity: 0.7 }}>
+                    ℹ️ Для отмены подписки или возврата средств обратитесь в поддержку: <a href="mailto:delovol.acount@gmail.com" style={{ color: 'var(--accent)' }}>delovol.acount@gmail.com</a>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div style={styles.section}>
+              <h2 style={styles.sectionTitle}>Тарифные планы</h2>
+              <p style={styles.sectionDescription}>
+                Выберите тариф, который лучше всего подходит для ваших потребностей.
+              </p>
               
-              <h3 style={styles.pricingName}>{plan.name}</h3>
-              <div style={styles.pricingPrice}>{plan.price}</div>
-              <div style={styles.pricingPeriod}>{plan.period}</div>
-              
-              <ul style={styles.pricingFeatures}>
-                {plan.features.map((feature: string, index: number) => {
-                  if (feature === '') {
-                    return <li key={index} style={{ height: '40px' }}></li>;
-                  }
+              <div style={styles.pricingGrid}>
+                {pricingPlans.map((plan: any) => {
+                  const isCurrentPlan = isCurrent(plan.id);
                   
-                  if (feature.startsWith('Всё, что в')) {
-                    return (
-                      <li key={index} style={{ ...styles.pricingFeature, listStyle: 'none' }}>
-                        <span style={styles.featureDivider}>{feature}</span>
-                      </li>
-                    );
+                  let buttonText = 'Выбрать план';
+                  let buttonIcon = <CreditCard size={16} />;
+                  
+                  if (isCurrentPlan) {
+                    buttonText = 'Текущий план';
+                    buttonIcon = <Check size={16} />;
+                  } else if (plan.id === 'free') {
+                    buttonText = 'Перейти на план';
+                    buttonIcon = <></>;
+                  } else {
+                    buttonText = 'Оплатить';
+                    buttonIcon = <CreditCard size={16} />;
                   }
                   
                   return (
-                    <li key={index} style={styles.pricingFeature}>
-                      <Check size={16} style={styles.checkIcon} />
-                      {feature}
-                    </li>
+                    <div 
+                      key={plan.id} 
+                      style={{
+                        ...styles.pricingCard,
+                        ...(plan.popular ? styles.popularCard : {}),
+                        ...(isCurrentPlan ? styles.currentCard : {})
+                      }}
+                    >
+                      <div style={{ minHeight: '40px', marginBottom: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        {plan.popular && !isCurrentPlan && (
+                          <div style={styles.pricingBadge}>
+                            <Crown size={16} />
+                            Рекомендуем
+                          </div>
+                        )}
+                        {isCurrentPlan && (
+                          <div style={styles.currentBadge}>
+                            <Check size={16} />
+                            Текущий план
+                          </div>
+                        )}
+                      </div>
+                      
+                      <h3 style={styles.pricingName}>{plan.name}</h3>
+                      <div style={styles.pricingPrice}>{plan.price}</div>
+                      <div style={styles.pricingPeriod}>{plan.period}</div>
+                      
+                      <ul style={styles.pricingFeatures}>
+                        {plan.features.map((feature: string, index: number) => {
+                          if (feature === '') {
+                            return <li key={index} style={{ height: '40px' }}></li>;
+                          }
+                          
+                          if (feature.startsWith('Всё, что в')) {
+                            return (
+                              <li key={index} style={{ ...styles.pricingFeature, listStyle: 'none' }}>
+                                <span style={styles.featureDivider}>{feature}</span>
+                              </li>
+                            );
+                          }
+                          
+                          return (
+                            <li key={index} style={styles.pricingFeature}>
+                              <Check size={16} style={styles.checkIcon} />
+                              {feature}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      
+                      <button 
+                        onClick={() => handlePurchasePlan(plan.id)}
+                        disabled={isCurrentPlan || processingPayment}
+                        style={{
+                          ...styles.pricingButton,
+                          ...(isCurrentPlan ? styles.currentPlanButton : {}),
+                          ...(plan.popular && !isCurrentPlan ? styles.popularButton : {}),
+                          ...(processingPayment ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                        }}
+                      >
+                        {buttonIcon}
+                        {buttonText}
+                      </button>
+                    </div>
                   );
                 })}
-              </ul>
-              
-              <button 
-                onClick={() => handlePurchasePlan(plan.id)}
-                disabled={isCurrentPlan || processingPayment}
-                style={{
-                  ...styles.pricingButton,
-                  ...(isCurrentPlan ? styles.currentPlanButton : {}),
-                  ...(plan.popular && !isCurrentPlan ? styles.popularButton : {}),
-                  ...(processingPayment ? { opacity: 0.5, cursor: 'not-allowed' } : {})
-                }}
-              >
-                {buttonIcon}
-                {buttonText}
-              </button>
+              </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
-  </>
-)}
+          </>
+        )}
       </div>
     </div>
   );

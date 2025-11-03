@@ -522,6 +522,102 @@ export class PaymentsService {
   }
 
   /**
+   * ✅ НОВЫЙ МЕТОД: Принудительный возврат (для админа)
+   * Обходит все проверки токенов и дедлайнов
+   */
+  async forceRefund(subscriptionId: string, adminEmail: string) {
+    console.log('🛡️ Force refund initiated by admin:', adminEmail);
+    
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+      relations: ['user'],
+    });
+
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+
+    const user = subscription.user;
+    const tokensUsed = Number(user.tokens_used || 0);
+
+    // ⚠️ ПРЕДУПРЕЖДЕНИЕ в логах если токены использованы
+    if (tokensUsed > 0) {
+      console.warn(`⚠️ Admin ${adminEmail} is refunding subscription with ${tokensUsed} tokens used`);
+    }
+
+    // Находим платеж
+    let payment = await this.paymentRepository.findOne({
+      where: { subscriptionId: subscription.id },
+    });
+
+    if (!payment) {
+      payment = await this.paymentRepository.findOne({
+        where: { 
+          userId: subscription.userId,
+          planId: subscription.planId,
+          yookassaStatus: 'succeeded',
+        },
+        order: { createdAt: 'DESC' },
+      });
+    }
+
+    if (!payment) {
+      throw new BadRequestException('Payment not found');
+    }
+
+    if (payment.refunded) {
+      throw new BadRequestException('Payment already refunded');
+    }
+
+    // ✅ Создаем возврат в ЮKassa (БЕЗ проверок)
+    try {
+      const refund = await this.yooKassa.createRefund({
+        payment_id: payment.yookassaPaymentId!,
+        amount: {
+          value: (payment.amountCents / 100).toFixed(2),
+          currency: payment.currency,
+        },
+      });
+
+      const now = new Date();
+
+      // Обновляем платеж
+      payment.refunded = true;
+      payment.refundAmountCents = payment.amountCents;
+      payment.refundedAt = now;
+      payment.yookassaRefundId = refund.id;
+      await this.paymentRepository.save(payment);
+
+      // Отменяем подписку
+      subscription.status = 'cancelled';
+      subscription.canRefund = false;
+      subscription.autoRenew = false;
+      await this.subscriptionRepository.save(subscription);
+
+      // Возвращаем на Free план
+      await this.revertToFreePlan(subscription.userId);
+
+      console.log('✅ Force refund completed by admin:', {
+        admin: adminEmail,
+        refundId: refund.id,
+        amount: refund.amount.value,
+        tokensWereUsed: tokensUsed,
+      });
+
+      return {
+        success: true,
+        refundId: refund.id,
+        amount: refund.amount.value,
+        message: 'Возврат средств выполнен администратором (обход проверок)',
+        tokensUsed,
+      };
+    } catch (error) {
+      console.error('❌ Force refund failed:', error);
+      throw new BadRequestException('Failed to process force refund: ' + error.message);
+    }
+  }
+
+  /**
    * Возврат средств
    */
   async refundPayment(userId: string, subscriptionId: string) {
@@ -535,25 +631,28 @@ export class PaymentsService {
       throw new NotFoundException('Subscription not found');
     }
 
-    const now = new Date();
-    
-    if (!subscription.canRefund || now > subscription.refundDeadline!) {
-      throw new BadRequestException(
-        `Возврат средств доступен только в течение ${this.GRACE_PERIOD_DAYS} дней после оплаты`
-      );
-    }
-
+    // ✅ ИСПРАВЛЕНО: Проверяем токены ДО проверки времени
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     const tokensUsed = Number(user.tokens_used || 0);
-    const REFUND_TOKENS_THRESHOLD = 50000;
+    const REFUND_TOKENS_THRESHOLD = 50000; // Настраиваемый порог
 
+    // ⚠️ КРИТИЧНО: Блокируем возврат если токены использованы
     if (tokensUsed > REFUND_TOKENS_THRESHOLD) {
       throw new BadRequestException(
-        `Возврат недоступен: вы использовали ${tokensUsed.toLocaleString()} токенов`
+        `Возврат недоступен: вы использовали ${tokensUsed.toLocaleString()} токенов. ` +
+        `Максимум для возврата: ${REFUND_TOKENS_THRESHOLD.toLocaleString()} токенов.`
+      );
+    }
+
+    // Проверяем дедлайн возврата
+    const now = new Date();
+    if (!subscription.canRefund || now > subscription.refundDeadline!) {
+      throw new BadRequestException(
+        `Возврат средств доступен только в течение ${this.GRACE_PERIOD_DAYS} дней после оплаты`
       );
     }
 
@@ -593,10 +692,16 @@ export class PaymentsService {
 
       subscription.status = 'cancelled';
       subscription.canRefund = false;
-      subscription.autoRenew = false; // ✅ ОТКЛЮЧАЕМ автопродление
+      subscription.autoRenew = false;
       await this.subscriptionRepository.save(subscription);
 
       await this.revertToFreePlan(userId);
+
+      console.log('✅ Refund completed:', {
+        refundId: refund.id,
+        amount: refund.amount.value,
+        tokensWereUsed: tokensUsed,
+      });
 
       return {
         success: true,
@@ -605,6 +710,7 @@ export class PaymentsService {
         message: 'Возврат средств выполнен успешно. Автопродление отключено.',
       };
     } catch (error) {
+      console.error('❌ Refund failed:', error);
       throw new BadRequestException('Failed to process refund: ' + error.message);
     }
   }
