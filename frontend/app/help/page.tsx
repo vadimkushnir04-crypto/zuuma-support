@@ -92,11 +92,13 @@ useEffect(() => {
             Задайте вопрос нашему AI-ассистенту или свяжитесь с оператором
           </p>
           <button 
-            onClick={() => {
+            onClick={async () => {
+              // ✅ Ждем готовности виджета
+              if ((window as any).ChatWidgetReady) {
+                await (window as any).ChatWidgetReady;
+              }
               if ((window as any).ChatWidget) {
                 (window as any).ChatWidget.open();
-              } else {
-                alert('Виджет чата загружается, попробуйте через пару секунд...');
               }
             }}
             style={{

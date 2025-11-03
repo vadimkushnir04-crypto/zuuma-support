@@ -62,7 +62,7 @@ services:
     networks:
       - app_network
     volumes:
-      - ./uploads:/app/uploads  
+      - ./backend/uploads:/app/uploads  
 
   frontend:
     build:

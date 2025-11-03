@@ -226,16 +226,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 }
 .dropdown-item:hover { background: var(--bg-input); }
 
-.left-column, .chat-section {
+ .chat-section {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-}
-
-.left-column > .card:first-child {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
 }
 
 .chat-container { 
@@ -6488,5 +6482,64 @@ body.sidebar-open .sidebar {
 @media (min-width: 1025px) {
   .hide-desktop {
     display: none !important;
+  }
+}
+
+/* ===== EDUCATION PAGE LAYOUT ===== */
+.education-page-container {
+  display: grid;
+  grid-template-columns: 1fr 550px; /* Левая растягивается, правая фиксированная */
+  gap: 24px;
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+}
+
+.education-left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.education-right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.education-right-column .chat-section {
+  height: calc(100vh - 120px); /* Фиксированная высота чата */
+  max-height: 800px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 20px; /* Прилипает при скролле */
+}
+
+.education-right-column .chat-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Адаптив для планшетов */
+@media (max-width: 1200px) {
+  .education-page-container {
+    grid-template-columns: 1fr 450px;
+  }
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 768px) {
+  .education-page-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .education-right-column .chat-section {
+    height: 500px;
+    position: static;
   }
 }

@@ -470,8 +470,14 @@
         } catch (error) {
             console.error('Widget init error:', error);
         }
-        setupEventListeners();
-    }
+            setupEventListeners();
+            
+            // ✅ Помечаем виджет как готовый
+            window.ChatWidget.ready = true;
+            if (window._chatWidgetResolve) {
+                window._chatWidgetResolve();
+            }
+        }
 
     function setupWebSocket() {
         if (!window.io) return;
@@ -647,17 +653,23 @@
         chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
     }
 
-    // API для внешнего управления
+    // API для внешнего управления + Promise для ожидания инициализации
     window.ChatWidget = {
-        open: openChat,
-        close: closeChat,
-        toggle: toggleChat,
-        sendMessage: (message) => {
-            chatInput.value = message;
-            sendMessage();
-        },
-        isOpen: () => isOpen
+    open: openChat,
+    close: closeChat,
+    toggle: toggleChat,
+    sendMessage: (message) => {
+        chatInput.value = message;
+        sendMessage();
+    },
+    isOpen: () => isOpen,
+    ready: false // ✅ Флаг готовности
     };
+
+    // ✅ Создаем промис готовности
+    window.ChatWidgetReady = new Promise((resolve) => {
+    window._chatWidgetResolve = resolve;
+    });
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initWidget);

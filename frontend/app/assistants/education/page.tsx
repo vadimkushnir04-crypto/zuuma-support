@@ -129,12 +129,10 @@ export default function Home() {
   return (
     <AuthGuard requireAuth={true}>
       <AssistantsProvider>
-        {/* ✅ Добавлен padding-bottom для отступа от футера */}
-        <div className="home-container" style={{ 
-          paddingBottom: '2rem',
-          minHeight: 'calc(100vh - 80px)' // ✅ Минимальная высота минус header
-        }}>
-          <div className="left-column">
+        {/* ✅ Контейнер с двумя колонками */}
+        <div className="education-page-container">
+          {/* ЛЕВАЯ КОЛОНКА: Загрузка материалов */}
+          <div className="education-left-column">
             {/* Загрузка обучающего материала */}
             <section className="card">
               <h2 className="card-title">{t('uploadSection.title')}</h2>
@@ -191,15 +189,16 @@ export default function Home() {
             </section>
           </div>
 
-          {/* Чат */}
-          <section className="card chat-section">
-            <h2 className="card-title">{t('chat.title')}</h2>
-            <div className="chat-container">
-              <Chat />
-            </div>
-          </section>
+          {/* ПРАВАЯ КОЛОНКА: Тестовый чат */}
+          <div className="education-right-column">
+            <section className="card chat-section">
+              <h2 className="card-title">{t('chat.title')}</h2>
+              <div className="chat-container">
+                <Chat />
+              </div>
+            </section>
+          </div>
         </div>
-
       </AssistantsProvider>
     </AuthGuard>
   );
