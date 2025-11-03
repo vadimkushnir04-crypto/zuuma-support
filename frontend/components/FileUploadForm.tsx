@@ -33,9 +33,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
       }
 
       // Проверка типа
-      const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
+      const allowedTypes = ['image/png', 'image/jpeg', 'text/plain'];
       if (!allowedTypes.includes(selectedFile.type)) {
-        setMessage("❌ Поддерживаются только PDF, изображения (PNG, JPG) и текстовые файлы");
+        setMessage("❌ Поддерживаются только изображения (PNG, JPG) и текстовые файлы(.TXT)");
         return;
       }
 
@@ -141,10 +141,19 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
         <label className="file-input-label">
           <input
             type="file"
-            accept=".pdf,.png,.jpg,.jpeg,.txt"
-            onChange={handleFileSelect}
-            disabled={!selectedAssistantId}
-            style={{ display: 'none' }}
+            accept=".txt,.png,.jpg,.jpeg"
+            onChange={(e) => {
+              const selectedFile = e.target.files?.[0];
+              if (selectedFile) {
+                // Проверка типа файла
+                const allowedTypes = ['text/plain', 'image/png', 'image/jpeg', 'image/jpg'];
+                if (!allowedTypes.includes(selectedFile.type)) {
+                  setMessage("❌ Поддерживаются только: TXT, PNG, JPG");
+                  return;
+                }
+                setFile(selectedFile);
+              }
+            }}
           />
           <div className={`file-input-button ${!selectedAssistantId ? 'disabled' : ''}`}>
             <Upload size={20} />
@@ -260,12 +269,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
         <div className="formats-hint">
           <strong>Поддерживаемые форматы:</strong>
           <ul>
-            <li>📄 PDF документы</li>
             <li>🖼️ Изображения (PNG, JPG)</li>
             <li>📝 Текстовые файлы (TXT)</li>
           </ul>
           <div className="format-note">
-            📌 Максимальный размер: 10 МБ
+            📌 Максимальный размер: 5 МБ
           </div>
         </div>
       )}

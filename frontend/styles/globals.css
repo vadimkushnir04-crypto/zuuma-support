@@ -6542,4 +6542,26 @@ body.sidebar-open .sidebar {
     height: 500px;
     position: static;
   }
+
+  .message-image {
+    max-width: 300px;
+    max-height: 300px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+    transition: transform 0.2s;
+  }
+
+  .message-image:hover {
+    transform: scale(1.02);
+  }
+
+  .image-preview-link {
+    display: inline-block;
+    text-decoration: none;
+  }
+
 }

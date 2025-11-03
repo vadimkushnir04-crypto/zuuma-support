@@ -94,14 +94,12 @@ export default function Chat() {
               
               return {
                 id: msg.id,
-                text: msg.content,  // ✅ Берем content как есть
+                text: msg.content,
                 sender: msg.senderType === 'user' ? 'user' : 'assistant',
                 timestamp: new Date(msg.createdAt),
-                // ✅ Проверяем тип sources
-                sources: typeof msg.metadata?.sources === 'number' 
-                  ? msg.metadata.sources 
-                  : 0,
-                // ✅ Проверяем что files - это массив
+                sources: typeof msg.metadata?.sources === 'number' && msg.metadata.sources > 0
+                  ? msg.metadata.sources
+                  : undefined, // ✅ undefined вместо 0
                 files: Array.isArray(msg.metadata?.files) 
                   ? msg.metadata.files 
                   : [],
@@ -310,18 +308,15 @@ export default function Chat() {
     });
 
     socket.on('assistant:message', (payload) => {
-      console.log('📨 Received assistant message:', payload);
-      
       const newMessage: Message = {
         id: payload.id || `ws-${Date.now()}`,
         text: payload.content || 'No content',
         sender: payload.senderType === 'user' ? 'user' : 'assistant',
         timestamp: new Date(payload.createdAt || Date.now()),
-        // ✅ Проверяем тип sources
         sources: typeof (payload.metadata?.sources || payload.sources) === 'number' 
+          && (payload.metadata?.sources || payload.sources) > 0
           ? (payload.metadata?.sources || payload.sources) 
-          : 0,
-        // ✅ Проверяем что files - это массив
+          : undefined, // ✅ undefined вместо 0
         files: Array.isArray(payload.files) 
           ? payload.files 
           : (Array.isArray(payload.metadata?.files) ? payload.metadata.files : []),
@@ -410,9 +405,20 @@ export default function Chat() {
                               <img 
                                 src={`${API_BASE_URL}${file.fileUrl}`} 
                                 alt={file.fileName}
-                                className="message-image"
+                                style={{
+                                  maxWidth: '300px',
+                                  maxHeight: '300px',
+                                  width: 'auto',
+                                  height: 'auto',
+                                  objectFit: 'contain',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  display: 'block',
+                                }}
                               />
-                              <div className="file-name">📷 {file.fileName}</div>
+                              <div className="file-name" style={{ fontSize: '12px', marginTop: '4px', color: '#666' }}>
+                                📷 {file.fileName}
+                              </div>
                             </a>
                           ) : (
                             <a 
@@ -422,7 +428,7 @@ export default function Chat() {
                               className="file-link"
                             >
                               <span className="file-icon">
-                                {file.fileType === 'pdf' ? '📄' : '📎'}
+                                {file.fileType === '📎'}
                               </span>
                               <span className="file-name">{file.fileName}</span>
                               {file.pageNumber && (
@@ -435,12 +441,12 @@ export default function Chat() {
                     </div>
                   )}
                   
-                  {/* Источники */}
-                  {message.sources && message.sources > 0 && (
-                    <div className="message-sources">
-                      📄 {t('sources', { count: message.sources })}
-                    </div>
-                  )}
+                {/* Источники */}
+                {message.sources !== undefined && message.sources > 0 && (
+                  <div className="message-sources">
+                    📄 {t('sources', { count: message.sources })}
+                  </div>
+                )}
                 </div>
               </div>
             ))}

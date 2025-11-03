@@ -224,7 +224,7 @@ export default function HelpPage() {
           </summary>
           <p style={{ marginTop: '12px', color: '#666', lineHeight: '1.6' }}>
             Перейдите в <Link href="/assistants/education" style={{ color: '#3b82f6' }}>"Обучение ассистента"</Link>, 
-            загрузите файлы (PDF, DOCX, TXT) или введите текст вручную. Система автоматически обработает документы для RAG.
+            загрузите файлы (TXT, PNG, JPG) или введите текст вручную. Система автоматически обработает документы для RAG.
           </p>
         </details>
 

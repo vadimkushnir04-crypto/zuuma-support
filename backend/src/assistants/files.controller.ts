@@ -288,13 +288,8 @@ export class FileServeController {
       const ext = path.extname(decodedFilename).toLowerCase();
       const mimeTypes: Record<string, string> = {
         '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
         '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.pdf': 'application/pdf',
         '.txt': 'text/plain',
-        '.doc': 'application/msword',
-        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       };
 
       const contentType = mimeTypes[ext] || 'application/octet-stream';

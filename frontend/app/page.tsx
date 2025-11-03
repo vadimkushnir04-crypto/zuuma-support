@@ -16,56 +16,56 @@ export default function Home() {
     { 
       id: 1, 
       title: "1. Создайте ассистента", 
-      description: "Настройте личность и стиль общения",
+      description: "Настройте, как он будет общаться с клиентами: дружелюбно, профессионально или в вашем уникальном стиле",
       icon: Bot,
       color: "from-blue-500 to-blue-600"
     },
     { 
       id: 2, 
       title: "2. Загрузите данные", 
-      description: "Текст/MD/PDF. Также можете добавить API запросы к вашей базе данных",
+      description: "Добавьте тексты, изображения или подключите простые интеграции, например, с Telegram или вашей базой данных",
       icon: Upload,
       color: "from-green-500 to-green-600"
     },
     { 
       id: 3, 
-      title: "3. Векторизация", 
-      description: "Данных в Qdrant для более быстрого поиска",
+      title: "3. Автоматическая обработка", 
+      description: "Мы подготовим вашу информацию для быстрого и удобного использования",
       icon: Puzzle,
       color: "from-purple-500 to-purple-600"
     },
     { 
       id: 4, 
-      title: "4. База данных", 
-      description: "Сохранение в векторную БД обучающего материала и функций",
+      title: "4. Хранение знаний", 
+      description: "Все данные надежно сохранятся в нашей системе для круглосуточной работы ассистента",
       icon: Database,
       color: "from-orange-500 to-orange-600"
     },
     { 
       id: 5, 
       title: "5. Клиент спрашивает", 
-      description: "Вопрос поступает в чат",
+      description: "Вопрос приходит в чат, Telegram или на сайт",
       icon: MessageCircle,
       color: "from-pink-500 to-pink-600"
     },
     { 
       id: 6, 
-      title: "6. Поиск контекста", 
-      description: "LLM находит релевантную информацию",
+      title: "6. Поиск информации", 
+      description: "Ассистент быстро находит нужные сведения из ваших данных",
       icon: Zap,
       color: "from-yellow-500 to-yellow-600"
     },
     { 
       id: 7, 
       title: "7. Ответ клиенту", 
-      description: "Построенный ИИ на основе обучающих данных",
+      description: "Ассистент формирует точный ответ на основе вашей информации",
       icon: CheckCircle,
       color: "from-emerald-500 to-emerald-600"
     },
     { 
       id: 8, 
       title: "8. Довольный клиент", 
-      description: "Ваш клиент получил ответ, как будто от реального человека",
+      description: "Клиент получает полезный ответ, как от живого специалиста",
       icon: Smile,
       color: "from-emerald-500 to-emerald-600"
     }
@@ -81,8 +81,8 @@ export default function Home() {
           </h1>
           
           <p className="hero-subtitle">
-            Превратите свои документы и знания в интеллектуальных помощников, 
-            которые будут отвечать на вопросы клиентов 24/7
+            Превратите свои документы и знания в умных помощников, 
+            которые отвечают клиентам круглосуточно — просто и без программирования
           </p>
 
           <div className="hero-actions">
@@ -90,8 +90,12 @@ export default function Home() {
               <Bot className="w-5 h-5" />
               Создать ассистента
             </Link>
+            <Link href="/assistants" className="hero-btn-primary">
+              <Bot className="w-5 h-5" />
+              Мои ассистенты
+            </Link>
             <Link href="/tutorials" className="hero-btn-secondary">
-              Посмотреть документы
+              Посмотреть инструкции
             </Link>
           </div>
         </div>
@@ -131,7 +135,7 @@ export default function Home() {
         <div className="cta-content">
           <h2 className="cta-title">Готовы начать?</h2>
           <p className="cta-subtitle">
-            Создайте своего первого AI-ассистента прямо сейчас
+            Создайте своего первого AI-ассистента прямо сейчас — бесплатно и просто
           </p>
           <Link href="/assistants/create" className="cta-button">
             <Bot className="w-5 h-5" />
