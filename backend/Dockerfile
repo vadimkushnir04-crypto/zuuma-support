@@ -41,7 +41,8 @@ COPY --chown=nodejs:nodejs rus.traineddata ./
 COPY --chown=nodejs:nodejs eng.traineddata ./
 
 RUN mkdir -p /app/uploads && \
-    chown -R nodejs:nodejs /app
+    chown -R nodejs:nodejs /app/uploads && \
+    chmod -R 777 /app/uploads
 
 USER nodejs
 
