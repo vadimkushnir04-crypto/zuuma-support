@@ -153,9 +153,10 @@ export class PaymentsController {
     };
   }
 
-  @Post('subscription/:id/toggle-auto-renew')
-    async toggleAutoRenew(@Req() req: any, @Param('id') subscriptionId: string) {
-    return this.paymentsService.toggleAutoRenew(req.user.id, subscriptionId);
+@Post('subscription/:id/toggle-auto-renew')
+@UseGuards(JwtAuthGuard)
+async toggleAutoRenew(@Req() req: any, @Param('id') subscriptionId: string) {
+  return this.paymentsService.toggleAutoRenew(req.user.id, subscriptionId);
 }
 
 }

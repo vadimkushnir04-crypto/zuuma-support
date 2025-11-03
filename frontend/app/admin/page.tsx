@@ -268,9 +268,13 @@ export default function AdminPage() {
                     <span style={styles.subscriptionLabel}>Статус:</span>
                     <span style={{
                       ...styles.subscriptionValue,
-                      color: subscriptionData.status === 'active' ? '#4CAF50' : '#ff6b6b'
+                      color: subscriptionData.status === 'active' ? '#4CAF50' : 
+                             subscriptionData.status === 'cancelled' ? '#ffa500' : '#ff6b6b'
                     }}>
-                      {subscriptionData.status === 'active' ? '✅ Активна' : '❌ Неактивна'}
+                      {subscriptionData.status === 'active' && !subscriptionData.cancelledAt ? '✅ Активна' : 
+                       subscriptionData.status === 'active' && subscriptionData.cancelledAt ? '⚠️ Отменена (активна до конца периода)' :
+                       subscriptionData.status === 'cancelled' ? '❌ Отменена' : 
+                       '❓ ' + subscriptionData.status}
                     </span>
                   </div>
 
@@ -285,6 +289,11 @@ export default function AdminPage() {
                     <span style={styles.subscriptionLabel}>Действует до:</span>
                     <span style={styles.subscriptionValue}>
                       {new Date(subscriptionData.expiresAt).toLocaleDateString('ru-RU')}
+                      {subscriptionData.cancelledAt && (
+                        <span style={{ marginLeft: '8px', color: '#ffa500' }}>
+                          (подписка отменена)
+                        </span>
+                      )}
                     </span>
                   </div>
 
@@ -307,6 +316,7 @@ export default function AdminPage() {
 
                 {/* Действия с подпиской */}
                 <div style={styles.actionsContainer}>
+                  {/* Показываем кнопку отмены только если подписка активна И не отменена */}
                   {subscriptionData.status === 'active' && !subscriptionData.cancelledAt && (
                     <button
                       onClick={handleCancelSubscription}
@@ -318,7 +328,10 @@ export default function AdminPage() {
                     </button>
                   )}
 
-                  {subscriptionData.status === 'active' && (
+                  {/* Показываем кнопку возврата если подписка активна ИЛИ недавно отменена */}
+                  {(subscriptionData.status === 'active' || 
+                    (subscriptionData.status === 'cancelled' && 
+                     new Date(subscriptionData.expiresAt) > new Date())) && (
                     <button
                       onClick={handleRefund}
                       disabled={processing}
