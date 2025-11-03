@@ -555,12 +555,6 @@ export default function ProfilePage() {
                       Действует до {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
                       {subscription.cancelledAt && ' (автопродление отключено)'}
                     </p>
-                    <p style={{ margin: '8px 0 0 0', fontSize: 13, opacity: 0.7 }}>
-                      ℹ️ Для отмены подписки или возврата средств обратитесь в поддержку:{' '}
-                      <a href="mailto:delovol.acount@gmail.com" style={{ color: 'var(--accent)' }}>
-                        delovol.acount@gmail.com
-                      </a>
-                    </p>
                   </div>
                 </div>
               )}

@@ -43,12 +43,6 @@ export default function Footer() {
                   Политика конфиденциальности
                 </Link>
               </li>
-              <li style={styles.listItem}>
-                <Link href="/offer#refund" style={styles.link}>
-                  <CreditCard size={14} style={{ marginRight: '6px' }} />
-                  Возврат средств
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -79,19 +73,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Payment info */}
-          <div style={styles.column}>
-            <h4 style={styles.columnTitle}>Способы оплаты</h4>
-            <p style={styles.smallText}>
-              Платежи обрабатываются через ЮKassa (ООО «ЮМани»)
-            </p>
-            <p style={{...styles.smallText, marginTop: '12px'}}>
-              Принимаем: Visa, MasterCard, Мир, ЮMoney, QIWI
-            </p>
-            <div style={styles.securityBadge}>
-              🔒 PCI DSS Certified
-            </div>
-          </div>
         </div>
 
         {/* Bottom bar */}
@@ -118,10 +99,8 @@ const styles: { [key: string]: React.CSSProperties } = {
   footer: {
     backgroundColor: '#1a1a1a',
     borderTop: '1px solid #333',
-    marginTop: 'auto',
     padding: '48px 20px 24px',
     color: '#E0E0E0',
-    position: 'relative',
     width: '100%',
   },
   container: {

@@ -24,12 +24,23 @@ html, body {
   width: 100%; min-height: 100vh; overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 #__next {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+main {
+  flex: 1 0 auto; /* Растягиваем main на всю доступную высоту */
+}
+
+footer {
+  flex-shrink: 0; /* Footer не сжимается */
 }
 
 /* Scrollbar */
@@ -214,15 +225,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   display: block; padding: 0.5rem 1rem; color: var(--fg-main); text-decoration: none;
 }
 .dropdown-item:hover { background: var(--bg-input); }
-
-/* Page Layout */
-.home-container {
-  display: flex;
-  gap: 1.5rem;
-  height: calc(100vh - 140px);
-  margin: 30px;
-  margin-top: 45px;
-}
 
 .left-column, .chat-section {
   display: flex;

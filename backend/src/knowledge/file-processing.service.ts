@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as PDFParser from 'pdf-parse';
+import pdf from 'pdf-parse';
 import Tesseract from 'tesseract.js';
 import { DocumentMetadata, FileUploadResult } from './knowledge.types';
 
@@ -55,7 +55,7 @@ export class FileProcessingService {
    */
   async extractTextFromPDF(buffer: Buffer): Promise<{ text: string; pages: number }> {
     try {
-      const data = await PDFParser(buffer);
+      const data = await pdf(buffer);
       return {
         text: data.text,
         pages: data.numpages

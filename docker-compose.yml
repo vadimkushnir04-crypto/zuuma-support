@@ -61,6 +61,8 @@ services:
       - POSTBOX_SMTP_PASS=${POSTBOX_SMTP_PASS}
     networks:
       - app_network
+    volumes:
+      - ./uploads:/app/uploads  
 
   frontend:
     build:

@@ -5,11 +5,22 @@ import { LifeBuoy, MessageCircle, Mail, FileText, Book } from "lucide-react";
 import Link from "next/link";
 
 export default function HelpPage() {
-  useEffect(() => {
-    // Загружаем виджет поддержки
+useEffect(() => {
+  // Загружаем виджет поддержки
     if (typeof window !== 'undefined') {
+      // Проверяем, не загружен ли уже виджет
+      if ((window as any).ChatWidgetLoaded) {
+        // Если виджет уже загружен, просто открываем его
+        setTimeout(() => {
+          if ((window as any).ChatWidget) {
+            (window as any).ChatWidget.open();
+          }
+        }, 100);
+        return;
+      }
+
       (window as any).chatConfig = {
-        assistantId: '73486773-bc62-4be6-9e64-c72816baab6f', // ← Замени на ID твоего support-ассистента
+        assistantId: '73486773-bc62-4be6-9e64-c72816baab6f',
         serverUrl: 'https://zuuma.ru/api',
         theme: 'light',
         assistantName: 'Служба поддержки zuuma.ru',
@@ -22,20 +33,27 @@ export default function HelpPage() {
       script.async = true;
       document.body.appendChild(script);
 
-      // Автоматически открываем чат через полсекунды
-      script.onload = () => {
-        setTimeout(() => {
-          if ((window as any).ChatWidget) {
+      // Ждем полной инициализации виджета
+      const checkWidgetReady = setInterval(() => {
+        if ((window as any).ChatWidget && (window as any).ChatWidgetLoaded) {
+          clearInterval(checkWidgetReady);
+          // Открываем чат после инициализации
+          setTimeout(() => {
             (window as any).ChatWidget.open();
-          }
-        }, 500);
-      };
+          }, 200);
+        }
+      }, 100); // Проверяем каждые 100ms
+
+      // Очистка через 10 секунд, если виджет не загрузился
+      const timeout = setTimeout(() => {
+        clearInterval(checkWidgetReady);
+      }, 10000);
 
       return () => {
-        if (document.body.contains(script)) {
-          document.body.removeChild(script);
-        }
-        (window as any).ChatWidgetLoaded = false;
+        clearInterval(checkWidgetReady);
+        clearTimeout(timeout);
+        // НЕ удаляем скрипт и НЕ сбрасываем ChatWidgetLoaded
+        // чтобы виджет работал при возврате на страницу
       };
     }
   }, []);
@@ -74,7 +92,13 @@ export default function HelpPage() {
             Задайте вопрос нашему AI-ассистенту или свяжитесь с оператором
           </p>
           <button 
-            onClick={() => (window as any).ChatWidget?.open()}
+            onClick={() => {
+              if ((window as any).ChatWidget) {
+                (window as any).ChatWidget.open();
+              } else {
+                alert('Виджет чата загружается, попробуйте через пару секунд...');
+              }
+            }}
             style={{
               padding: '10px 20px',
               background: '#2a2a2a',
