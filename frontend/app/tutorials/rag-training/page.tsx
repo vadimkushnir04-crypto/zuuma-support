@@ -140,7 +140,7 @@ print(f"Загружено документов: {len(results)}")`;
               <div className="tutorial-step-number">1</div>
               <div className="tutorial-step-content">
                 <h3>Форматы файлов</h3>
-                <p>Поддерживаются: PDF, DOCX, TXT, MD, HTML. Убедитесь, что текст читаемый и структурированный.</p>
+                <p>Пока что поддерживаются: PDF, TXT, PNG, JPG. Убедитесь, что текст читаемый и структурированный.</p>
               </div>
             </div>
             

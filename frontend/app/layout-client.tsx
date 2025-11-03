@@ -21,18 +21,22 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
 
   return (
     <ErrorBoundary>
-      <Header isLoggedIn={isLoggedIn} userName={userName} onLogout={logout} />
-      <div style={{ display: 'flex', paddingTop: '54px', flex: 1 }}>
-        {!hideSidebar && <Sidebar />}
-        <main
-          style={{
-            flex: 1,
-            marginLeft: hideSidebar ? '0' : '256px',
-            padding: '0rem',
-          }}
-        >
-          {children}
-        </main>
+      {/* Обёртка для flex: 1, чтобы контент занимал всё доступное пространство */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Header isLoggedIn={isLoggedIn} userName={userName} onLogout={logout} />
+        <div style={{ display: 'flex', paddingTop: '54px', flex: 1 }}>
+          {!hideSidebar && <Sidebar />}
+          <main
+            style={{
+              flex: 1,
+              marginLeft: hideSidebar ? '0' : '256px',
+              padding: '0rem',
+              minHeight: 0, // ✅ Важно для корректного overflow
+            }}
+          >
+            {children}
+          </main>
+        </div>
       </div>
       <AdminChatWidget />
       <CookieConsent />

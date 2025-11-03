@@ -87,11 +87,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           flexDirection: 'column',
         }}
       >
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <I18nProvider>
-            <LayoutClient>{children}</LayoutClient>
-          </I18nProvider>
-        </div>
+        <I18nProvider>
+          <LayoutClient>{children}</LayoutClient>
+        </I18nProvider>
         <Footer />
       </body>
     </html>
