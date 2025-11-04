@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
-import AdminChatWidget from "../components/AdminChatWidget";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import CookieConsent from "../components/CookieConsent";
@@ -38,7 +37,6 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           </main>
         </div>
       </div>
-      <AdminChatWidget />
       <CookieConsent />
     </ErrorBoundary>
   );

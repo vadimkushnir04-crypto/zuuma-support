@@ -1,7 +1,12 @@
-// public/chat-widget.js
+// public/chat-widget.js - УЛУЧШЕННАЯ ВЕРСИЯ С ОТЛАДКОЙ
 
 (function() {
-    if (window.ChatWidgetLoaded) return;
+    console.log('🔍 Chat widget script started');
+    
+    if (window.ChatWidgetLoaded) {
+        console.log('⚠️ Widget already loaded, skipping');
+        return;
+    }
     window.ChatWidgetLoaded = true;
 
     const config = window.chatConfig || {
@@ -16,6 +21,8 @@
         alwaysVisible: true,
         hideUntilUsed: false,
     };
+
+    console.log('📋 Widget config:', config);
 
     if (!config.assistantId || config.assistantId === 'YOUR_ASSISTANT_ID') {
         console.error('❌ ChatWidget: assistantId is required in chatConfig');
@@ -36,14 +43,15 @@
         });
     };
 
-    // 🎨 СТИЛИ
+    // 🎨 СТИЛИ С ПОВЫШЕННЫМ Z-INDEX
     const styles = `
         .chat-widget-container {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            z-index: 10000;
+            position: fixed !important;
+            bottom: 24px !important;
+            right: 24px !important;
+            z-index: 999999 !important;  /* ✅ Очень высокий z-index */
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+            pointer-events: auto !important;
         }
         
         .chat-widget-button {
@@ -54,13 +62,14 @@
             border: 1px solid #27272A;
             cursor: pointer;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             color: #FAFAFA;
             position: relative;
             backdrop-filter: blur(8px);
+            pointer-events: auto !important;
         }
         
         .chat-widget-button:hover {
@@ -367,8 +376,8 @@
         
         @media (max-width: 480px) {
             .chat-widget-container {
-                bottom: 16px;
-                right: 16px;
+                bottom: 16px !important;
+                right: 16px !important;
             }
             .chat-widget-button {
                 width: 52px;
@@ -390,10 +399,11 @@
     const styleSheet = document.createElement('style');
     styleSheet.textContent = styles;
     document.head.appendChild(styleSheet);
+    console.log('✅ Widget styles injected');
 
     // HTML разметка
     const widgetHTML = `
-        <div class="chat-widget-container" id="chat-widget-container">
+        <div class="chat-widget-container" id="chat-widget-container" style="display: block !important;">
             <button class="chat-widget-button" id="chat-toggle">
                 <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -457,6 +467,7 @@
         console.log('🎬 Initializing chat widget...');
         
         document.body.insertAdjacentHTML('beforeend', widgetHTML);
+        console.log('✅ Widget HTML inserted');
         
         chatToggle = document.getElementById('chat-toggle');
         chatWindow = document.getElementById('chat-window');
@@ -466,13 +477,17 @@
         chatInput = document.getElementById('chat-input');
         chatSend = document.getElementById('chat-send');
 
-        console.log('✅ Widget elements initialized');
+        console.log('✅ Widget elements initialized:', {
+            chatToggle: !!chatToggle,
+            chatWindow: !!chatWindow,
+            chatInput: !!chatInput
+        });
         
         try {
             await loadSocketIO();
             setupWebSocket();
         } catch (error) {
-            console.error('Widget init error:', error);
+            console.error('❌ Widget init error:', error);
         }
         
         setupEventListeners();
@@ -482,13 +497,23 @@
             window._chatWidgetResolve();
         }
         
-        // ✅ УПРОЩЕННАЯ ЛОГИКА ВИДИМОСТИ
+        // ✅ ПРИНУДИТЕЛЬНАЯ ВИДИМОСТЬ
         const container = document.getElementById('chat-widget-container');
-        
-        // Кнопка ВСЕГДА видна если alwaysVisible = true
-        if (config.alwaysVisible) {
+        if (container) {
             container.style.display = 'block';
-            console.log('✅ Widget button always visible');
+            container.style.visibility = 'visible';
+            container.style.opacity = '1';
+            console.log('✅ Widget container forced visible');
+            
+            // Проверяем позицию
+            setTimeout(() => {
+                const rect = container.getBoundingClientRect();
+                console.log('📍 Widget position:', {
+                    bottom: rect.bottom,
+                    right: rect.right,
+                    visible: rect.width > 0 && rect.height > 0
+                });
+            }, 100);
         }
         
         // Автооткрываем если настроено
@@ -528,12 +553,15 @@
                 console.log('❌ Widget WebSocket disconnected');
             });
         } catch (err) {
-            console.error('WebSocket error:', err);
+            console.error('❌ WebSocket error:', err);
         }
     }
 
     function setupEventListeners() {
-        chatToggle.addEventListener('click', toggleChat);
+        chatToggle.addEventListener('click', () => {
+            console.log('🖱️ Widget button clicked');
+            toggleChat();
+        });
         chatClose.addEventListener('click', closeChat);
         chatMinimize.addEventListener('click', closeChat);
         chatSend.addEventListener('click', sendMessage);
@@ -557,6 +585,7 @@
     }
 
     function openChat() {
+        console.log('📖 Opening chat');
         isOpen = true;
         chatWindow.classList.add('open');
         chatToggle.classList.add('open');
@@ -565,6 +594,7 @@
     }
 
     function closeChat() {
+        console.log('📕 Closing chat');
         isOpen = false;
         chatWindow.classList.remove('open');
         chatToggle.classList.remove('open');
@@ -622,7 +652,7 @@
             }
 
         } catch (error) {
-            console.error('Send error:', error);
+            console.error('❌ Send error:', error);
             addMessage(
                 error.message || 'Sorry, something went wrong. Please try again.', 
                 'assistant'
