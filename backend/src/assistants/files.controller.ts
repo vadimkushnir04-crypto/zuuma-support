@@ -43,75 +43,6 @@ export class FilesController {
   }
 
   /**
-   * Получить список всех файлов ассистента
-   * GET /assistants/:assistantId/files
-   */
-  @Get('files')
-  async getFiles(@Param('assistantId') assistantId: string, @Req() req: any) {
-    try {
-      console.log(`📁 Getting files for assistant: ${assistantId}`);
-      
-      const collectionName = `assistant_${assistantId}`;
-      
-      const scrollResult = await this.qdrant.scroll(collectionName, {
-        limit: 1000,
-        with_payload: true,
-        with_vector: false,
-      });
-
-      const filesMap = new Map();
-      
-      for (const point of scrollResult.points) {
-        const payload = point.payload as any;
-        
-        if (!payload.fileUrl || !payload.fileType) continue;
-        
-        const fileUrl = payload.fileUrl;
-        
-        if (!filesMap.has(fileUrl)) {
-          filesMap.set(fileUrl, {
-            id: payload.fileUrl.split('/').pop(),
-            title: payload.title || 'Без названия',
-            description: payload.description || '',
-            fileUrl: payload.fileUrl,
-            fileType: payload.fileType,
-            fileSize: payload.fileSize || null,
-            mimeType: payload.mimeType || null,
-            chunks: 1,
-            createdAt: payload.timestamp || payload.createdAt,
-          });
-        } else {
-          const file = filesMap.get(fileUrl);
-          file.chunks += 1;
-        }
-      }
-
-      const files = Array.from(filesMap.values())
-        .sort((a, b) => {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
-          return dateB - dateA;
-        });
-
-      console.log(`✅ Found ${files.length} files`);
-      
-      return {
-        success: true,
-        files,
-        total: files.length,
-      };
-
-    } catch (error) {
-      console.error('❌ Error getting files:', error);
-      return {
-        success: false,
-        files: [],
-        error: error.message,
-      };
-    }
-  }
-
-  /**
    * Удалить файл
    * DELETE /assistants/:assistantId/files/:fileId
    */
@@ -287,9 +218,14 @@ export class FileServeController {
 
       const ext = path.extname(decodedFilename).toLowerCase();
       const mimeTypes: Record<string, string> = {
-        '.jpg': 'image/jpeg',
         '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
         '.txt': 'text/plain',
+        '.pdf': 'application/pdf',
+        '.json': 'application/json',
       };
 
       const contentType = mimeTypes[ext] || 'application/octet-stream';
@@ -319,4 +255,4 @@ export class FileServeController {
       );
     }
   }
-} 
+}

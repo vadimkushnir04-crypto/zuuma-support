@@ -27,6 +27,7 @@ import type {
 } from './assistants.types';
 import { GlobalFunctionsService } from './services/global-functions.service';
 import { QdrantClient } from '@qdrant/js-client-rest';
+import * as path from 'path'; // ✅ Добавь этот импорт для path
 
 @Controller('assistants')
 export class AssistantsController {
@@ -639,6 +640,74 @@ export class AssistantsController {
       };
     }
   }
+
+  // ✅ Добавлен эндпоинт для получения списка файлов (перенесен из files.controller.ts и адаптирован)
+  /**
+   * Получить список файлов
+   * GET /assistants/:id/files
+   */
+  @Get(':id/files')
+  @UseGuards(JwtAuthGuard)
+  async getFiles(@Param('id') assistantId: string) {
+    try {
+      console.log(`📁 Getting files for assistant: ${assistantId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        limit: 1000,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      // Группируем по fileUrl
+      const filesMap = new Map();
+      
+      for (const point of scrollResult.points) {
+        const payload = point.payload as any;
+        
+        // Только файлы (с fileUrl)
+        if (!payload.fileUrl) continue;
+        
+        const fileId = payload.fileUrl;
+        
+        if (!filesMap.has(fileId)) {
+          filesMap.set(fileId, {
+            id: fileId,
+            title: payload.title || 'Без названия',
+            description: payload.description || '',
+            fileUrl: `/api/files/${assistantId}/${path.basename(fileId)}`, // ✅ Правильный путь (адаптирован под существующий контроллер с /api/files)
+            fileType: payload.fileType || 'unknown',
+            fileSize: payload.fileSize || 0,
+            mimeType: payload.mimeType || '',
+            chunks: 1,
+            createdAt: payload.timestamp || payload.createdAt,
+          });
+        } else {
+          filesMap.get(fileId).chunks += 1;
+        }
+      }
+
+      const files = Array.from(filesMap.values())
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      console.log(`✅ Found ${files.length} files`);
+      
+      return {
+        success: true,
+        files,
+        total: files.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting files:', error);
+      return {
+        success: false,
+        files: [],
+        error: error.message,
+      };
+    }
+  }
 }
 
 // Отдельный контроллер для публичного API (используется виджетами)
@@ -785,4 +854,3 @@ async getCollectionInfo(@Param('id') assistantId: string) {
     return matches ? matches[1] : null;
   }
 }
-

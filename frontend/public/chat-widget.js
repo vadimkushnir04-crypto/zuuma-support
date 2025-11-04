@@ -448,14 +448,14 @@
         </div>
     `;
 
-    // Переменные
-    const chatToggle = document.getElementById('chat-toggle');
-    const chatWindow = document.getElementById('chat-window');
-    const chatClose = document.getElementById('chat-close');
-    const chatMinimize = document.getElementById('chat-minimize');
-    const chatMessages = document.getElementById('chat-messages');
-    const chatInput = document.getElementById('chat-input');
-    const chatSend = document.getElementById('chat-send');
+    // ✅ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявляем, но НЕ инициализируем)
+    let chatToggle;
+    let chatWindow;
+    let chatClose;
+    let chatMinimize;
+    let chatMessages;
+    let chatInput;
+    let chatSend;
 
     let isOpen = false;
     let conversationId = null;
@@ -466,9 +466,26 @@
 
     // Инициализация
     async function initWidget() {
-        // ✅ ДОБАВЛЯЕМ HTML СЕЙЧАС (когда DOM точно готов)
+        console.log('🎬 Initializing widget...');
+        
+        // ✅ СНАЧАЛА добавляем HTML
         document.body.insertAdjacentHTML('beforeend', widgetHTML);
         console.log('✅ Widget HTML added');
+        
+        // ✅ ТЕПЕРЬ получаем элементы (они уже существуют!)
+        chatToggle = document.getElementById('chat-toggle');
+        chatWindow = document.getElementById('chat-window');
+        chatClose = document.getElementById('chat-close');
+        chatMinimize = document.getElementById('chat-minimize');
+        chatMessages = document.getElementById('chat-messages');
+        chatInput = document.getElementById('chat-input');
+        chatSend = document.getElementById('chat-send');
+
+        console.log('✅ Elements found:', {
+            chatToggle: !!chatToggle,
+            chatWindow: !!chatWindow,
+            chatInput: !!chatInput
+        });
         
         try {
             await loadSocketIO();
@@ -477,6 +494,7 @@
         } catch (error) {
             console.error('Widget init error:', error);
         }
+        
         setupEventListeners();
         
         // ✅ Помечаем виджет как готовый
@@ -484,6 +502,8 @@
         if (window._chatWidgetResolve) {
             window._chatWidgetResolve();
         }
+        
+        console.log('✅ Widget fully initialized');
     }
 
     function setupWebSocket() {

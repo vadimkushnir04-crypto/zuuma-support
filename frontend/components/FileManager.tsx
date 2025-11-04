@@ -37,31 +37,32 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
     try {
       const response = await fetch(
         `${API_BASE_URL}/assistants/${assistantId}/files`,
-        {
-          credentials: 'include', // ✅ Отправляем cookie
-        }
+        { credentials: 'include' }
       );
 
       if (response.ok) {
         const data = await response.json();
 
-        // ✅ Исправляем URL файлов
+        // ✅ ПРАВИЛЬНАЯ ФИКСАЦИЯ URL
         const fixedFiles = (data.files || []).map((file: FileItem) => {
           let fileUrl = file.fileUrl || '';
 
+          // Если полный URL - оставляем как есть
           if (fileUrl.startsWith('http')) {
             return { ...file, fileUrl };
           }
 
-          if (fileUrl.startsWith('/api/files')) {
-            fileUrl = `${API_BASE_URL}${fileUrl.replace('/api', '')}`;
-          } else if (fileUrl.startsWith('/files')) {
-            fileUrl = `${API_BASE_URL}${fileUrl}`;
-          } else if (!fileUrl.startsWith('/')) {
-            fileUrl = `${API_BASE_URL}/${fileUrl}`;
-          } else {
-            fileUrl = `${API_BASE_URL}${fileUrl}`;
+          // Убираем /api если есть
+          if (fileUrl.startsWith('/api/')) {
+            fileUrl = fileUrl.replace('/api/', '/');
           }
+
+          // Добавляем базовый URL
+          if (!fileUrl.startsWith('/')) {
+            fileUrl = '/' + fileUrl;
+          }
+
+          fileUrl = `${API_BASE_URL}${fileUrl}`;
 
           console.log('📎 Fixed file URL:', fileUrl);
 

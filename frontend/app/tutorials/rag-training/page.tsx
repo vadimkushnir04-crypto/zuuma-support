@@ -35,7 +35,7 @@ def upload_document(api_key, file_path, metadata=None):
 # Пример использования
 result = upload_document(
     api_key="your_api_key",
-    file_path="company_docs.pdf",
+    file_path="company_docs.txt",
     metadata={
         "category": "documentation",
         "version": "1.0",
@@ -69,7 +69,7 @@ from pathlib import Path
 def batch_upload_documents(api_key, folder_path):
     """Массовая загрузка документов из папки"""
     
-    supported_formats = ['.pdf', '.docx', '.txt', '.md', '.html']
+    supported_formats = ['.png', '.txt', '.jpg']
     uploaded = []
     
     for file_path in Path(folder_path).rglob('*'):
@@ -140,7 +140,7 @@ print(f"Загружено документов: {len(results)}")`;
               <div className="tutorial-step-number">1</div>
               <div className="tutorial-step-content">
                 <h3>Форматы файлов</h3>
-                <p>Пока что поддерживаются: PDF, TXT, PNG, JPG. Убедитесь, что текст читаемый и структурированный.</p>
+                <p>Пока что поддерживаются: TXT, PNG, JPG. Убедитесь, что текст читаемый и структурированный.</p>
               </div>
             </div>
             
