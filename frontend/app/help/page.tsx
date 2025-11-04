@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { LifeBuoy, MessageCircle, Mail, FileText, Book } from "lucide-react";
+import { LifeBuoy, Mail, FileText, Book } from "lucide-react";
 import Link from "next/link";
 
 export default function HelpPage() {
@@ -9,14 +9,10 @@ export default function HelpPage() {
     if (typeof window !== 'undefined') {
       // Проверяем, не загружен ли уже виджет
       if ((window as any).ChatWidgetLoaded) {
-        // Виджет уже загружен, просто открываем
-        if ((window as any).ChatWidget) {
-          (window as any).ChatWidget.open();
-        }
-        return;
+        return; // Виджет уже загружен
       }
 
-      // ✅ Конфиг с автооткрытием для страницы помощи
+      // ✅ Конфиг для страницы помощи - кнопка всегда видна
       (window as any).chatConfig = {
         assistantId: '73486773-bc62-4be6-9e64-c72816baab6f',
         serverUrl: 'https://zuuma.ru/api',
@@ -24,19 +20,15 @@ export default function HelpPage() {
         assistantName: 'Служба поддержки zuuma.ru',
         customGreeting: 'Здравствуйте! Я помогу вам разобраться с платформой. Задайте ваш вопрос.',
         primaryColor: '#10b981',
-        autoOpen: true,           // ✅ Автоматически открываем
-        alwaysVisible: true,      // ✅ Всегда показываем кнопку
-        hideUntilUsed: false,     // ✅ Не скрываем
+        autoOpen: false,          // Не открываем автоматически
+        alwaysVisible: true,      // Всегда показываем кнопку
+        hideUntilUsed: false,     // Не скрываем
       };
 
       const script = document.createElement('script');
       script.src = 'https://zuuma.ru/chat-widget.js';
       script.async = true;
       document.body.appendChild(script);
-
-      return () => {
-        // Не удаляем скрипт при размонтировании
-      };
     }
   }, []);
 
@@ -55,49 +47,13 @@ export default function HelpPage() {
         </div>
       </div>
 
-      {/* Способы связи */}
+      {/* Способы связи - БЕЗ блока чата */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
         gap: '24px',
         marginBottom: '48px'
       }}>
-        <div style={{ 
-          padding: '24px', 
-          border: '1px solid #e5e7eb', 
-          borderRadius: '12px',
-          background: '#2a2a2a'
-        }}>
-          <MessageCircle size={32} style={{ color: '#10b981', marginBottom: '16px' }} />
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>Чат с поддержкой</h3>
-          <p style={{ color: '#666', marginBottom: '16px' }}>
-            Задайте вопрос нашему AI-ассистенту или свяжитесь с оператором
-          </p>
-          <button 
-            onClick={async () => {
-              // ✅ Ждем готовности виджета
-              if ((window as any).ChatWidgetReady) {
-                await (window as any).ChatWidgetReady;
-              }
-              if ((window as any).ChatWidget) {
-                (window as any).ChatWidget.open();
-              }
-            }}
-            style={{
-              padding: '10px 20px',
-              background: '#2a2a2a',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
-            }}
-          >
-            Открыть чат
-          </button>
-        </div>
-
         <div style={{ 
           padding: '24px', 
           border: '1px solid #e5e7eb', 
@@ -114,7 +70,7 @@ export default function HelpPage() {
             style={{
               display: 'inline-block',
               padding: '10px 20px',
-              background: '#2a2a2a',
+              background: '#3b82f6',
               color: 'white',
               textDecoration: 'none',
               borderRadius: '8px',
@@ -142,7 +98,7 @@ export default function HelpPage() {
             style={{
               display: 'inline-block',
               padding: '10px 20px',
-              background: '#2a2a2a',
+              background: '#8b5cf6',
               color: 'white',
               textDecoration: 'none',
               borderRadius: '8px',

@@ -12,11 +12,9 @@
         customGreeting: 'Hi, how can I help?',
         primaryColor: '#de8434',
         accentColor: '#1A1A2E',
-        
-        // ✅ Новые опции для управления поведением
-        autoOpen: false,           // Автоматически открывать чат
-        alwaysVisible: true,       // Всегда показывать кнопку
-        hideUntilUsed: false,      // Скрывать пока не использован
+        autoOpen: false,
+        alwaysVisible: true,
+        hideUntilUsed: false,
     };
 
     if (!config.assistantId || config.assistantId === 'YOUR_ASSISTANT_ID') {
@@ -24,7 +22,6 @@
         return;
     }
 
-    // Загружаем Socket.IO
     const loadSocketIO = () => {
         return new Promise((resolve, reject) => {
             if (window.io) {
@@ -39,7 +36,7 @@
         });
     };
 
-    // 🎨 СТИЛИ - ТЕМНАЯ МИНИМАЛИСТИЧНАЯ ТЕМА
+    // 🎨 СТИЛИ
     const styles = `
         .chat-widget-container {
             position: fixed;
@@ -396,7 +393,7 @@
 
     // HTML разметка
     const widgetHTML = `
-        <div class="chat-widget-container">
+        <div class="chat-widget-container" id="chat-widget-container">
             <button class="chat-widget-button" id="chat-toggle">
                 <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -448,15 +445,7 @@
         </div>
     `;
 
-    // ✅ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявляем, но НЕ инициализируем)
-    let chatToggle;
-    let chatWindow;
-    let chatClose;
-    let chatMinimize;
-    let chatMessages;
-    let chatInput;
-    let chatSend;
-
+    let chatToggle, chatWindow, chatClose, chatMinimize, chatMessages, chatInput, chatSend;
     let isOpen = false;
     let conversationId = null;
     let isLoading = false;
@@ -464,15 +453,11 @@
     let sessionId = `widget-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let chatSessionId = null;
 
-    // Инициализация
     async function initWidget() {
-        console.log('🎬 Initializing widget...');
+        console.log('🎬 Initializing chat widget...');
         
-        // ✅ СНАЧАЛА добавляем HTML
         document.body.insertAdjacentHTML('beforeend', widgetHTML);
-        console.log('✅ Widget HTML added');
         
-        // ✅ ТЕПЕРЬ получаем элементы (они уже существуют!)
         chatToggle = document.getElementById('chat-toggle');
         chatWindow = document.getElementById('chat-window');
         chatClose = document.getElementById('chat-close');
@@ -481,15 +466,10 @@
         chatInput = document.getElementById('chat-input');
         chatSend = document.getElementById('chat-send');
 
-        console.log('✅ Elements found:', {
-            chatToggle: !!chatToggle,
-            chatWindow: !!chatWindow,
-            chatInput: !!chatInput
-        });
+        console.log('✅ Widget elements initialized');
         
         try {
             await loadSocketIO();
-            console.log('✅ Socket.IO loaded');
             setupWebSocket();
         } catch (error) {
             console.error('Widget init error:', error);
@@ -497,10 +477,26 @@
         
         setupEventListeners();
         
-        // ✅ Помечаем виджет как готовый
         window.ChatWidget.ready = true;
         if (window._chatWidgetResolve) {
             window._chatWidgetResolve();
+        }
+        
+        // ✅ УПРОЩЕННАЯ ЛОГИКА ВИДИМОСТИ
+        const container = document.getElementById('chat-widget-container');
+        
+        // Кнопка ВСЕГДА видна если alwaysVisible = true
+        if (config.alwaysVisible) {
+            container.style.display = 'block';
+            console.log('✅ Widget button always visible');
+        }
+        
+        // Автооткрываем если настроено
+        if (config.autoOpen) {
+            setTimeout(() => {
+                openChat();
+                localStorage.setItem('chatWidgetUsed', 'true');
+            }, 500);
         }
         
         console.log('✅ Widget fully initialized');
@@ -561,19 +557,11 @@
     }
 
     function openChat() {
-    isOpen = true;
-    chatWindow.classList.add('open');
-    chatToggle.classList.add('open');
-    chatInput.focus();
-    
-    // ✅ Помечаем что чат использован
-    localStorage.setItem('chatWidgetUsed', 'true');
-    
-    // Показываем контейнер если был скрыт
-    const container = document.querySelector('.chat-widget-container');
-    if (container) {
-        container.style.display = 'block';
-    }
+        isOpen = true;
+        chatWindow.classList.add('open');
+        chatToggle.classList.add('open');
+        chatInput.focus();
+        localStorage.setItem('chatWidgetUsed', 'true');
     }
 
     function closeChat() {
@@ -595,18 +583,16 @@
         chatSend.disabled = true;
 
         try {
-            // ✅ ИСПРАВЛЕННЫЙ FETCH ЗАПРОС
             const response = await fetch(`${config.serverUrl}/chat/ask`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json' 
                 },
-                credentials: 'include', // ✅ Отправляем cookies
+                credentials: 'include',
                 body: JSON.stringify({
                     message: message,
                     assistantId: config.assistantId,
                     sessionId: sessionId,
-                    // ✅ Опциональные поля:
                     conversationId: conversationId || undefined,
                 })
             });
@@ -618,7 +604,6 @@
 
             const data = await response.json();
             
-            // Сохраняем chatSessionId для WebSocket
             if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
                 chatSessionId = data.chatSessionId;
                 if (socket?.connected) {
@@ -626,12 +611,10 @@
                 }
             }
             
-            // Сохраняем conversationId
             if (data.conversationId) {
                 conversationId = data.conversationId;
             }
             
-            // Показываем ответ
             if (data.answer) {
                 addMessage(data.answer, 'assistant');
             } else {
@@ -689,54 +672,26 @@
         chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
     }
 
-    // API для внешнего управления + Promise для ожидания инициализации
     window.ChatWidget = {
-    open: openChat,
-    close: closeChat,
-    toggle: toggleChat,
-    sendMessage: (message) => {
-        chatInput.value = message;
-        sendMessage();
-    },
-    isOpen: () => isOpen,
-    ready: false // ✅ Флаг готовности
+        open: openChat,
+        close: closeChat,
+        toggle: toggleChat,
+        sendMessage: (message) => {
+            chatInput.value = message;
+            sendMessage();
+        },
+        isOpen: () => isOpen,
+        ready: false
     };
 
-    // ✅ Создаем промис готовности
     window.ChatWidgetReady = new Promise((resolve) => {
-    window._chatWidgetResolve = resolve;
+        window._chatWidgetResolve = resolve;
     });
 
-    // ===== ЛОГИКА ВИДИМОСТИ И АВТООТКРЫТИЯ =====
-    function initVisibility() {
-    const chatWasUsed = localStorage.getItem('chatWidgetUsed') === 'true';
-    const container = document.querySelector('.chat-widget-container');
-    
-    if (config.hideUntilUsed && !chatWasUsed && !config.autoOpen) {
-        // Скрываем кнопку если чат не использовался
-        if (container) {
-        container.style.display = 'none';
-        }
-    }
-    
-    if (config.autoOpen) {
-        // Автооткрываем чат если настроено
-        setTimeout(() => {
-        openChat();
-        localStorage.setItem('chatWidgetUsed', 'true');
-        }, 500);
-    }
-    }
-
-    // ===== ИНИЦИАЛИЗАЦИЯ =====
     if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        initWidget();
-        initVisibility();
-    });
+        document.addEventListener('DOMContentLoaded', initWidget);
     } else {
-    initWidget();
-    initVisibility();
+        initWidget();
     }
 
-    })();  // ← Конец IIFE
+})();
