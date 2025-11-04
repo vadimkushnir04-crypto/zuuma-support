@@ -448,8 +448,6 @@
         </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', widgetHTML);
-
     // Переменные
     const chatToggle = document.getElementById('chat-toggle');
     const chatWindow = document.getElementById('chat-window');
@@ -468,6 +466,10 @@
 
     // Инициализация
     async function initWidget() {
+        // ✅ ДОБАВЛЯЕМ HTML СЕЙЧАС (когда DOM точно готов)
+        document.body.insertAdjacentHTML('beforeend', widgetHTML);
+        console.log('✅ Widget HTML added');
+        
         try {
             await loadSocketIO();
             console.log('✅ Socket.IO loaded');
@@ -475,14 +477,14 @@
         } catch (error) {
             console.error('Widget init error:', error);
         }
-            setupEventListeners();
-            
-            // ✅ Помечаем виджет как готовый
-            window.ChatWidget.ready = true;
-            if (window._chatWidgetResolve) {
-                window._chatWidgetResolve();
-            }
+        setupEventListeners();
+        
+        // ✅ Помечаем виджет как готовый
+        window.ChatWidget.ready = true;
+        if (window._chatWidgetResolve) {
+            window._chatWidgetResolve();
         }
+    }
 
     function setupWebSocket() {
         if (!window.io) return;

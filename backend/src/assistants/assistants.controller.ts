@@ -19,6 +19,7 @@ import {
 import { AssistantsService } from './assistants.service';
 import { AuthService } from '../auth/auth.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import type {
   CreateAssistantDto,
   UpdateAssistantDto,
@@ -29,11 +30,19 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 
 @Controller('assistants')
 export class AssistantsController {
+  private qdrant: QdrantClient; // ✅ Добавили свойство
+
   constructor(
     private readonly assistantsService: AssistantsService,
     private readonly authService: AuthService,
     private readonly globalFunctionsService: GlobalFunctionsService,
-  ) {}
+    private readonly knowledgeService: KnowledgeService,
+  ) {
+    // ✅ Инициализируем Qdrant
+    this.qdrant = new QdrantClient({
+      url: process.env.QDRANT_URL || 'http://localhost:6333',
+    });
+  }
 
   // ⚠️ ВАЖНО: Специфичные маршруты (stats, demo) должны быть ПЕРЕД :id
 
@@ -300,6 +309,253 @@ export class AssistantsController {
           error: error.message || 'Ошибка загрузки документа'
         },
         error.status || HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /**
+   * Получить список текстовых загрузок
+   * GET /assistants/:id/texts
+   */
+  @Get(':id/texts')
+  @UseGuards(JwtAuthGuard)
+  async getTexts(@Param('id') assistantId: string, @Req() req: any) {
+    try {
+      console.log(`📝 Getting texts for assistant: ${assistantId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        limit: 1000,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      // Группируем по textId
+      const textsMap = new Map();
+      
+      for (const point of scrollResult.points) {
+        const payload = point.payload as any;
+        
+        // Пропускаем файлы
+        if (payload.fileUrl) continue;
+        
+        const textId = payload.textId || payload.title || 'unknown';
+        
+        if (!textsMap.has(textId)) {
+          textsMap.set(textId, {
+            id: textId,
+            title: payload.title || 'Без названия',
+            description: payload.description || '',
+            chunks: 1,
+            createdAt: payload.timestamp || payload.createdAt,
+            preview: payload.text?.substring(0, 200) || '',
+          });
+        } else {
+          textsMap.get(textId).chunks += 1;
+        }
+      }
+
+      const texts = Array.from(textsMap.values())
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      console.log(`✅ Found ${texts.length} texts`);
+      
+      return {
+        success: true,
+        texts,
+        total: texts.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting texts:', error);
+      return {
+        success: false,
+        texts: [],
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Получить полный текст
+   * GET /assistants/:id/texts/:textId/content
+   */
+  @Get(':id/texts/:textId/content')
+  @UseGuards(JwtAuthGuard)
+  async getTextContent(
+    @Param('id') assistantId: string,
+    @Param('textId') textId: string,
+  ) {
+    try {
+      const collectionName = `assistant_${assistantId}`;
+      
+      // Ищем первый чанк с оригинальным текстом
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        filter: {
+          must: [
+            {
+              should: [
+                { key: 'textId', match: { text: textId } },
+                { key: 'title', match: { text: textId } }
+              ]
+            },
+            { key: 'isFirstChunk', match: { value: true } }
+          ]
+        },
+        limit: 1,
+        with_payload: true,
+      });
+
+      if (scrollResult.points.length === 0) {
+        throw new HttpException('Текст не найден', HttpStatus.NOT_FOUND);
+      }
+
+      const payload = scrollResult.points[0].payload as any;
+      
+      return {
+        success: true,
+        data: {
+          textId: textId,
+          title: payload.title,
+          description: payload.description,
+          text: payload.originalText || payload.text || '',
+        }
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting text content:', error);
+      throw new HttpException(
+        error.message || 'Ошибка получения текста',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Удалить текст
+   * DELETE /assistants/:id/texts/:textId
+   */
+  @Delete(':id/texts/:textId')
+  @UseGuards(JwtAuthGuard)
+  async deleteText(
+    @Param('id') assistantId: string,
+    @Param('textId') textId: string,
+  ) {
+    try {
+      console.log(`🗑️ Deleting text: ${textId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        filter: {
+          should: [
+            { key: 'textId', match: { text: textId } },
+            { key: 'title', match: { text: textId } }
+          ]
+        },
+        limit: 1000,
+      });
+
+      if (scrollResult.points.length === 0) {
+        throw new HttpException('Текст не найден', HttpStatus.NOT_FOUND);
+      }
+
+      const pointIds = scrollResult.points.map(p => p.id);
+      
+      await this.qdrant.delete(collectionName, {
+        points: pointIds,
+        wait: true,
+      });
+
+      console.log(`✅ Deleted ${pointIds.length} chunks`);
+
+      return {
+        success: true,
+        message: 'Текст удален',
+        deletedChunks: pointIds.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error deleting text:', error);
+      throw new HttpException(
+        error.message || 'Ошибка удаления',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  /**
+   * Обновить текст (пересоздает chunks)
+   * PATCH /assistants/:id/texts/:textId
+   */
+  @Patch(':id/texts/:textId')
+  @UseGuards(JwtAuthGuard)
+  async updateText(
+    @Param('id') assistantId: string,
+    @Param('textId') textId: string,
+    @Body('title') title?: string,
+    @Body('description') description?: string,
+    @Body('text') text?: string,
+  ) {
+    try {
+      console.log(`✏️ Updating text: ${textId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      // Находим старые данные
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        filter: {
+          should: [
+            { key: 'textId', match: { text: textId } },
+            { key: 'title', match: { text: textId } }
+          ]
+        },
+        limit: 1000,
+        with_payload: true,
+      });
+
+      if (scrollResult.points.length === 0) {
+        throw new HttpException('Текст не найден', HttpStatus.NOT_FOUND);
+      }
+
+      const oldPayload = scrollResult.points[0].payload as any;
+      const oldTitle = oldPayload.title;
+      const oldDescription = oldPayload.description;
+      const oldText = oldPayload.originalText || oldPayload.text;
+
+      // Удаляем старые chunks
+      const pointIds = scrollResult.points.map(p => p.id);
+      await this.qdrant.delete(collectionName, {
+        points: pointIds,
+        wait: true,
+      });
+
+      console.log(`🗑️ Deleted ${pointIds.length} old chunks`);
+
+      // Создаем новые chunks
+      const newText = text?.trim() || oldText;
+      const newTitle = title || oldTitle;
+      const newDescription = description !== undefined ? description : oldDescription;
+      
+      const result = await this.knowledgeService.uploadText(
+        newText,
+        collectionName,
+        newTitle,
+        newDescription
+      );
+
+      return {
+        success: true,
+        message: 'Текст обновлен',
+        chunks: result.chunks,
+      };
+
+    } catch (error) {
+      console.error('❌ Error updating text:', error);
+      throw new HttpException(
+        error.message || 'Ошибка обновления',
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }

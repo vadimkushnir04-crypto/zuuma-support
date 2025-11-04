@@ -86,6 +86,7 @@ export interface KnowledgeUploadResult {
   success: boolean;
   chunks: number;
   message: string;
+  textId?: string;
 }
 
 export interface FileUploadResult {

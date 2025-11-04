@@ -766,8 +766,12 @@ constructor(
 
   // ... (остальные методы без изменений)
   
-  async uploadText(text: string, collectionName: string, title: string = 'Документ'): Promise<KnowledgeUploadResult> {
-    // Код остается без изменений
+  async uploadText(
+    text: string, 
+    collectionName: string, 
+    title: string = 'Документ',
+    description?: string
+  ): Promise<KnowledgeUploadResult> {
     try {
       console.log(`📤 Uploading to ${collectionName}: ${title}`);
       console.log(`📏 Length: ${text.length} chars`);
@@ -781,18 +785,41 @@ constructor(
       
       const embeddings = await this.getBatchEmbeddings(chunks);
 
-      const points = chunks.map((chunk, index) => ({
-        id: uuidv4(),
-        vector: embeddings[index],
-        payload: {
+      // ✅ Генерируем уникальный textId для группировки чанков
+      const textId = `text-${uuidv4()}`;
+
+      const points = chunks.map((chunk, index) => {
+        const basePayload = {
           text: chunk,
           collectionName,
           title,
+          description: description || '',
+          textId, // ✅ Для группировки
           chunkIndex: index,
           source: 'text_upload',
           timestamp: new Date().toISOString(),
-        },
-      }));
+        };
+
+        // ✅ В первый чанк добавляем оригинальный текст
+        if (index === 0) {
+          return {
+            id: uuidv4(),
+            vector: embeddings[index],
+            payload: {
+              ...basePayload,
+              originalText: text, // ✅ Полный текст
+              isFirstChunk: true,
+            }
+          };
+        }
+
+        // Остальные чанки - только свои кусочки
+        return {
+          id: uuidv4(),
+          vector: embeddings[index],
+          payload: basePayload,
+        };
+      });
 
       await this.qdrant.upsert(collectionName, { 
         points,
@@ -802,12 +829,11 @@ constructor(
       const collection = await this.qdrant.getCollection(collectionName);
       console.log(`✅ Uploaded. Total docs: ${collection.points_count}`);
 
-      console.log(`🧹 Clearing answer cache for collection: ${collectionName}`);
-
       return {
         success: true,
         chunks: chunks.length,
-        message: `Загружено ${chunks.length} фрагментов в коллекцию ${collectionName}`,
+        message: `Загружено ${chunks.length} фрагментов`,
+        textId, // ✅ Возвращаем для фронтенда
       };
     } catch (error) {
       console.error('❌ Upload error:', error);

@@ -2,6 +2,8 @@
 "use client";
 import React, { useEffect, useState, useContext, createContext } from "react";
 import { useTranslation } from "react-i18next";
+import TextManager from './TextManager';
+import { FileText } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
 
@@ -38,6 +40,8 @@ export default function UploadTextForm() {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const [showTextManager, setShowTextManager] = useState(false);
 
   const { selectedAssistantId } = useContext(SelectedAssistantContext);
 
@@ -105,6 +109,29 @@ export default function UploadTextForm() {
             ⚠️ {t('warnings.selectFirst')}
           </div>
         </div>
+      )}
+
+      {/* ✅ КНОПКА УПРАВЛЕНИЯ ТЕКСТАМИ - ЗДЕСЬ */}
+      <div className="text-manager-section">
+        <button
+          type="button"
+          onClick={() => setShowTextManager(true)}
+          disabled={!selectedAssistantId}
+          className="manage-texts-btn"
+        >
+          <FileText size={18} />
+          Управление текстами
+          {!selectedAssistantId && (
+            <span className="tooltip">Сначала выберите ассистента</span>
+          )}
+        </button>
+      </div>
+
+      {showTextManager && selectedAssistantId && (
+        <TextManager
+          assistantId={selectedAssistantId}
+          onClose={() => setShowTextManager(false)}
+        />
       )}
 
       <div className="form-group">
