@@ -61,8 +61,8 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
           }
 
           // ✅ Добавляем базовый URL, при этом удаляем возможный /api на конце
-          const base = API_BASE_URL.replace(/\/api$/, '');
-          const fullUrl = `${base}${fileUrl}`;
+
+          const fullUrl = `${API_BASE_URL}${fileUrl}`;
 
           console.log('📎 Fixed file URL:', fullUrl);
           return { ...file, fileUrl: fullUrl };
