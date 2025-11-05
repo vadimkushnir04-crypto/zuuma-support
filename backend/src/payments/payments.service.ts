@@ -18,6 +18,7 @@ export class PaymentsService {
   private yooKassa: YooCheckout;
   private readonly GRACE_PERIOD_DAYS = 7;
   private readonly MAX_RETRY_ATTEMPTS = 3;
+  private isProcessing = false;
   
   // ✅ ТЕСТОВЫЙ РЕЖИМ: true = минуты вместо месяцев
   private readonly TEST_MODE = process.env.SUBSCRIPTION_TEST_MODE === 'true';
@@ -276,18 +277,46 @@ export class PaymentsService {
   }
 
   /**
-   * ✅ НОВОЕ: Cron-задача для проверки подписок (каждую минуту в тесте, раз в час в проде)
+   * ✅ CRON-задача с защитой от параллельного запуска
+   * Использует advisory lock на уровне PostgreSQL
    */
   @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true' ? '*/1 * * * *' : '0 * * * *')
   async checkExpiringSubs() {
+    if (this.isProcessing) {
+      console.log('⚠️ Skip cron — already running in this instance');
+      return;
+    }
+
+    this.isProcessing = true;
     console.log('🕒 CRON TRIGGERED', new Date().toISOString());
-    const checkInterval = this.TEST_MODE ? 'minute' : 'hour';
-    console.log(`🔍 [Cron ${checkInterval}] Checking for expiring subscriptions...`);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
 
     try {
+      // 🔒 Пытаемся захватить advisory lock (уникальный ключ 987654321)
+      const lockResult = await queryRunner.query(`SELECT pg_try_advisory_lock(987654321);`);
+      const lockAcquired = lockResult[0]?.pg_try_advisory_lock;
+
+      if (!lockAcquired) {
+        console.log('⚠️ Another instance is already running checkExpiringSubs() — skipping');
+        return;
+      }
+
+      console.log('🔐 Lock acquired — processing recurring payments...');
       await this.processRecurringPayments();
+
     } catch (error) {
       console.error('❌ Error in cron job:', error);
+    } finally {
+      // 🔓 Освобождаем блокировку, если взяли её
+      try {
+        await queryRunner.query(`SELECT pg_advisory_unlock(987654321);`);
+      } catch (e) {
+        console.warn('⚠️ Could not release advisory lock:', e);
+      }
+      await queryRunner.release();
+      this.isProcessing = false;
     }
   }
 
@@ -295,9 +324,9 @@ export class PaymentsService {
    * ✅ НОВОЕ: Обработка автоматических платежей
    */
   async processRecurringPayments() {
+    console.log('🚀 Starting processRecurringPayments()');
     const now = new Date();
     
-    // Находим подписки, которые нужно продлить
     const subscriptionsToRenew = await this.subscriptionRepository.find({
       where: {
         status: 'active',
