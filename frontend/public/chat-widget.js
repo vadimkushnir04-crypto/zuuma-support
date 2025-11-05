@@ -10,7 +10,7 @@
     window.ChatWidgetLoaded = true;
 
     const config = window.chatConfig || {
-        assistantId: 'YOUR_ASSISTANT_ID',
+        apiKey: 'YOUR_API_KEY',
         serverUrl: 'https://zuuma.ru/api',
         theme: 'dark',
         assistantName: 'AI Agent',
@@ -24,8 +24,9 @@
 
     console.log('📋 Widget config:', config);
 
-    if (!config.assistantId || config.assistantId === 'YOUR_ASSISTANT_ID') {
-        console.error('❌ ChatWidget: assistantId is required in chatConfig');
+    // Обновленная проверка на apiKey вместо assistantId
+    if (!config.apiKey || config.apiKey === 'YOUR_API_KEY') {
+        console.error('❌ ChatWidget: apiKey is required in chatConfig');
         return;
     }
 
@@ -504,45 +505,48 @@
             console.log('✅ Widget container forced visible');
         }
         
-        if (config.autoOpen) {
-            setTimeout(() => {
-                openChat();
-                localStorage.setItem('chatWidgetUsed', 'true');
-            }, 500);
-        }
+    if (config.autoOpen) {
+        setTimeout(() => {
+            openChat();
+            localStorage.setItem('chatWidgetUsed', 'true');
+        }, 500);
+    }
         
         console.log('✅ Widget fully initialized');
     }
 
     function setupWebSocket() {
-        if (!window.io) return;
+            if (!window.io) return;
 
-        try {
-            socket = io(config.serverUrl, {
-                path: '/socket.io/',
-                transports: ['websocket', 'polling'],
-            });
+            try {
+                socket = io(config.serverUrl, {
+                    path: '/socket.io/',
+                    transports: ['websocket', 'polling'],
+                    auth: {
+                        apiKey: config.apiKey // Добавляем apiKey в авторизацию
+                    }
+                });
 
-            socket.on('connect', () => {
-                console.log('✅ Widget WebSocket connected');
-                if (chatSessionId) {
-                    socket.emit('join', { sessionId: chatSessionId });
-                }
-            });
+                socket.on('connect', () => {
+                    console.log('✅ Widget WebSocket connected');
+                    if (chatSessionId) {
+                        socket.emit('join', { sessionId: chatSessionId });
+                    }
+                });
 
-            socket.on('message', (payload) => {
-                if (payload.senderType === 'manager' && payload.content) {
-                    addMessage(payload.content, 'assistant');
-                }
-            });
+                socket.on('message', (payload) => {
+                    if (payload.senderType === 'manager' && payload.content) {
+                        addMessage(payload.content, 'assistant');
+                    }
+                });
 
-            socket.on('disconnect', () => {
-                console.log('❌ Widget WebSocket disconnected');
-            });
-        } catch (err) {
-            console.error('❌ WebSocket error:', err);
+                socket.on('disconnect', () => {
+                    console.log('❌ Widget WebSocket disconnected');
+                });
+            } catch (err) {
+                console.error('❌ WebSocket error:', err);
+            }
         }
-    }
 
     function setupEventListeners() {
         chatToggle.addEventListener('click', () => {
@@ -603,12 +607,13 @@
             const response = await fetch(`${config.serverUrl}/chat/ask`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json' 
+                    'Content-Type': 'application/json',
+                    'X-API-Key': config.apiKey // Добавляем apiKey в заголовки
                 },
                 credentials: 'include',
                 body: JSON.stringify({
                     message: message,
-                    assistantId: config.assistantId,
+                    // assistantId больше не нужен, так как apiKey идентифицирует ассистента
                     sessionId: sessionId,
                     conversationId: conversationId || undefined,
                 })

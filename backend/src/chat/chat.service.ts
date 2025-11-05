@@ -40,6 +40,14 @@ export class ChatService {
   ): Promise<string> {
     const state = this.getState(conversationId);
 
+      // ✅ ДОБАВИТЬ: логирование для отладки
+      console.log('💬 ChatService.ask called:', {
+        conversationId,
+        userId: userId?.substring(0, 8) + '...',
+        assistantId: assistantId?.substring(0, 8) + '...',
+        questionLength: question.length
+      });
+
     // Проверка на эскалацию
     if (
       question.toLowerCase().includes("переведи") ||
@@ -112,6 +120,7 @@ export class ChatService {
         senderType: 'assistant',
         chatSessionId: conversationId,
         createdAt: new Date(),
+        assistantId: assistantId,
       });
     }
 
@@ -139,10 +148,11 @@ export class ChatService {
             timestamp: new Date(),
           }
         );
-        console.log(`💰 Списано токенов: ${tokensUsed}`);
+        console.log(`💰 Списано токенов: ${tokensUsed} для ассистента ${assistantId.substring(0, 8)}...`);
       } catch (error) {
         console.error('❌ Ошибка списания токенов:', error.message);
-        throw new BadRequestException('Недостаточно токенов. Пополните баланс.');
+        // ✅ ВОЗВРАЩАТЬ понятную ошибку вместо прерывания
+        return "Извините, возникла проблема с обработкой запроса. Пожалуйста, попробуйте позже.";
       }
     }
 

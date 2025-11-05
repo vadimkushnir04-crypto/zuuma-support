@@ -12,9 +12,9 @@ export default function HelpPage() {
         return; // Виджет уже загружен
       }
 
-      // ✅ Конфиг для страницы помощи - кнопка всегда видна
+      // ✅ ОБНОВЛЕННЫЙ конфиг для страницы помощи - используем apiKey
       (window as any).chatConfig = {
-        assistantId: '73486773-bc62-4be6-9e64-c72816baab6f',
+        apiKey: 'ak_2d92a92e561f4d9fa35cf7746b6c2afa', // Теперь используем apiKey вместо assistantId
         serverUrl: 'https://zuuma.ru/api',
         theme: 'light',
         assistantName: 'Служба поддержки zuuma.ru',

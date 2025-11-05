@@ -344,24 +344,8 @@ export default function TermsOfServicePage() {
 
       <section style={styles.section}>
         <div style={styles.sectionHeader}>
-          <Scale size={24} />
-          <h2 style={styles.sectionTitle}>13. Разрешение споров</h2>
-        </div>
-        <div style={styles.textBlock}>
-          <ul style={styles.list}>
-            <li>Стороны стремятся решать споры путем переговоров</li>
-            <li>Претензии направляются на email: delovoi.acount@gmail.com</li>
-            <li>Срок рассмотрения претензии: 30 дней</li>
-            <li>При недостижении согласия спор передается в суд</li>
-            <li>Применимое право: законодательство Российской Федерации</li>
-          </ul>
-        </div>
-      </section>
-
-      <section style={styles.section}>
-        <div style={styles.sectionHeader}>
           <FileText size={24} />
-          <h2 style={styles.sectionTitle}>14. Контактная информация</h2>
+          <h2 style={styles.sectionTitle}>13. Контактная информация</h2>
         </div>
         <div style={styles.textBlock}>
           <div style={styles.contactBox}>

@@ -410,7 +410,7 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
   const activeFunctions = functions.filter(f => f.is_active);
 
   // HTML код виджета
-  const widgetCode = `<!-- Добавьте этот код перед закрывающим тегом </body> -->
+const widgetCode = `<!-- Добавьте этот код перед закрывающим тегом </body> -->
 <script>
   window.chatConfig = {
     apiKey: '${assistant.apiKey}',
@@ -419,7 +419,9 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
     assistantName: '${assistant.name}',
     customGreeting: '${assistant.settings?.customGreeting || "Здравствуйте! Чем могу помочь?"}',
     primaryColor: '${assistant.settings?.primaryColor || "#667eea"}',
-    assistantId: '${assistant.id}'
+    autoOpen: false,
+    alwaysVisible: true,
+    hideUntilUsed: false
   };
 </script>
 <script src="https://zuuma.ru/chat-widget.js"></script>`;
@@ -438,89 +440,92 @@ const AssistantCard: React.FC<AssistantCardProps> = ({
   // Создание тестового HTML файла
   const downloadTestHtml = () => {
     const testHtml = `<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест чат-бота - ${assistant.name}</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-            background: #f8fafc;
-        }
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #1f2937;
-            margin-bottom: 8px;
-        }
-        .subtitle {
-            color: #6b7280;
-            margin-bottom: 32px;
-        }
-        .info-card {
-            background: #f3f4f6;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 24px;
-        }
-        .status {
-            display: inline-block;
-            background: #10b981;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 16px;
-            font-size: 14px;
-            margin-top: 12px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Тестовая страница для ассистента "${assistant.name}"</h1>
-        <p class="subtitle">Чат-бот должен появиться в правом нижнем углу страницы</p>
-        
-        <div class="info-card">
-            <h3>Информация об ассистенте:</h3>
-            <p><strong>Название:</strong> ${assistant.name}</p>
-            <p><strong>Описание:</strong> ${assistant.description || 'Не указано'}</p>
-            <p><strong>API ключ:</strong> ${assistant.apiKey.substring(0, 12)}...</p>
-            <p><strong>Тема:</strong> ${assistant.settings?.theme || 'light'}</p>
-            <div class="status">Ассистент ${assistant.isActive ? 'активен' : 'неактивен'}</div>
-        </div>
-        
-        <div class="info-card">
-            <h3>Инструкции:</h3>
-            <ol>
-                <li>Убедитесь, что сервер запущен</li>
-                <li>Виджет должен загрузиться автоматически</li>
-                <li>Нажмите на кнопку чата в правом нижнем углу</li>
-                <li>Начните диалог с ассистентом</li>
-            </ol>
-        </div>
-    </div>
+  <html lang="ru">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Тест чат-бота - ${assistant.name}</title>
+      <style>
+          body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 40px 20px;
+              background: #f8fafc;
+          }
+          .container {
+              background: white;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+          }
+          h1 {
+              color: #1f2937;
+              margin-bottom: 8px;
+          }
+          .subtitle {
+              color: #6b7280;
+              margin-bottom: 32px;
+          }
+          .info-card {
+              background: #f3f4f6;
+              padding: 20px;
+              border-radius: 8px;
+              margin-bottom: 24px;
+          }
+          .status {
+              display: inline-block;
+              background: #10b981;
+              color: white;
+              padding: 4px 12px;
+              border-radius: 16px;
+              font-size: 14px;
+              margin-top: 12px;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="container">
+          <h1>Тестовая страница для ассистента "${assistant.name}"</h1>
+          <p class="subtitle">Чат-бот должен появиться в правом нижнем углу страницы</p>
+          
+          <div class="info-card">
+              <h3>Информация об ассистенте:</h3>
+              <p><strong>Название:</strong> ${assistant.name}</p>
+              <p><strong>Описание:</strong> ${assistant.description || 'Не указано'}</p>
+              <p><strong>API ключ:</strong> ${assistant.apiKey.substring(0, 12)}...</p>
+              <p><strong>Тема:</strong> ${assistant.settings?.theme || 'light'}</p>
+              <div class="status">Ассистент ${assistant.isActive ? 'активен' : 'неактивен'}</div>
+          </div>
+          
+          <div class="info-card">
+              <h3>Инструкции:</h3>
+              <ol>
+                  <li>Убедитесь, что сервер запущен</li>
+                  <li>Виджет должен загрузиться автоматически</li>
+                  <li>Нажмите на кнопку чата в правом нижнем углу</li>
+                  <li>Начните диалог с ассистентом</li>
+              </ol>
+          </div>
+      </div>
 
-    <!-- Код интеграции чат-бота -->
-    <script>
-      window.chatConfig = {
-        apiKey: '${assistant.apiKey}',
-        serverUrl: '${API_BASE_URL}/api',
-        theme: '${assistant.settings?.theme || 'light'}',
-        assistantName: '${assistant.name}',
-        customGreeting: '${assistant.settings?.customGreeting || 'Здравствуйте! Чем могу помочь?'}',
-        primaryColor: '${assistant.settings?.primaryColor || '#667eea'}'
-      };
-    </script>
-    <script src="https://zuuma.ru/chat-widget.js"></script>
-</body>
-</html>`;
+      <!-- Код интеграции чат-бота -->
+      <script>
+        window.chatConfig = {
+          apiKey: '${assistant.apiKey}',
+          serverUrl: '${API_BASE_URL}/api',
+          theme: '${assistant.settings?.theme || 'light'}',
+          assistantName: '${assistant.name}',
+          customGreeting: '${assistant.settings?.customGreeting || 'Здравствуйте! Чем могу помочь?'}',
+          primaryColor: '${assistant.settings?.primaryColor || '#667eea'}',
+          autoOpen: false,
+          alwaysVisible: true,
+          hideUntilUsed: false
+        };
+      </script>
+      <script src="https://zuuma.ru/chat-widget.js"></script>
+  </body>
+  </html>`;
 
     const blob = new Blob([testHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
