@@ -116,7 +116,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://zuuma.ru/api';
       } else if (res.status === 401) {
         setMessage("❌ Сессия истекла. Войдите снова.");
       } else {
-        const error = await res.json().catch(() => ({ message: 'Ошибка загрузки' }));
+        const errorText = await res.text();
+        const error = await res.json().catch(() => ({ message: errorText || 'Ошибка загрузки' }));
         setMessage("❌ " + error.message);
       }
     } catch (err) {

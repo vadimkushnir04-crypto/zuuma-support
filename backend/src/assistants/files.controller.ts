@@ -57,18 +57,18 @@ export class FilesController {
       
       const collectionName = `assistant_${assistantId}`;
       
-      const scrollResult = await this.qdrant.scroll(collectionName, {
-        filter: {
-          must: [
-            {
-              key: 'fileUrl',
-              match: { text: fileId }
-            }
-          ]
-        },
-        limit: 1000,
-        with_payload: true,
-      });
+        const scrollResult = await this.qdrant.scroll(collectionName, {
+          filter: {
+            must: [
+              {
+                key: 'fileUrl',
+                match: { text: `uploads/${assistantId}/${fileId}` }  // Реконструируем полный путь
+              }
+            ]
+          },
+          limit: 1000,
+          with_payload: true,
+        });
 
       if (scrollResult.points.length === 0) {
         return {
@@ -166,18 +166,13 @@ export class FilesController {
         success: true,
         data: result,
       };
-    } catch (error) {
-      console.error('Upload error:', error);
-      
-      if (error instanceof HttpException) {
-        throw error;
+      } catch (error) {
+        console.error('Upload error details:', error.stack);
+        throw new HttpException(
+          { success: false, error: error.message || 'Ошибка загрузки файла' },
+          HttpStatus.INTERNAL_SERVER_ERROR
+        );
       }
-      
-      throw new HttpException(
-        error.message || 'Ошибка загрузки файла',
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
   }
 
   /**
@@ -213,11 +208,10 @@ export class FilesController {
           const fullFilename = path.basename(fileUrl);
           
           filesMap.set(fileUrl, {
-            id: fileUrl,
+            id: path.basename(fileUrl),  // Только basename для id
             title: payload.title || 'Без названия',
             description: payload.description || '',
-            // ✅ ИСПРАВЛЕНО: Правильный URL без двойного кодирования
-            fileUrl: `/api/files/${assistantId}/${fullFilename}`,
+            fileUrl: `/api/files/${assistantId}/${encodeURIComponent(path.basename(fileUrl))}`,  // С encodeURIComponent
             fileType: payload.fileType || 'unknown',
             fileSize: payload.fileSize || 0,
             mimeType: payload.mimeType || '',
@@ -273,7 +267,7 @@ export class FileServeController {
       console.log(`📥 GET /api/files/${assistantId}/${filename}`);
 
       // ✅ Декодируем имя файла (может быть URL-encoded)
-      const decodedFilename = decodeURIComponent(filename);
+      const decodedFilename = decodeURIComponent(filename).normalize('NFC');
       console.log(`📝 Decoded filename: ${decodedFilename}`);
       
       const uploadsDir = path.join(process.cwd(), 'uploads', assistantId);
@@ -302,13 +296,11 @@ export class FileServeController {
           
           // Ищем файл по окончанию (UUID-filename)
           const matchingFile = filesInDir.find(f => {
-            // Убираем UUID и сравниваем только имена
-            const fileWithoutUuid = f.split('-').slice(4).join('-'); // Пропускаем UUID части
-            const searchWithoutUuid = decodedFilename.split('-').slice(4).join('-');
-            
+            const fileWithoutUuid = f.replace(/^[a-f0-9-]{36}-/, '');
+            const searchWithoutUuid = decodedFilename.replace(/^[a-f0-9-]{36}-/, '');
             return f === decodedFilename || 
-                   f.endsWith(searchWithoutUuid) ||
-                   fileWithoutUuid === searchWithoutUuid;
+                  f.endsWith(searchWithoutUuid) ||
+                  fileWithoutUuid === searchWithoutUuid;
           });
           
           if (matchingFile) {

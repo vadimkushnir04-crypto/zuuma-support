@@ -21,6 +21,9 @@ import { FileProcessingService } from './file-processing.service';
 import { FileUploadResult } from './knowledge.types';
 import { CannedResponsesService } from './canned-responses.service';
 
+import * as path from 'path';
+import { promises as fsPromises } from 'fs';
+
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { TokensService } from '../tokens/tokens.service';
@@ -1008,8 +1011,13 @@ constructor(
       console.log(`📄 File type: ${fileType}`);
 
       // 2. Сохраняем файл на диск
-      const filePath = await this.fileProcessingService.saveFile(file, assistantId);
-      console.log(`💾 File saved: ${filePath}`);
+      const uploadDir = path.join(process.cwd(), 'uploads', assistantId);
+      await fsPromises.mkdir(uploadDir, { recursive: true });
+      const uuid = uuidv4();
+      const savedFilename = `${uuid}-${file.originalname}`;
+      const savedPath = path.join(uploadDir, savedFilename);
+      await fsPromises.writeFile(savedPath, file.buffer);
+      console.log(`💾 File saved: ${savedPath}`);
 
       // 3. Извлекаем текст из файла
       const { text, pageCount } = await this.fileProcessingService.processFile(
@@ -1050,7 +1058,7 @@ constructor(
             title,
             description,
             fileType,
-            filePath,
+            filePath: savedPath,  // Полный путь для удаления
             mimeType: file.mimetype,
             fileSize: file.size,
             pageCount
@@ -1067,6 +1075,7 @@ constructor(
             ...metadata,
             totalChunks: 1,
             isImageOnly: true,
+            fileUrl: `uploads/${assistantId}/${savedFilename}`  // Относительный путь
           }
         }];
         
@@ -1098,7 +1107,7 @@ constructor(
               title,
               description,
               fileType,
-              filePath,
+              filePath: savedPath,  // Полный путь для удаления
               mimeType: file.mimetype,
               fileSize: file.size,
               pageCount
@@ -1114,6 +1123,7 @@ constructor(
               text: chunk,
               ...metadata,
               totalChunks: chunks.length,
+              fileUrl: `uploads/${assistantId}/${savedFilename}`,  // Относительный путь
               // Для PDF - добавляем номер страницы
               ...(pageCount && {
                 pageNumber: Math.floor((index / chunks.length) * pageCount) + 1
@@ -1150,7 +1160,7 @@ constructor(
         chunks: chunks.length,
         fileInfo: {
           originalName: file.originalname,
-          savedPath: filePath,
+          savedPath: savedPath,
           fileType,
           fileSize: file.size,
           pageCount

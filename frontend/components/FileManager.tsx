@@ -82,9 +82,12 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
     if (!confirm(`Удалить файл "${fileName}"?`)) return;
 
     setDeleting(fileId);
+
+    const cleanFileId = fileId.split('/').pop() || fileId;  // Очистка пути
+
     try {
       const response = await fetch(
-        `${API_BASE_URL}/assistants/${assistantId}/files/${fileId}`,
+        `${API_BASE_URL}/assistants/${assistantId}/files/${cleanFileId}`,
         {
           method: 'DELETE',
           credentials: 'include', // ✅ Отправляем cookie
