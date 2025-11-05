@@ -608,12 +608,11 @@
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'X-API-Key': config.apiKey // Добавляем apiKey в заголовки
+                    'X-API-Key': config.apiKey
                 },
-                credentials: 'include',
+                credentials: 'omit', // ✅ ИЗМЕНИТЬ с 'include' на 'omit'
                 body: JSON.stringify({
                     message: message,
-                    // assistantId больше не нужен, так как apiKey идентифицирует ассистента
                     sessionId: sessionId,
                     conversationId: conversationId || undefined,
                 })
@@ -645,10 +644,19 @@
 
         } catch (error) {
             console.error('❌ Send error:', error);
-            addMessage(
-                error.message || 'Sorry, something went wrong. Please try again.', 
-                'assistant'
-            );
+            
+            // ✅ ДОБАВИТЬ обработку CORS ошибок
+            if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                addMessage(
+                    'Не удалось подключиться к серверу. Пожалуйста, проверьте:\n1. Открыт ли сайт через HTTPS\n2. Не блокирует ли браузер запросы\n3. Доступен ли сервер',
+                    'assistant'
+                );
+            } else {
+                addMessage(
+                    error.message || 'Sorry, something went wrong. Please try again.', 
+                    'assistant'
+                );
+            }
         } finally {
             hideTypingIndicator(typingIndicator);
             isLoading = false;
