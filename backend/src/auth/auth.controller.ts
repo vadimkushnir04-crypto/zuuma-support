@@ -170,66 +170,85 @@ export class AuthController {
     }
   }
 
-  // ============================================
-  // ВХОД
-  // ============================================
+// ============================================
+// ВХОД
+// ============================================
 
-  @Post('login')
-  async login(
-    @Body() body: { email: string; password: string },
-    @Req() req: any,
-    @Res() res: Response,
-  ) {
-    const ipAddress = this.getClientIp(req);
-    console.log('🔑 Login attempt:', { email: body.email });
+@Post('login')
+async login(
+  @Body() body: { email: string; password: string },
+  @Req() req: any,
+  @Res({ passthrough: true }) res: Response, // ✅ добавь passthrough, чтобы можно было ставить cookie
+) {
+  const ipAddress = this.getClientIp(req);
+  console.log('🔑 Login attempt:', { email: body.email });
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
-      throw new BadRequestException('Введите корректный email-адрес.');
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(body.email)) {
+    throw new BadRequestException('Введите корректный email-адрес.');
+  }
 
-    try {
-      const result = await this.authService.login(body.email, body.password, ipAddress);
+  try {
+    const result = await this.authService.login(body.email, body.password, ipAddress);
 
-      // ✅ Всегда возвращаем requiresLoginVerification (после всех проверок)
-      return res.json({
-        success: true,
-        requiresLoginVerification: result.requiresLoginVerification,
-        message: result.message,
-        email: result.email,
+    // ✅ Если это тестовый аккаунт (authService вернул token и user)
+    if (result?.token && result?.user?.email === 'test@test.com') {
+      console.log('🧪 Test account login — setting cookie automatically');
+
+      // Устанавливаем cookie с JWT
+      res.cookie('token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 дней
       });
 
-    } catch (err: any) {
-      console.error('❌ Login error:', err.message);
+      return {
+        success: true,
+        message: 'Тестовый вход выполнен успешно',
+        user: result.user,
+      };
+    }
 
-      if (err.response?.requiresVerification) {
-        throw new HttpException(
-          {
-            success: false,
-            error: err.response.message,
-            requiresVerification: true,
-            email: err.response.email,
-          },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
+    // ✅ Обычный flow для реальных пользователей
+    return res.json({
+      success: true,
+      requiresLoginVerification: result.requiresLoginVerification,
+      message: result.message,
+      email: result.email,
+    });
 
-      if (err.message.includes('Google') || err.message.includes('google')) {
-        throw new BadRequestException(
-          'Этот email зарегистрирован через Google. Используйте вход через Google.',
-        );
-      }
+  } catch (err: any) {
+    console.error('❌ Login error:', err.message);
 
-      if (err.message.includes('Слишком много')) {
-        throw new BadRequestException(err.message);
-      }
-
+    if (err.response?.requiresVerification) {
       throw new HttpException(
-        { success: false, error: err.message },
+        {
+          success: false,
+          error: err.response.message,
+          requiresVerification: true,
+          email: err.response.email,
+        },
         HttpStatus.UNAUTHORIZED,
       );
     }
+
+    if (err.message.includes('Google') || err.message.includes('google')) {
+      throw new BadRequestException(
+        'Этот email зарегистрирован через Google. Используйте вход через Google.',
+      );
+    }
+
+    if (err.message.includes('Слишком много')) {
+      throw new BadRequestException(err.message);
+    }
+
+    throw new HttpException(
+      { success: false, error: err.message },
+      HttpStatus.UNAUTHORIZED,
+    );
   }
+}
 
   // ✅ Запрос на сброс пароля
   @Post('forgot-password')
