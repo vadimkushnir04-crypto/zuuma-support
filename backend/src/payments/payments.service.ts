@@ -21,8 +21,9 @@ export class PaymentsService {
   private isProcessing = false;
   
   // ✅ ТЕСТОВЫЙ РЕЖИМ: true = минуты вместо месяцев
-  private readonly TEST_MODE = process.env.SUBSCRIPTION_TEST_MODE === 'true';
-  private readonly TEST_PERIOD_MINUTES = 2; // Тестовая подписка на 2 минуты
+private readonly TEST_MODE = process.env.SUBSCRIPTION_TEST_MODE === 'true';
+private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PERIOD_MINUTES || '360', 10);
+private readonly CRON_INTERVAL_MINUTES = parseInt(process.env.SUBSCRIPTION_CRON_INTERVAL_MINUTES || '10', 10);
 
   constructor(
     @InjectRepository(Payment)
@@ -280,7 +281,9 @@ export class PaymentsService {
    * ✅ CRON-задача с защитой от параллельного запуска
    * Использует advisory lock на уровне PostgreSQL
    */
-  @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true' ? '*/1 * * * *' : '0 * * * *')
+  @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true'
+    ? `*/${process.env.SUBSCRIPTION_CRON_INTERVAL_MINUTES || 1} * * * *`
+    : '0 * * * *')
   async checkExpiringSubs() {
     if (this.isProcessing) {
       console.log('⚠️ Skip cron — already running in this instance');
