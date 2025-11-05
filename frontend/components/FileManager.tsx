@@ -46,22 +46,27 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
         const fixedFiles = (data.files || []).map((file: FileItem) => {
           let fileUrl = file.fileUrl || '';
 
-          // Если в fileUrl нет полного пути — формируем его вручную
-          if (!fileUrl.startsWith('http')) {
-            // Если в fileUrl нет /api/files — добавляем корректный endpoint
-            if (!fileUrl.includes('/api/files')) {
-              const fileName = fileUrl.split('/').pop();
-              fileUrl = `${API_BASE_URL}/files/${assistantId}/${fileName}`;
-            } else {
-              // иначе просто добавляем базовый URL
-              fileUrl = `${API_BASE_URL}${fileUrl}`;
-            }
+          // ✅ Если URL уже полный (http/https) — ничего не меняем
+          if (fileUrl.startsWith('http')) {
+            return { ...file, fileUrl };
           }
 
-          console.log('📎 Fixed file URL:', fileUrl);
-          return { ...file, fileUrl };
-        });
+          // ✅ Убираем возможное дублирование /api/api
+          fileUrl = fileUrl.replace(/^\/?api\//, '/api/');
 
+          // ✅ Убедимся, что URL начинается с /api/files/...
+          if (!fileUrl.startsWith('/api/files')) {
+            const fileName = fileUrl.split('/').pop();
+            fileUrl = `/api/files/${assistantId}/${fileName}`;
+          }
+
+          // ✅ Добавляем базовый URL, при этом удаляем возможный /api на конце
+          const base = API_BASE_URL.replace(/\/api$/, '');
+          const fullUrl = `${base}${fileUrl}`;
+
+          console.log('📎 Fixed file URL:', fullUrl);
+          return { ...file, fileUrl: fullUrl };
+        });
 
         setFiles(fixedFiles);
       }
@@ -71,6 +76,7 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
       setLoading(false);
     }
   };
+
 
   const deleteFile = async (fileId: string, fileName: string) => {
     if (!confirm(`Удалить файл "${fileName}"?`)) return;
