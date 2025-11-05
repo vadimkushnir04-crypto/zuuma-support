@@ -282,7 +282,7 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
    */
   @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true'
     ? `*/${parseInt(process.env.SUBSCRIPTION_CRON_INTERVAL_MINUTES || '10', 10)} * * * *`
-    : '0 * * * *')
+    : '10 * * * *')
   async checkExpiringSubs() {
     if (this.isProcessing) {
       console.log('⚠️ Skip cron — already running in this instance');
