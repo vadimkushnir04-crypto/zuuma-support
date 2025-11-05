@@ -1,4 +1,4 @@
-// public/chat-widget.js - УЛУЧШЕННАЯ ВЕРСИЯ С ОТЛАДКОЙ
+// public/chat-widget.js - ИСПРАВЛЕННАЯ ВЕРСИЯ (иконки + стили)
 
 (function() {
     console.log('🔍 Chat widget script started');
@@ -43,13 +43,13 @@
         });
     };
 
-    // 🎨 СТИЛИ С ПОВЫШЕННЫМ Z-INDEX
+    // 🎨 ИСПРАВЛЕННЫЕ СТИЛИ
     const styles = `
         .chat-widget-container {
             position: fixed !important;
             bottom: 24px !important;
             right: 24px !important;
-            z-index: 999999 !important;  /* ✅ Очень высокий z-index */
+            z-index: 999999 !important;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
             pointer-events: auto !important;
         }
@@ -84,10 +84,11 @@
         }
         
         .chat-widget-button svg {
-            width: 22px;
-            height: 22px;
+            width: 28px;
+            height: 28px;
             transition: transform 0.3s ease;
             stroke-width: 2;
+            fill: none;
         }
         
         .chat-widget-button.open svg {
@@ -371,7 +372,8 @@
         }
         
         .chat-send svg {
-            stroke-width: 2;
+            stroke-width: 2.5;
+            fill: none;
         }
         
         @media (max-width: 480px) {
@@ -401,11 +403,11 @@
     document.head.appendChild(styleSheet);
     console.log('✅ Widget styles injected');
 
-    // HTML разметка
+    // HTML с улучшенными SVG иконками
     const widgetHTML = `
         <div class="chat-widget-container" id="chat-widget-container" style="display: block !important;">
             <button class="chat-widget-button" id="chat-toggle">
-                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
             </button>
@@ -446,8 +448,9 @@
                         ></textarea>
                     </div>
                     <button class="chat-send" id="chat-send">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                         </svg>
                     </button>
                 </div>
@@ -477,11 +480,7 @@
         chatInput = document.getElementById('chat-input');
         chatSend = document.getElementById('chat-send');
 
-        console.log('✅ Widget elements initialized:', {
-            chatToggle: !!chatToggle,
-            chatWindow: !!chatWindow,
-            chatInput: !!chatInput
-        });
+        console.log('✅ Widget elements initialized');
         
         try {
             await loadSocketIO();
@@ -497,26 +496,14 @@
             window._chatWidgetResolve();
         }
         
-        // ✅ ПРИНУДИТЕЛЬНАЯ ВИДИМОСТЬ
         const container = document.getElementById('chat-widget-container');
         if (container) {
             container.style.display = 'block';
             container.style.visibility = 'visible';
             container.style.opacity = '1';
             console.log('✅ Widget container forced visible');
-            
-            // Проверяем позицию
-            setTimeout(() => {
-                const rect = container.getBoundingClientRect();
-                console.log('📍 Widget position:', {
-                    bottom: rect.bottom,
-                    right: rect.right,
-                    visible: rect.width > 0 && rect.height > 0
-                });
-            }, 100);
         }
         
-        // Автооткрываем если настроено
         if (config.autoOpen) {
             setTimeout(() => {
                 openChat();

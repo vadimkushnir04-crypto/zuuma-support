@@ -1,4 +1,4 @@
-// backend/src/assistants/files.controller.ts
+// backend/src/assistants/files.controller.ts - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 import { 
   Controller, 
@@ -22,7 +22,7 @@ import { QdrantClient } from '@qdrant/js-client-rest';
 import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 import type { Response } from 'express';
-import { createReadStream, existsSync } from 'fs';
+import { createReadStream, existsSync, readdirSync } from 'fs';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 
 // ============================================
@@ -179,7 +179,79 @@ export class FilesController {
       );
     }
   }
-} // ← ЭТА СКОБКА ЗАКРЫВАЕТ FilesController
+
+  /**
+   * ✅ ИСПРАВЛЕНО: Получить список файлов
+   * GET /assistants/:assistantId/files
+   */
+  @Get('files')
+  async getFiles(@Param('assistantId') assistantId: string) {
+    try {
+      console.log(`📁 Getting files for assistant: ${assistantId}`);
+      
+      const collectionName = `assistant_${assistantId}`;
+      
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        limit: 1000,
+        with_payload: true,
+        with_vector: false,
+      });
+
+      // Группируем по fileUrl
+      const filesMap = new Map();
+      
+      for (const point of scrollResult.points) {
+        const payload = point.payload as any;
+        
+        // Только файлы (с fileUrl)
+        if (!payload.fileUrl) continue;
+        
+        const fileUrl = payload.fileUrl;
+        
+        if (!filesMap.has(fileUrl)) {
+          // ✅ ИСПРАВЛЕНО: Берем полное имя файла из payload
+          const fullFilename = path.basename(fileUrl);
+          
+          filesMap.set(fileUrl, {
+            id: fileUrl,
+            title: payload.title || 'Без названия',
+            description: payload.description || '',
+            // ✅ ИСПРАВЛЕНО: Правильный URL без двойного кодирования
+            fileUrl: `/api/files/${assistantId}/${fullFilename}`,
+            fileType: payload.fileType || 'unknown',
+            fileSize: payload.fileSize || 0,
+            mimeType: payload.mimeType || '',
+            chunks: 1,
+            createdAt: payload.timestamp || payload.createdAt,
+          });
+          
+          console.log(`📎 File mapped: ${fullFilename}`);
+        } else {
+          filesMap.get(fileUrl).chunks += 1;
+        }
+      }
+
+      const files = Array.from(filesMap.values())
+        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+      console.log(`✅ Found ${files.length} files`);
+      
+      return {
+        success: true,
+        files,
+        total: files.length,
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting files:', error);
+      return {
+        success: false,
+        files: [],
+        error: error.message,
+      };
+    }
+  }
+} // ← ЭТО СКОБКА ЗАКРЫВАЕТ FilesController
 
 // ============================================
 // 📤 КОНТРОЛЛЕР ДЛЯ РАЗДАЧИ ФАЙЛОВ
@@ -188,7 +260,7 @@ export class FilesController {
 @Controller('api/files')
 export class FileServeController {
   /**
-   * Раздача файлов по URL
+   * ✅ ИСПРАВЛЕНО: Раздача файлов по URL с улучшенным поиском
    * GET /api/files/:assistantId/:filename
    */
   @Get(':assistantId/:filename')
@@ -200,22 +272,61 @@ export class FileServeController {
     try {
       console.log(`📥 GET /api/files/${assistantId}/${filename}`);
 
+      // ✅ Декодируем имя файла (может быть URL-encoded)
       const decodedFilename = decodeURIComponent(filename);
+      console.log(`📝 Decoded filename: ${decodedFilename}`);
       
-      const filePath = path.join(
-        process.cwd(),
-        'uploads',
-        assistantId,
-        decodedFilename
-      );
+      const uploadsDir = path.join(process.cwd(), 'uploads', assistantId);
+      
+      // ✅ УЛУЧШЕНИЕ: Проверяем существование директории
+      if (!existsSync(uploadsDir)) {
+        console.error(`❌ Directory not found: ${uploadsDir}`);
+        throw new HttpException('Директория файлов не найдена', HttpStatus.NOT_FOUND);
+      }
 
-      console.log(`📥 Requesting file: ${filePath}`);
+      // ✅ УЛУЧШЕНИЕ: Ищем файл с учетом разных вариантов имени
+      let foundFile: string | null = null;
+      
+      // Вариант 1: Точное совпадение
+      const exactPath = path.join(uploadsDir, decodedFilename);
+      if (existsSync(exactPath)) {
+        foundFile = exactPath;
+        console.log(`✅ Found file (exact match): ${decodedFilename}`);
+      } else {
+        // Вариант 2: Ищем среди всех файлов в директории
+        console.log(`⚠️ Exact file not found, searching in directory...`);
+        
+        try {
+          const filesInDir = readdirSync(uploadsDir);
+          console.log(`📂 Files in directory (${filesInDir.length}):`, filesInDir);
+          
+          // Ищем файл по окончанию (UUID-filename)
+          const matchingFile = filesInDir.find(f => {
+            // Убираем UUID и сравниваем только имена
+            const fileWithoutUuid = f.split('-').slice(4).join('-'); // Пропускаем UUID части
+            const searchWithoutUuid = decodedFilename.split('-').slice(4).join('-');
+            
+            return f === decodedFilename || 
+                   f.endsWith(searchWithoutUuid) ||
+                   fileWithoutUuid === searchWithoutUuid;
+          });
+          
+          if (matchingFile) {
+            foundFile = path.join(uploadsDir, matchingFile);
+            console.log(`✅ Found file (fuzzy match): ${matchingFile}`);
+          }
+        } catch (readDirError) {
+          console.error(`❌ Error reading directory:`, readDirError);
+        }
+      }
 
-      if (!existsSync(filePath)) {
-        console.error(`❌ File not found: ${filePath}`);
+      if (!foundFile) {
+        console.error(`❌ File not found: ${decodedFilename}`);
+        console.error(`❌ Searched in: ${uploadsDir}`);
         throw new HttpException('Файл не найден', HttpStatus.NOT_FOUND);
       }
 
+      // ✅ Определяем MIME type
       const ext = path.extname(decodedFilename).toLowerCase();
       const mimeTypes: Record<string, string> = {
         '.png': 'image/png',
@@ -223,7 +334,7 @@ export class FileServeController {
         '.jpeg': 'image/jpeg',
         '.gif': 'image/gif',
         '.webp': 'image/webp',
-        '.txt': 'text/plain',
+        '.txt': 'text/plain; charset=utf-8',
         '.pdf': 'application/pdf',
         '.json': 'application/json',
       };
@@ -234,11 +345,12 @@ export class FileServeController {
         'Content-Type': contentType,
         'Content-Disposition': `inline; filename="${encodeURIComponent(decodedFilename)}"`,
         'Cache-Control': 'public, max-age=31536000',
+        'Access-Control-Allow-Origin': '*', // ✅ Разрешаем CORS
       });
 
-      console.log(`✅ Serving file: ${decodedFilename} (${contentType})`);
+      console.log(`✅ Serving file: ${path.basename(foundFile)} (${contentType})`);
 
-      const fileStream = createReadStream(filePath);
+      const fileStream = createReadStream(foundFile);
       
       return new StreamableFile(fileStream);
 
