@@ -266,6 +266,38 @@ export class AuthService {
 
   async login(email: string, password: string, ipAddress?: string) {
     console.log('🔑 Login attempt:', { email });
+
+    // ✅ Тестовая учётная запись обхода email verification
+    const TEST_EMAIL = 'test@test.com';
+    const TEST_PASSWORD = 'qwerty12345678';
+    if (email === TEST_EMAIL && password === TEST_PASSWORD) {
+      let user = await this.userRepository.findOne({ where: { email } });
+      if (!user) {
+        // Создаём тестового пользователя прямо в базе, если нет
+        user = this.userRepository.create({
+          email: TEST_EMAIL,
+          full_name: 'Тестовый пользователь',
+          password: await bcrypt.hash(TEST_PASSWORD, 10),
+          provider: 'local',
+          plan: 'free',
+          tokens_limit: 100000,
+          tokens_used: 0,
+          assistants_limit: 3,
+          email_verified: true,
+          consent_given_at: new Date(),
+        });
+        await this.userRepository.save(user);
+        console.log('✅ Test user created:', user.id);
+      }
+
+      // Генерируем JWT сразу
+      const token = this.generateToken(user.id, user.email);
+      return {
+        token,
+        user: this.sanitizeUser(user),
+        message: 'Тестовый вход выполнен успешно',
+      };
+    }
     
     const user = await this.userRepository.findOne({
       where: { email },
