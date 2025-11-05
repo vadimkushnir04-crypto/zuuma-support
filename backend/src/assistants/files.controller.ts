@@ -292,21 +292,24 @@ export class FileServeController {
         console.log(`⚠️ Exact file not found, searching in directory...`);
         
         try {
-          const filesInDir = readdirSync(uploadsDir).map(f => decodeURIComponent(f).normalize('NFC'));  // Нормализовать все файлы в dir
+          const filesInDirRaw = readdirSync(uploadsDir);
+          const filesInDir = filesInDirRaw.map(f => decodeURIComponent(f).normalize('NFC'));  // Нормализовать все файлы в dir
           console.log(`📂 Files in directory (${filesInDir.length}):`, filesInDir);
           
-          // Ищем файл по окончанию (UUID-filename)
-          const matchingFile = filesInDir.find(f => {
-            const fileWithoutUuid = f.replace(/^[a-f0-9-]{36}-/, '');
-            const searchWithoutUuid = decodedFilename.replace(/^[a-f0-9-]{36}-/, '');
+          // Ищем файл по окончанию (UUID-filename), удаляем несколько UUID префиксов
+          const matchingFileNormalized = filesInDir.find(f => {
+            const fileWithoutUuid = f.replace(/^([a-f0-9-]{36}-)+/, '');  // Удаляет один или больше UUID-
+            const searchWithoutUuid = decodedFilename.replace(/^([a-f0-9-]{36}-)+/, '');
             return f === decodedFilename || 
                    f.endsWith(searchWithoutUuid) ||
                    fileWithoutUuid === searchWithoutUuid;
           });
           
-          if (matchingFile) {
-            foundFile = path.join(uploadsDir, encodeURIComponent(matchingFile));  // Сохранить original с encode для пути
-            console.log(`✅ Found file (fuzzy match): ${matchingFile}`);
+          if (matchingFileNormalized) {
+            // Находим оригинальное имя файла (raw) по нормализованному
+            const matchingFileRaw = filesInDirRaw.find(f => decodeURIComponent(f).normalize('NFC') === matchingFileNormalized);
+            foundFile = path.join(uploadsDir, matchingFileRaw || '');
+            console.log(`✅ Found file (fuzzy match): ${matchingFileRaw}`);
           }
         } catch (readDirError) {
           console.error(`❌ Error reading directory:`, readDirError);
