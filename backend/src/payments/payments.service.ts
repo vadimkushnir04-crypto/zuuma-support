@@ -280,6 +280,7 @@ export class PaymentsService {
    */
   @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true' ? '*/1 * * * *' : '0 * * * *')
   async checkExpiringSubs() {
+    console.log('🕒 CRON TRIGGERED', new Date().toISOString());
     const checkInterval = this.TEST_MODE ? 'minute' : 'hour';
     console.log(`🔍 [Cron ${checkInterval}] Checking for expiring subscriptions...`);
 

@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { SupportModule } from './support/support.module';
 import { AuditLogModule } from './common/audit-log.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 // ✅ Импортируем модули (правильная архитектура)
 
@@ -30,6 +31,7 @@ import { AdminModule } from './admin/admin.module';
       isGlobal: true, // делает ConfigService доступным везде
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AssistantsModule,
     CommonModule,

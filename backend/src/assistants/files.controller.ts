@@ -272,7 +272,7 @@ export class FileServeController {
       console.log(`📝 Decoded filename: ${decodedFilename}`);
       
       const uploadsDir = path.join(process.cwd(), 'uploads', assistantId);
-      
+
       // ✅ УЛУЧШЕНИЕ: Проверяем существование директории
       if (!existsSync(uploadsDir)) {
         console.error(`❌ Directory not found: ${uploadsDir}`);

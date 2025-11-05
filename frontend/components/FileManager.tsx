@@ -43,31 +43,25 @@ export default function FileManager({ assistantId, onClose }: FileManagerProps) 
       if (response.ok) {
         const data = await response.json();
 
-        // ✅ ПРАВИЛЬНАЯ ФИКСАЦИЯ URL
         const fixedFiles = (data.files || []).map((file: FileItem) => {
           let fileUrl = file.fileUrl || '';
 
-          // Если полный URL - оставляем как есть
-          if (fileUrl.startsWith('http')) {
-            return { ...file, fileUrl };
+          // Если в fileUrl нет полного пути — формируем его вручную
+          if (!fileUrl.startsWith('http')) {
+            // Если в fileUrl нет /api/files — добавляем корректный endpoint
+            if (!fileUrl.includes('/api/files')) {
+              const fileName = fileUrl.split('/').pop();
+              fileUrl = `${API_BASE_URL}/files/${assistantId}/${fileName}`;
+            } else {
+              // иначе просто добавляем базовый URL
+              fileUrl = `${API_BASE_URL}${fileUrl}`;
+            }
           }
-
-          // Убираем /api если есть
-          if (fileUrl.startsWith('/api/')) {
-            fileUrl = fileUrl.replace('/api/', '/');
-          }
-
-          // Добавляем базовый URL
-          if (!fileUrl.startsWith('/')) {
-            fileUrl = '/' + fileUrl;
-          }
-
-          fileUrl = `${API_BASE_URL}${fileUrl}`;
 
           console.log('📎 Fixed file URL:', fileUrl);
-
           return { ...file, fileUrl };
         });
+
 
         setFiles(fixedFiles);
       }
