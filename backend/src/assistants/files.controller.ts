@@ -57,18 +57,19 @@ export class FilesController {
       
       const collectionName = `assistant_${assistantId}`;
       
-        const scrollResult = await this.qdrant.scroll(collectionName, {
-          filter: {
-            must: [
-              {
-                key: 'fileUrl',
-                match: { text: `uploads/${assistantId}/${fileId}` }  // Реконструируем полный путь
-              }
-            ]
-          },
-          limit: 1000,
-          with_payload: true,
-        });
+      const scrollResult = await this.qdrant.scroll(collectionName, {
+        filter: {
+          should: [  // OR для нескольких вариантов
+            { key: 'fileUrl', match: { text: `uploads/${assistantId}/${fileId}` } },
+            { key: 'fileUrl', match: { text: `/api/files/${assistantId}/${fileId}` } },  // Для старых записей
+            { key: 'filePath', match: { text: path.join('uploads', assistantId, fileId) } }
+          ]
+        },
+        limit: 1000,
+        with_payload: true,
+      });
+
+      console.log(`Found ${scrollResult.points.length} points to delete`);
 
       if (scrollResult.points.length === 0) {
         return {
@@ -291,7 +292,7 @@ export class FileServeController {
         console.log(`⚠️ Exact file not found, searching in directory...`);
         
         try {
-          const filesInDir = readdirSync(uploadsDir);
+          const filesInDir = readdirSync(uploadsDir).map(f => decodeURIComponent(f).normalize('NFC'));  // Нормализовать все файлы в dir
           console.log(`📂 Files in directory (${filesInDir.length}):`, filesInDir);
           
           // Ищем файл по окончанию (UUID-filename)
@@ -299,12 +300,12 @@ export class FileServeController {
             const fileWithoutUuid = f.replace(/^[a-f0-9-]{36}-/, '');
             const searchWithoutUuid = decodedFilename.replace(/^[a-f0-9-]{36}-/, '');
             return f === decodedFilename || 
-                  f.endsWith(searchWithoutUuid) ||
-                  fileWithoutUuid === searchWithoutUuid;
+                   f.endsWith(searchWithoutUuid) ||
+                   fileWithoutUuid === searchWithoutUuid;
           });
           
           if (matchingFile) {
-            foundFile = path.join(uploadsDir, matchingFile);
+            foundFile = path.join(uploadsDir, encodeURIComponent(matchingFile));  // Сохранить original с encode для пути
             console.log(`✅ Found file (fuzzy match): ${matchingFile}`);
           }
         } catch (readDirError) {

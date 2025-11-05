@@ -1014,7 +1014,7 @@ constructor(
       const uploadDir = path.join(process.cwd(), 'uploads', assistantId);
       await fsPromises.mkdir(uploadDir, { recursive: true });
       const uuid = uuidv4();
-      const savedFilename = `${uuid}-${file.originalname}`;
+      const savedFilename = `${uuid}-${Buffer.from(file.originalname, 'utf8').toString('utf8')}`;  // Force UTF-8
       const savedPath = path.join(uploadDir, savedFilename);
       await fsPromises.writeFile(savedPath, file.buffer);
       console.log(`💾 File saved: ${savedPath}`);
