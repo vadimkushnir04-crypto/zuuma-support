@@ -469,51 +469,73 @@
 
     async function initWidget() {
         console.log('🎬 Initializing chat widget...');
-        
-        document.body.insertAdjacentHTML('beforeend', widgetHTML);
+
+        // === Создаем контейнер и Shadow DOM ===
+        const container = document.createElement('div');
+        container.id = 'chat-widget-shadow-host';
+        container.style.all = 'unset'; // 🧹 убираем влияние внешних стилей
+        container.style.position = 'fixed';
+        container.style.bottom = '0';
+        container.style.right = '0';
+        container.style.zIndex = '999999';
+
+        // создаем shadow root
+        const shadow = container.attachShadow({ mode: 'open' });
+
+        // вставляем стили и HTML внутрь shadow root
+        shadow.innerHTML = `
+            <style>${styles}</style>
+            ${widgetHTML}
+        `;
+
+        // добавляем контейнер в конец body
+        document.body.appendChild(container);
         console.log('✅ Widget HTML inserted');
-        
-        chatToggle = document.getElementById('chat-toggle');
-        chatWindow = document.getElementById('chat-window');
-        chatClose = document.getElementById('chat-close');
-        chatMinimize = document.getElementById('chat-minimize');
-        chatMessages = document.getElementById('chat-messages');
-        chatInput = document.getElementById('chat-input');
-        chatSend = document.getElementById('chat-send');
+
+        // теперь получаем элементы из shadowRoot, а не из document
+        chatToggle = shadow.getElementById('chat-toggle');
+        chatWindow = shadow.getElementById('chat-window');
+        chatClose = shadow.getElementById('chat-close');
+        chatMinimize = shadow.getElementById('chat-minimize');
+        chatMessages = shadow.getElementById('chat-messages');
+        chatInput = shadow.getElementById('chat-input');
+        chatSend = shadow.getElementById('chat-send');
 
         console.log('✅ Widget elements initialized');
-        
+
         try {
             await loadSocketIO();
             setupWebSocket();
         } catch (error) {
             console.error('❌ Widget init error:', error);
         }
-        
+
         setupEventListeners();
-        
+
         window.ChatWidget.ready = true;
         if (window._chatWidgetResolve) {
             window._chatWidgetResolve();
         }
-        
-        const container = document.getElementById('chat-widget-container');
-        if (container) {
-            container.style.display = 'block';
-            container.style.visibility = 'visible';
-            container.style.opacity = '1';
+
+        // делаем контейнер видимым
+        const innerContainer = shadow.getElementById('chat-widget-container');
+        if (innerContainer) {
+            innerContainer.style.display = 'block';
+            innerContainer.style.visibility = 'visible';
+            innerContainer.style.opacity = '1';
             console.log('✅ Widget container forced visible');
         }
-        
-    if (config.autoOpen) {
-        setTimeout(() => {
-            openChat();
-            localStorage.setItem('chatWidgetUsed', 'true');
-        }, 500);
-    }
-        
+
+        if (config.autoOpen) {
+            setTimeout(() => {
+                openChat();
+                localStorage.setItem('chatWidgetUsed', 'true');
+            }, 500);
+        }
+
         console.log('✅ Widget fully initialized');
     }
+
 
     function setupWebSocket() {
             if (!window.io) return;
@@ -591,78 +613,109 @@
         chatToggle.classList.remove('open');
     }
 
+    // Отправка сообщения пользователем
     async function sendMessage() {
-        const message = chatInput.value.trim();
-        if (!message || isLoading) return;
+    const message = chatInput.value.trim();
+    if (!message || isLoading) return;
 
-        addMessage(message, 'user');
-        chatInput.value = '';
-        chatInput.style.height = 'auto';
+    addMessage(message, 'user');
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
 
-        const typingIndicator = showTypingIndicator();
-        isLoading = true;
-        chatSend.disabled = true;
+    const typingIndicator = showTypingIndicator();
+    isLoading = true;
+    chatSend.disabled = true;
 
-        try {
-            const response = await fetch(`${config.serverUrl}/chat/ask`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-API-Key': config.apiKey
-                },
-                credentials: 'omit', // ✅ ИЗМЕНИТЬ с 'include' на 'omit'
-                body: JSON.stringify({
-                    message: message,
-                    sessionId: sessionId,
-                    conversationId: conversationId || undefined,
-                })
-            });
+    try {
+        const response = await fetch(`${config.serverUrl}/chat/ask`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': config.apiKey
+        },
+        credentials: 'omit', // ✅ без cookies — безопаснее для внешнего теста
+        body: JSON.stringify({
+            message: message,
+            sessionId: sessionId,
+            conversationId: conversationId || undefined,
+        })
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Error ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
-                chatSessionId = data.chatSessionId;
-                if (socket?.connected) {
-                    socket.emit('join', { sessionId: chatSessionId });
-                }
-            }
-            
-            if (data.conversationId) {
-                conversationId = data.conversationId;
-            }
-            
-            if (data.answer) {
-                addMessage(data.answer, 'assistant');
-            } else {
-                throw new Error('No answer received');
-            }
-
-        } catch (error) {
-            console.error('❌ Send error:', error);
-            
-            // ✅ ДОБАВИТЬ обработку CORS ошибок
-            if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
-                addMessage(
-                    'Не удалось подключиться к серверу. Пожалуйста, проверьте:\n1. Открыт ли сайт через HTTPS\n2. Не блокирует ли браузер запросы\n3. Доступен ли сервер',
-                    'assistant'
-                );
-            } else {
-                addMessage(
-                    error.message || 'Sorry, something went wrong. Please try again.', 
-                    'assistant'
-                );
-            }
-        } finally {
-            hideTypingIndicator(typingIndicator);
-            isLoading = false;
-            chatSend.disabled = false;
+        if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Error ${response.status}`);
         }
+
+        const data = await response.json();
+
+        // обновляем chatSessionId (если новый)
+        if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
+        chatSessionId = data.chatSessionId;
+        if (socket?.connected) {
+            socket.emit('join', { sessionId: chatSessionId });
+        }
+        }
+
+        // обновляем conversationId
+        if (data.conversationId) {
+        conversationId = data.conversationId;
+        }
+
+        // основной ответ ассистента
+        if (data.answer) {
+        addMessage(data.answer, 'assistant');
+        } else {
+        throw new Error('No answer received');
+        }
+
+    } catch (error) {
+        console.error('❌ Send error:', error);
+
+        // ✅ Обработка сетевых / CORS ошибок
+        if (
+        error.message.includes('CORS') ||
+        error.message.includes('Failed to fetch') ||
+        error.message.includes('NetworkError')
+        ) {
+        const safeFileName =
+            (config.assistantName || 'assistant')
+            .replace(/\s+/g, '-')
+            .toLowerCase();
+
+        addMessage(
+            `⚠️ Не удалось подключиться к серверу.<br><br>
+                Похоже, вы открыли страницу напрямую (через <code>file://</code>), и браузер блокирует запросы.<br><br>
+                Чтобы всё заработало, запустите локальный сервер:<br>
+                <pre style="background:#f3f4f6;padding:8px;border-radius:6px;margin-top:6px;">
+                # 🐍 Python
+                python -m http.server 8000
+
+                # 🟢 Node.js
+                npx http-server -p 8000 --cors
+
+                # 🌐 Ngrok (для HTTPS-теста)
+                ngrok http 8000
+                </pre>
+                Затем откройте страницу в браузере:<br>
+                👉 <strong>http://localhost:8000/${safeFileName}.html</strong><br>
+                или HTTPS-ссылку от ngrok.`,
+            'assistant'
+        );
+        } else {
+        // ✅ Общая обработка других ошибок
+        addMessage(
+            error.message ||
+            'Произошла непредвиденная ошибка. Попробуйте ещё раз немного позже.',
+            'assistant'
+        );
+        }
+    } finally {
+        hideTypingIndicator(typingIndicator);
+        isLoading = false;
+        chatSend.disabled = false;
     }
+    }
+
 
     function addMessage(text, sender) {
         const messageDiv = document.createElement('div');
