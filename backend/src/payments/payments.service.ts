@@ -113,7 +113,7 @@ export class PaymentsService {
           return_url: `${this.configService.get('FRONTEND_URL')}/profile?payment_success=true`,
         },
         capture: true,
-        save_payment_method: true,
+        save_payment_method: false,
         description,
         metadata: {
           userId,
@@ -294,9 +294,10 @@ export class PaymentsService {
    * ✅ CRON-задача с защитой от параллельного запуска
    * Использует advisory lock на уровне PostgreSQL
    */
-  @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true'
-    ? `*/${parseInt(process.env.SUBSCRIPTION_CRON_INTERVAL_MINUTES || '10', 10)} * * * *`
-    : '10 * * * *')
+// ❌ Отключаем автосписания пока что
+// @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true'
+//   ? `*/${parseInt(process.env.SUBSCRIPTION_CRON_INTERVAL_MINUTES || '10', 10)} * * * *`
+//   : '10 * * * *')
   async checkExpiringSubs() {
     if (this.isProcessing) {
       console.log('⚠️ Skip cron — already running in this instance');
