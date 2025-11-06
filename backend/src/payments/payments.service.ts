@@ -21,8 +21,8 @@ export class PaymentsService {
   private isProcessing = false;
   
   // ✅ ТЕСТОВЫЙ РЕЖИМ: true = минуты вместо месяцев
-private readonly TEST_MODE = process.env.SUBSCRIPTION_TEST_MODE === 'true';
-private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PERIOD_MINUTES || '360', 10);
+  private readonly TEST_MODE = process.env.SUBSCRIPTION_TEST_MODE === 'true';
+  private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PERIOD_MINUTES || '360', 10);
 
   constructor(
     @InjectRepository(Payment)
@@ -37,58 +37,72 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
     private tokensService: TokensService,
     private dataSource: DataSource,
   ) {
-    const shopId = this.configService.get<string>('YOOKASSA_SHOP_ID');
-    const secretKey = this.configService.get<string>('YOOKASSA_SECRET_KEY');
+    const testShopId = this.configService.get<string>('YOOKASSA_SHOP_ID');
+    const testSecretKey = this.configService.get<string>('YOOKASSA_SECRET_KEY');
+
+    const realShopId = this.configService.get<string>('YOOKASSA_SHOP_ID_REAL');
+    const realSecretKey = this.configService.get<string>('YOOKASSA_SECRET_KEY_REAL');
+
+    const isProd = !this.TEST_MODE && !!realShopId && !!realSecretKey;
+
+    const shopId = isProd ? realShopId : testShopId;
+    const secretKey = isProd ? realSecretKey : testSecretKey;
 
     if (!shopId || !secretKey) {
       console.error('❌ YooKassa credentials not configured');
     } else {
       this.yooKassa = new YooCheckout({ shopId, secretKey });
-      console.log('✅ YooKassa initialized');
-      
+      console.log(`✅ YooKassa initialized in ${isProd ? 'REAL' : 'TEST'} mode`);
+
       if (this.TEST_MODE) {
         console.log(`⚠️ TEST MODE ENABLED: Subscriptions expire in ${this.TEST_PERIOD_MINUTES} minutes`);
       }
     }
   }
 
+
   /**
-   * ✅ ОБНОВЛЕНО: Создание платежа с сохранением платежного метода
+   * ✅ Создание платежа с учетом тестового аккаунта и реальной кассы
    */
   async createPayment(userId: string, planSlug: string) {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+    if (!user) throw new NotFoundException('User not found');
 
     const plan = await this.planRepository.findOne({ where: { slug: planSlug } });
-    if (!plan) {
-      throw new NotFoundException('Plan not found');
-    }
+    if (!plan) throw new NotFoundException('Plan not found');
 
     if (parseInt(plan.price_cents) === 0) {
       throw new BadRequestException('Cannot create payment for free plan');
     }
 
+    const isTestAccount = user.email === 'delovoi.acount@gmail.com';
+    const testPriceCents = 5000; // 50 рублей
+
+    const priceCents = isTestAccount ? testPriceCents : parseInt(plan.price_cents);
+    const amountInRubles = (priceCents / 100).toFixed(2);
+
+    const descriptionBase = `Подписка на план ${plan.title} (автопродление)`;
+    const description = isTestAccount
+      ? `${descriptionBase} — ТЕСТОВОЕ СПИСАНИЕ для ${user.email}`
+      : descriptionBase;
+
     const payment = this.paymentRepository.create({
       userId,
       planId: plan.id,
-      amountCents: parseInt(plan.price_cents),
+      amountCents: priceCents,
       currency: 'RUB',
       yookassaStatus: 'pending',
-      description: `Подписка на план ${plan.title}`,
+      description,
       metadata: {
         planSlug,
         planTitle: plan.title,
+        ...(isTestAccount && { test_account: true }),
       },
     });
 
     const savedPayment = await this.paymentRepository.save(payment);
 
     try {
-      const amountInRubles = (parseInt(plan.price_cents) / 100).toFixed(2);
-      
-      // ✅ ВАЖНО: Добавляем save_payment_method для рекуррентных платежей
       const yooPayment = await this.yooKassa.createPayment({
         amount: {
           value: amountInRubles,
@@ -99,13 +113,14 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
           return_url: `${this.configService.get('FRONTEND_URL')}/profile?payment_success=true`,
         },
         capture: true,
-        save_payment_method: true, // ✅ СОХРАНЯЕМ ПЛАТЕЖНЫЙ МЕТОД
-        description: `Подписка на план ${plan.title} (автопродление)`,
+        save_payment_method: true,
+        description,
         metadata: {
           userId,
           paymentId: savedPayment.id,
           planId: plan.id,
           planSlug,
+          ...(isTestAccount && { test_account: true }),
         },
       });
 
@@ -114,10 +129,11 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
       savedPayment.confirmationUrl = yooPayment.confirmation?.confirmation_url;
       await this.paymentRepository.save(savedPayment);
 
-      console.log('✅ Payment created with save_payment_method:', {
+      console.log('✅ Payment created:', {
         paymentId: savedPayment.id,
         yookassaId: yooPayment.id,
         amount: yooPayment.amount.value,
+        test: isTestAccount,
       });
 
       return {
@@ -130,6 +146,7 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
       throw new BadRequestException('Failed to create payment');
     }
   }
+
 
   /**
    * ✅ ОБНОВЛЕНО: Webhook с сохранением payment_method_id
@@ -188,41 +205,40 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
   }
 
   /**
-   * ✅ ОБНОВЛЕНО: Активация подписки с payment_method_id и next_billing_date
+   * ✅ Активация подписки с учетом тестового аккаунта
    */
   private async activateSubscription(payment: Payment, paymentMethodId?: string) {
     console.log('📄 Starting subscription activation');
-    
+
     const subscription = await this.dataSource.transaction(async (manager) => {
       const plan = await manager.findOne(Plan, { where: { id: payment.planId } });
-      if (!plan) {
-        throw new Error('Plan not found');
-      }
+      if (!plan) throw new Error('Plan not found');
+
+      const user = await manager.findOne(User, { where: { id: payment.userId } });
+      const isTestAccount = user?.email === 'delovoi.acount@gmail.com';
 
       // Отменяем старые подписки
-      const oldSubscriptions = await manager.find(Subscription, {
+      const oldSubs = await manager.find(Subscription, {
         where: { userId: payment.userId, status: 'active' },
       });
-      
-      for (const oldSub of oldSubscriptions) {
-        oldSub.status = 'cancelled';
-        oldSub.cancelledAt = new Date();
-        await manager.save(oldSub);
+      for (const s of oldSubs) {
+        s.status = 'cancelled';
+        s.cancelledAt = new Date();
+        await manager.save(s);
       }
 
       const now = new Date();
-      
-      // ✅ ТЕСТОВЫЙ РЕЖИМ: Короткий период вместо месяца
       const expiresAt = new Date(now);
       const nextBillingDate = new Date(now);
-      
-      if (this.TEST_MODE) {
-        // Тест: +2 минуты
+
+      if (isTestAccount) {
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // истекает через 10 минут
+        nextBillingDate.setMinutes(nextBillingDate.getMinutes() + 10);
+        console.log(`⚠️ TEST ACCOUNT: short billing period for ${user.email}`);
+      } else if (this.TEST_MODE) {
         expiresAt.setMinutes(expiresAt.getMinutes() + this.TEST_PERIOD_MINUTES);
         nextBillingDate.setMinutes(nextBillingDate.getMinutes() + this.TEST_PERIOD_MINUTES);
-        console.log(`⚠️ TEST MODE: Expires at ${expiresAt.toISOString()}`);
       } else {
-        // Продакшн: +1 месяц
         expiresAt.setMonth(expiresAt.getMonth() + 1);
         nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
       }
@@ -239,8 +255,8 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
         refundDeadline,
         canRefund: true,
         autoRenew: true,
-        paymentMethodId, // ✅ СОХРАНЯЕМ payment_method_id
-        nextBillingDate, // ✅ УСТАНАВЛИВАЕМ дату следующего списания
+        paymentMethodId,
+        nextBillingDate,
         failedPaymentsCount: 0,
       });
 
@@ -249,17 +265,14 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
       payment.subscriptionId = savedSubscription.id;
       await manager.save(payment);
 
-      // Обновляем пользователя
-      const user = await manager.findOne(User, { where: { id: payment.userId } });
       if (user) {
         user.plan = plan.slug as 'free' | 'pro' | 'max';
         user.tokens_limit = parseInt(plan.monthly_tokens);
         user.tokens_used = 0;
-        user.assistants_limit = 
+        user.assistants_limit =
           plan.slug === 'free' ? 1 :
           plan.slug === 'pro' ? 10 :
           plan.slug === 'max' ? 50 : 1;
-
         await manager.save(user);
       }
 
@@ -267,7 +280,7 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
         id: savedSubscription.id,
         expiresAt: expiresAt.toISOString(),
         nextBillingDate: nextBillingDate.toISOString(),
-        hasPaymentMethod: !!paymentMethodId,
+        testAccount: isTestAccount,
       });
 
       return savedSubscription;
@@ -275,6 +288,7 @@ private readonly TEST_PERIOD_MINUTES = parseInt(process.env.SUBSCRIPTION_TEST_PE
 
     return subscription;
   }
+
 
      /**
    * ✅ CRON-задача с защитой от параллельного запуска
