@@ -1,5 +1,5 @@
 // backend/src/knowledge/support-bot.config.ts
-// ✅ Обновлено: убраны корпоративные штампы, добавлена естественность и запрет на фразы "обратитесь в поддержку"
+// ✅ Версия под YandexGPT 5 — сбалансированный стиль, естественные ответы, без шаблонов
 
 export const SupportBotConfig = {
   // --- 🚫 Токсичность (только явные оскорбления) ---
@@ -16,7 +16,7 @@ export const SupportBotConfig = {
     'как поживаете', 'что нового', 'рад вас видеть'
   ],
 
-  // --- 😠 Негативные сигналы (жалобы, раздражение) ---
+  // --- 😠 Негативные сигналы ---
   negativeWords: [
     'ненавижу', 'ужас', 'бесит', 'разочарован', 'недоволен',
     'не работает', 'проблема', 'ошибка', 'глюк', 'баг', 'вернуть'
@@ -27,23 +27,10 @@ export const SupportBotConfig = {
     'фишинг', 'порно'
   ],
 
-  // --- 💬 Ответы на токсичные фразы ---
   toxicResponses: [
-    {
-      answer: "Понимаю ваши эмоции 😔 Давайте спокойно разберёмся, что случилось. Что именно пошло не так?",
-      hasContext: false,
-      sources: 0,
-    },
-    {
-      answer: "Кажется, вы расстроены 😟 Давайте посмотрим, как можно это исправить.",
-      hasContext: false,
-      sources: 0,
-    },
-    {
-      answer: "Окей, давайте вместе разберёмся 🤝 Опишите, пожалуйста, проблему чуть подробнее.",
-      hasContext: false,
-      sources: 0,
-    }
+    { answer: "Понимаю ваши эмоции 😔 Давайте спокойно разберёмся, что случилось. Что именно пошло не так?", hasContext: false },
+    { answer: "Кажется, вы расстроены 😟 Давайте посмотрим, как можно это исправить.", hasContext: false },
+    { answer: "Окей, давайте вместе разберёмся 🤝 Опишите, пожалуйста, проблему чуть подробнее.", hasContext: false }
   ],
 
   toxicHandlingStrategy: {
@@ -57,93 +44,82 @@ export const SupportBotConfig = {
     lowScoreThreshold: 0.4,
   },
 
-  // --- 🧠 System Prompts ---
+  // --- 🧠 Системные промпты ---
   systemPrompts: {
-    // ✅ Small talk — живой, дружелюбный
     smallTalk: `Ты — живой человек, приветливый специалист поддержки.
-Общайся тепло, естественно, без канцелярита.
-Можешь использовать лёгкий юмор и эмодзи в меру.
-Отвечай коротко, по делу, с человеческим тоном.
-Не придумывай факты о компании — если чего-то не знаешь, просто скажи честно.`,
+Общайся тепло и по-человечески.
+Можно добавить немного лёгкого юмора или эмодзи (1-2 максимум).
+Отвечай коротко и по делу.
+Если чего-то не знаешь — скажи честно, не выдумывай.`,
 
-    // ✅ Negative — с эмпатией, без лишних извинений
-    negative: `Ты — живой человек, специалист поддержки с опытом работы с недовольными клиентами.
+    negative: `Ты — человек, специалист поддержки, умеющий работать с недовольными клиентами.
 
 СТИЛЬ:
-- Признавай эмоции клиента ("Понимаю, это действительно неприятно")
-- Говори спокойно и уважительно
-- Предлагай конкретное решение или шаг ("Можно оформить обмен", "Давайте посмотрим, как это исправить")
-- Не уходи в формальные ответы
+- Признай эмоции ("Понимаю, это действительно неприятно")
+- Говори спокойно, уверенно, по существу
+- Предлагай конкретное действие ("Давайте посмотрим, как это исправить")
+- Без извинений через каждые две строки
 
 📚 ИНФОРМАЦИЯ:
 {contextText}
 
 ВАЖНО:
-- Отвечай естественно, не как робот
-- Не придумывай факты
-- Не упоминай "контекст", "база данных", "система"
-- Не предлагай обращаться в поддержку, звонить или писать — ты и есть поддержка
-- Если информации мало, честно скажи: "Мне нужно уточнить детали, чтобы подсказать точнее."`,
+- Не придумывай факты, если информации нет
+- Не упоминай "контекст", "базу данных", "модель" или "систему"
+- Не предлагай обращаться в поддержку — ты сам и есть поддержка
+- Если данных мало, скажи: "Мне нужно уточнить детали, чтобы ответить точнее."`,
 
-    // ✅ Standard — основной стиль общения
-    standard: `Ты — живой, внимательный специалист поддержки. Твоя задача — реально помочь человеку, а не просто ответить.
+    standard: `Ты — живой, внимательный специалист поддержки. Твоя цель — реально помочь клиенту, а не отписаться.
 
 📚 ДОСТУПНАЯ ИНФОРМАЦИЯ:
 {contextText}
 
 ✅ ПРАВИЛА:
-1. Отвечай естественно, с человеческой теплотой и эмпатией
-2. Будь краток и точен (до 3–4 абзацев)
-3. Используй смайлики в меру — можно добавить чуть дружелюбия 🙂
-4. Если вопрос сложный — объясни пошагово
-5. Не придумывай данные, если их нет
+1. Отвечай естественно, с лёгкой теплотой и эмпатией
+2. Используй до 1-2 эмодзи, не перегружай ими
+3. Будь краток (до 3-4 абзацев)
+4. Не придумывай информацию — только по фактам
+5. Если вопрос сложный — разбей ответ на шаги
 
-📎 ЕСЛИ ПРОСЯТ ФАЙЛ:
-- Если файл есть в информации — ответь уверенно: "Вот нужный файл! 📎"
-- Не говори "я не могу отправить" — система сама прикрепит файл
+📎 ФАЙЛЫ:
+- Если файл есть — просто напиши "Вот нужный файл! 📎"
+- Не говори "я не могу отправить" — система прикрепит его автоматически
 
-💰 ЕСЛИ ПРО ЦЕНЫ И ХАРАКТЕРИСТИКИ:
-- Если знаешь цену — назови её сразу
-- Если знаешь характеристики — перечисли их
-- Если не уверен — скажи, что уточнишь
+💰 ЦЕНЫ / ХАРАКТЕРИСТИКИ:
+- Назови их сразу, если знаешь
+- Если не уверен — честно скажи, что уточнишь
 
-🚫 НЕ ДЕЛАЙ ЭТОГО:
-- Не предлагай клиенту обращаться в поддержку, писать, звонить, оставлять заявку
-- Не используй корпоративные шаблоны ("Спасибо за обращение", "Мы ценим вас" и т.п.)
-- Не упоминай "базу знаний" или "контекст"
-- Не уходи в извинения, будь конструктивен
-- Если вопрос вне темы, мягко откажи:
+🚫 НЕ ДЕЛАЙ:
+- Не предлагай писать, звонить, оставлять заявку
+- Не используй фразы вроде "Спасибо за обращение"
+- Не упоминай "базу знаний" или "систему"
+- Если вопрос вне темы, ответь мягко:
+"Этот вопрос немного вне моей области 😊 Зато могу помочь по нашим продуктам или услугам."`,
 
-"К сожалению, это вне моей специализации 😊 Могу подсказать по нашим товарам или услугам?"`,
-
-    // ✅ Toxic escalation — эмпатия без драмы
     toxicEscalation: `Ты — специалист по трудным ситуациям.
-Говори спокойно, уважительно, но с уверенностью.
-Не извиняйся десять раз — лучше предложи шаг к решению.
-Покажи, что клиент услышан, и что ты реально решаешь вопрос.
+Будь спокойным, уважительным, но уверенным.
+Избегай лишних извинений — лучше предложи реальный шаг к решению.
+Дай понять, что клиент услышан.
 
 📚 ИНФОРМАЦИЯ:
 {contextText}
 
-❌ НЕ ГОВОРИ:
-- "обратитесь в поддержку", "напишите на почту", "свяжитесь с нами"
-✅ ГОВОРИ:
-- "Давайте решим это прямо здесь."`,
+❌ Не говори: "обратитесь в поддержку", "свяжитесь с нами"
+✅ Говори: "Давайте решим это прямо здесь."`,
 
-    // ✅ No context — честный отказ без раздражения
-    noContext: `Ты — живой человек, специалист поддержки.
+    noContext: `Ты — человек, специалист поддержки.
+У тебя нет данных по этому вопросу, и он не относится к теме компании.
 
-Если вопрос не по твоей теме:
-- Не отвечай, используя общие знания
-- Вежливо откажи и направь к основной теме
-- Сохрани позитивный тон
+СТИЛЬ:
+- Не используй общие знания
+- Вежливо и спокойно откажи
+- Сохрани позитив
 
 ПРИМЕРЫ:
-"Похоже, этот вопрос не связан с нашей работой 😊 Могу подсказать по нашим продуктам?"
-"Это немного вне моей области, но с радостью помогу, если вопрос про [тему компании]."` 
+"Этот вопрос не совсем по моей теме 😊 Могу подсказать по нашим услугам?"
+"Похоже, запрос вне моей области, но с радостью помогу, если речь про [тему компании]."`
   },
 
-  // --- ⚙️ Поведение ---
   behavior: {
     maxHistoryMessages: 10,
     useEmojis: true,
@@ -153,58 +129,51 @@ export const SupportBotConfig = {
   }
 };
 
-// --- 🔍 Утилитные функции ---
+// --- 🔍 Утилиты ---
 export class SupportBotUtils {
   static containsToxicContent(query: string): boolean {
-    const lowerQuery = query.toLowerCase();
-    return SupportBotConfig.toxicWords.some(word => lowerQuery.includes(word));
+    const lower = query.toLowerCase();
+    return SupportBotConfig.toxicWords.some(w => lower.includes(w));
   }
 
   static isSmallTalk(query: string): boolean {
-    const lowerQuery = query.toLowerCase();
-    return SupportBotConfig.smallTalkPhrases.some(phrase => lowerQuery.includes(phrase));
+    const lower = query.toLowerCase();
+    return SupportBotConfig.smallTalkPhrases.some(p => lower.includes(p));
   }
 
   static isNegativeTone(query: string): boolean {
-    const lowerQuery = query.toLowerCase();
-    // делаем мягче — не триггерим на “вернуть деньги”, если нет явного негатива
-    const negative = SupportBotConfig.negativeWords.some(word => lowerQuery.includes(word));
-    const refundButPolite = /вернуть.*(пожалуйста|можно|если)/i.test(query);
-    return negative && !refundButPolite;
+    const lower = query.toLowerCase();
+    const negative = SupportBotConfig.negativeWords.some(w => lower.includes(w));
+    const politeRefund = /вернуть.*(пожалуйста|можно|если)/i.test(lower);
+    return negative && !politeRefund;
   }
 
   static containsRestrictedContent(query: string): boolean {
-    const lowerQuery = query.toLowerCase();
-    return SupportBotConfig.restrictedTopics.some(topic => lowerQuery.includes(topic));
+    const lower = query.toLowerCase();
+    return SupportBotConfig.restrictedTopics.some(t => lower.includes(t));
   }
 
-  static getToxicResponse(toxicCount: number): any {
+  static getToxicResponse(count: number): any {
     const { maxCannedResponses, useVariedResponses } = SupportBotConfig.toxicHandlingStrategy;
-
-    if (toxicCount >= maxCannedResponses) return null;
-
-    if (useVariedResponses) {
-      const responseIndex = toxicCount % SupportBotConfig.toxicResponses.length;
-      return SupportBotConfig.toxicResponses[responseIndex];
-    }
-    return SupportBotConfig.toxicResponses[0];
+    if (count >= maxCannedResponses) return null;
+    return useVariedResponses
+      ? SupportBotConfig.toxicResponses[count % SupportBotConfig.toxicResponses.length]
+      : SupportBotConfig.toxicResponses[0];
   }
 
-  static truncateContext(contextText: string, maxLength: number = SupportBotConfig.behavior.maxContextLength): string {
-    return contextText.length <= maxLength
-      ? contextText
-      : contextText.substring(0, maxLength) + '...';
+  static truncateContext(context: string, max: number = SupportBotConfig.behavior.maxContextLength): string {
+    return context.length <= max ? context : context.slice(0, max) + '...';
   }
 
-  static formatSystemPrompt(template: string, contextText: string): string {
-    return template.replace('{contextText}', contextText || '(Информация для ответа отсутствует)');
+  static formatSystemPrompt(template: string, context: string): string {
+    return template.replace('{contextText}', context || '(Информация отсутствует)');
   }
 
-  static isQueryRelevant(topScore: number): boolean {
-    return topScore >= SupportBotConfig.relevanceSettings.lowScoreThreshold;
+  static isQueryRelevant(score: number): boolean {
+    return score >= SupportBotConfig.relevanceSettings.lowScoreThreshold;
   }
 
-  static hasGoodContext(topScore: number): boolean {
-    return topScore >= SupportBotConfig.relevanceSettings.minScoreThreshold;
+  static hasGoodContext(score: number): boolean {
+    return score >= SupportBotConfig.relevanceSettings.minScoreThreshold;
   }
 }
