@@ -1,4 +1,3 @@
-// backend/src/telegram/telegram.controller.ts
 import {
   Controller,
   Post,
@@ -10,12 +9,13 @@ import {
   HttpStatus,
   Headers,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express'; // ✅ типовой импорт
 
 import { AuthService } from '../auth/auth.service';
 import { IntegrationsService } from '../integrations/integrations.service';
 import { CreateTelegramBotDto } from './dto/telegram.dto';
-import { ConnectManualBotDto } from '../integrations/dto/integration.dto';
 
 @Controller('telegram')
 export class TelegramController {
@@ -24,11 +24,25 @@ export class TelegramController {
     private readonly integrationsService: IntegrationsService,
   ) {}
 
-  private extractUserId(authHeader?: string): string {
-    if (!authHeader) throw new BadRequestException('Authorization header missing');
+  /**
+   * Извлекает userId из JWT токена (в заголовке или куках)
+   */
+  private extractUserId(authHeader?: string, req?: Request): string {
+    let token: string | undefined;
 
-    const token = authHeader.replace('Bearer ', '').trim();
-    if (!token) throw new BadRequestException('JWT token missing');
+    // 1️⃣ Проверяем заголовок Authorization
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.replace('Bearer ', '').trim();
+    }
+
+    // 2️⃣ Если нет — берем из cookies
+    if (!token && req?.cookies?.token) {
+      token = req.cookies.token;
+    }
+
+    if (!token) {
+      throw new BadRequestException('JWT token missing (no header or cookie)');
+    }
 
     try {
       const payload = this.authService.verifyToken(token);
@@ -41,40 +55,45 @@ export class TelegramController {
     }
   }
 
-@Post('bots/connect-manual')
-@HttpCode(HttpStatus.CREATED)
-async connectManualBot(
-  @Body() dto: CreateTelegramBotDto,
-  @Headers('authorization') authHeader?: string,
-) {
-  console.log('📥 Received DTO:', JSON.stringify(dto, null, 2));
+  // =====================================================
+  // 🤖 Подключение Telegram-бота вручную
+  // =====================================================
 
-  const userId = this.extractUserId(authHeader);
+  @Post('bots/connect-manual')
+  @HttpCode(HttpStatus.CREATED)
+  async connectManualBot(
+    @Body() dto: CreateTelegramBotDto,
+    @Headers('authorization') authHeader: string | undefined,
+    @Req() req: Request,
+  ) {
+    console.log('📥 Received DTO:', JSON.stringify(dto, null, 2));
 
-  if (!dto.botToken) {
-    throw new BadRequestException('Bot token is required');
+    const userId = this.extractUserId(authHeader, req);
+
+    if (!dto.botToken) throw new BadRequestException('Bot token is required');
+    if (!dto.assistantId) throw new BadRequestException('Assistant ID is required');
+
+    const result = await this.integrationsService.createIntegration(userId, dto);
+
+    return {
+      success: true,
+      integration: result,
+      message: 'Bot connected successfully',
+    };
   }
 
-  if (!dto.assistantId) {
-    throw new BadRequestException('Assistant ID is required');
-  }
-
-  const result = await this.integrationsService.createIntegration(userId, dto);
-
-  return {
-    success: true,
-    integration: result,
-    message: 'Bot connected successfully'
-  };
-}
+  // =====================================================
+  // 🧩 Создание бота (универсальный эндпоинт)
+  // =====================================================
 
   @Post('bots')
   @HttpCode(HttpStatus.CREATED)
   async createBot(
     @Body() body: CreateTelegramBotDto & { userId?: string },
     @Headers('authorization') authHeader?: string,
+    @Req() req?: Request,
   ) {
-    const userId = body.userId || this.extractUserId(authHeader);
+    const userId = body.userId || this.extractUserId(authHeader, req);
     const { userId: _, ...dto } = body;
 
     const svc = this.integrationsService as any;
@@ -83,9 +102,16 @@ async connectManualBot(
     return { success: true, result };
   }
 
+  // =====================================================
+  // 📋 Получение ботов пользователя
+  // =====================================================
+
   @Get('bots/user')
-  async getUserBotsNoParam(@Headers('authorization') authHeader?: string) {
-    const userId = this.extractUserId(authHeader);
+  async getUserBotsNoParam(
+    @Headers('authorization') authHeader?: string,
+    @Req() req?: Request,
+  ) {
+    const userId = this.extractUserId(authHeader, req);
 
     const svc = this.integrationsService as any;
     const bots =
@@ -109,6 +135,10 @@ async connectManualBot(
     return { success: true, bots };
   }
 
+  // =====================================================
+  // ▶️ / ⏸ Управление ботами
+  // =====================================================
+
   @Post('bots/:botId/start')
   @HttpCode(HttpStatus.OK)
   async startBot(@Param('botId') botId: string) {
@@ -125,14 +155,19 @@ async connectManualBot(
     return { success: true, message: 'Bot stopped' };
   }
 
+  // =====================================================
+  // 🗑 Удаление бота
+  // =====================================================
+
   @Delete('bots/:botId')
   @HttpCode(HttpStatus.OK)
   async deleteBot(
     @Param('botId') botId: string,
     @Body() body: { userId?: string },
     @Headers('authorization') authHeader?: string,
+    @Req() req?: Request,
   ) {
-    const userId = body.userId || this.extractUserId(authHeader);
+    const userId = body.userId || this.extractUserId(authHeader, req);
     if (!userId) throw new BadRequestException('userId is required');
 
     const svc = this.integrationsService as any;
@@ -141,13 +176,24 @@ async connectManualBot(
     return { success: true, message: 'Bot deleted' };
   }
 
+  // =====================================================
+  // 🔐 Проверка авторизации
+  // =====================================================
+
   @Get('auth/status')
-  async getAuthStatus(@Headers('authorization') authHeader?: string) {
+  async getAuthStatus(
+    @Headers('authorization') authHeader?: string,
+    @Req() req?: Request,
+  ) {
     try {
-      const userId = this.extractUserId(authHeader);
+      const userId = this.extractUserId(authHeader, req);
       return { success: true, authenticated: true, userId };
     } catch (error) {
-      return { success: false, authenticated: false, error: (error as any).message || 'Unknown error' };
+      return {
+        success: false,
+        authenticated: false,
+        error: (error as any).message || 'Unknown error',
+      };
     }
   }
 }
