@@ -68,13 +68,6 @@ services:
       - ./backend/uploads:/app/uploads
     networks:
       - app_network
-    # ✅ Исправление ошибки "EACCES: permission denied"
-    command: >
-      sh -c "
-      mkdir -p /app/uploads &&
-      chmod -R 777 /app/uploads &&
-      node dist/main.js
-      "
 
   frontend:
     build:
@@ -103,7 +96,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./frontend/.next/static:/usr/share/nginx/html/_next/static:ro  # ⚙️ позволяет Nginx обслуживать статику Next.js (ускоряет загрузку)
+      - ./frontend/.next/static:/usr/share/nginx/html/_next/static:ro
     networks:
       - app_network
 

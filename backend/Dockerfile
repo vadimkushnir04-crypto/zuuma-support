@@ -22,29 +22,23 @@ COPY . .
 RUN npm run build
 
 # ==========================================
-# STAGE 3: Production
+# STAGE 3: Production Runtime
 # ==========================================
 FROM node:20-alpine
 
+# 🧹 минимальная утилита для чистого завершения процессов
 RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# ❗ Работает от root, чтобы избежать проблем с volume правами
+# (nodejs UID=1001 не сможет chmod на host volume)
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
 
-COPY --chown=nodejs:nodejs package*.json ./
-COPY --from=dependencies --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-
-COPY --chown=nodejs:nodejs rus.traineddata ./
-COPY --chown=nodejs:nodejs eng.traineddata ./
-
-RUN mkdir -p /app/uploads /app/logs && \
-    chown -R nodejs:nodejs /app/uploads /app/logs && \
-    chmod -R 777 /app/uploads /app/logs
-
-USER nodejs
+# 👇 создаём папки и выдаём полные права
+RUN mkdir -p /app/uploads /app/logs && chmod -R 777 /app/uploads /app/logs
 
 EXPOSE 8000
 
