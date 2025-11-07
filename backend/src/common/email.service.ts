@@ -332,7 +332,7 @@ export class EmailService {
               
               <p>Чтобы избежать прерывания обслуживания, рекомендуем как можно скорее обновить тарифный план:</p>
               
-              <a href="${this.frontendUrl}/billing" style="display: inline-block; background-color: ${triggerType === 'error' ? '#dc3545' : '#d9534f'}; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+              <a href="${this.frontendUrl}/profile" style="display: inline-block; background-color: ${triggerType === 'error' ? '#dc3545' : '#d9534f'}; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
                 ${callToAction}
               </a>
               
