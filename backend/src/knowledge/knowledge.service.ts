@@ -561,31 +561,56 @@ async generateAnswer(
                 await this.emailService.sendLowTokensWarning(
                   user.email,
                   remaining,
-                  tokensLimit
+                  tokensLimit,
+                  'threshold'  // ← Добавьте эту строку
                 );
                 console.log(`📧 Low tokens warning sent to: ${user.email}`);
-                
-                // Устанавливаем флаг
                 user.low_tokens_email_sent = true;
                 await this.dataSource.getRepository(User).save(user);
               } catch (emailError) {
                 console.error('❌ Failed to send low tokens email:', emailError.message);
-                // Не бросаем ошибку - не блокируем ответ
               }
             }
           }
-        } catch (error) {
-          console.error('❌ Token consumption error:', error.message);
-          
-          if (error.message === 'Недостаточно токенов') {
-            throw new BadRequestException({
-              success: false,
-              error: 'Недостаточно токенов. Пожалуйста, пополните баланс.',
-              type: 'INSUFFICIENT_TOKENS'
-            });
-          }
-          throw error;
-        }
+            } catch (error) {
+              console.error('❌ Token consumption error:', error.message);
+
+              if (error.message === 'Недостаточно токенов') {
+                try {
+                  // Получаем user заново (так как assistant недоступен в catch)
+                  const assistant = await this.dataSource
+                    .getRepository('Assistant')
+                    .findOne({ where: { id: assistantId }, relations: ['user'] });
+
+                  if (!assistant?.user) {
+                    console.warn('User not found for assistantId:', assistantId);
+                    throw error;
+                  }
+
+                  const user = assistant.user;
+                  const tokensLimit = Number(user.tokens_limit || 0);
+                  const tokensUsed = Number(user.tokens_used || 0);
+                  const remaining = tokensLimit - tokensUsed;
+
+                  await this.emailService.sendLowTokensWarning(
+                    user.email,
+                    remaining,
+                    tokensLimit,
+                    'error' // добавляем тип триггера
+                  );
+                  console.log(`📧 Low tokens alert sent on error to: ${user.email}`);
+                } catch (emailError) {
+                  console.error('❌ Failed to send error-triggered email:', emailError.message);
+                }
+
+                throw new BadRequestException({
+                  success: false,
+                  error: 'Недостаточно токенов. Пожалуйста, пополните баланс.',
+                  type: 'INSUFFICIENT_TOKENS'
+                });
+              }
+              throw error;
+            }
       }
     
     // ============================================

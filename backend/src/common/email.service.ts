@@ -110,24 +110,24 @@ export class EmailService {
         <!DOCTYPE html>
         <html>
           <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
-            <p>Привет 👋</p>
+            <p>Привет! 👋</p>
 
-            <p>Меня зовут Вадим — я создатель Zuuma.</p>
-            <p>Мы начали Zuuma, потому что хотели сделать простой и мощный инструмент для бизнеса — 
-            чтобы создавать AI-ассистентов, которые помогают вашим клиентам и командам без сложных настроек.</p>
+            <p>Я Вадим, создатель Zuuma. Мы делаем простой и мощный инструмент, чтобы вы могли легко создавать AI‑ассистентов для вашего бизнеса.</p>
 
-            <p>Перед тем как начать, подтвердите ваш email:</p>
-            <a href="${verificationUrl}" style="display: inline-block; background-color: #4a4a4a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            <p>Для начала работы подтвердите email:</p>
+
+            <a href="${verificationUrl}" style="display: inline-block; background-color: #007bff; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
               Подтвердить email
             </a>
 
-            <p>Или просто скопируйте ссылку:</p>
-            <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
+            <p>Или скопируйте ссылку:</p>
+            <p style="word-break: break-all; color: #666; font-size: 13px;">${verificationUrl}</p>
 
-            <p>✨ Спасибо, что присоединились!</p>
+            <p>Спасибо, что выбрали Zuuma! ✨</p>
+
 
             <p style="font-size: 13px; color: #777; margin-top: 40px;">
-              📧 По всем вопросам: <a href="mailto:delovoi.acount@gmail.com" style="color: #555;">delovoi.acount@gmail.com</a>
+              По вопросам: <a href="mailto:delovoi.acount@gmail.com" style="color: #007bff;">delovoi.acount@gmail.com</a>
             </p>
 
             <p style="margin-top: 10px; font-size: 12px; color: #999;">
@@ -174,38 +174,38 @@ export class EmailService {
         subject: '🔐 Подтвердите вход в Zuuma',
         text: `Кто-то пытается войти в ваш аккаунт. Если это вы, перейдите по ссылке: ${verificationUrl}`,
         html: `
-          <!DOCTYPE html>
-          <html>
-            <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
-              <h2>🔐 Подтвердите вход</h2>
-              
-              <p>Кто-то пытается войти в ваш аккаунт <strong>${email}</strong>.</p>
-              
-              <p>Если это <strong>вы</strong>, подтвердите вход:</p>
-              
-              <a href="${verificationUrl}" style="display: inline-block; background-color: #4a4a4a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
-                ✅ Подтвердить вход
-              </a>
+        <!DOCTYPE html>
+        <html>
+          <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+            <h2 style="margin-top: 0;">Подтвердите вход</h2>
 
-              <p style="color: #999; font-size: 14px;">Ссылка действительна 15 минут.</p>
+            <p>Кто-то попытался войти в ваш аккаунт: <strong>${email}</strong>.</p>
 
-              <p>Или скопируйте ссылку:</p>
-              <p style="word-break: break-all; color: #666; font-size: 13px;">${verificationUrl}</p>
+            <p>Если это вы — перейдите по ссылке ниже. Ссылка действительна <strong>15 минут</strong>.</p>
 
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
 
-              <p style="color: #d9534f; font-weight: bold;">⚠️ Если это НЕ вы:</p>
-              <ul style="color: #666;">
-                <li>Не переходите по ссылке</li>
-                <li>Кто-то знает ваш пароль — срочно смените его</li>
-                <li>Свяжитесь с нами: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a></li>
-              </ul>
+            <a href="${verificationUrl}" style="display: inline-block; background-color: #007bff; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+              Войти в аккаунт
+            </a>
 
-              <p style="margin-top: 32px; font-size: 12px; color: #999;">
-                Это письмо отправлено автоматически. Не отвечайте на него.
-              </p>
-            </body>
-          </html>
+            <p>Или скопируйте ссылку:</p>
+            <p style="word-break: break-all; color: #666; font-size: 13px;">${verificationUrl}</p>
+
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+
+            <p style="color: #d9534f; font-weight: bold; margin-bottom: 8px;">Если это не вы:</p>
+            <ul style="color: #666; margin-left: 20px;">
+              <li>Не переходите по ссылке</li>
+              <li>Смените пароль как можно скорее</li>
+              <li><a href="mailto:delovoi.acount@gmail.com" style="color: #d9534f;">Напишите нам</a>, если нужна помощь</li>
+            </ul>
+
+
+            <p style="margin-top: 32px; font-size: 12px; color: #999;">
+              Это автоматическое письмо. Не отвечайте на него.
+            </p>
+          </body>
+        </html>
         `,
       });
 
@@ -235,38 +235,36 @@ export class EmailService {
         to: email,
         subject: '🔑 Сброс пароля - Zuuma',
         html: `
-          <!DOCTYPE html>
-          <html>
-            <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
-              <h2>🔑 Сброс пароля</h2>
-              
-              <p>Вы запросили сброс пароля для аккаунта <strong>${email}</strong>.</p>
-              
-              <p>Нажмите на кнопку ниже чтобы создать новый пароль:</p>
-              
-              <a href="${resetUrl}" style="display: inline-block; background-color: #4a4a4a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
-                Сбросить пароль
-              </a>
+        <!DOCTYPE html>
+        <html>
+          <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+            <h2 style="margin-top: 0;">Сброс пароля</h2>
 
-              <p style="color: #999; font-size: 14px;">Ссылка действительна 1 час.</p>
+            <p>Мы получили запрос на сброс пароля для аккаунта: <strong>${email}</strong>.</p>
 
-              <p>Или скопируйте ссылку:</p>
-              <p style="word-break: break-all; color: #666; font-size: 13px;">${resetUrl}</p>
+            <p>Чтобы создать новый пароль, перейдите по ссылке ниже. Ссылка действительна <strong>1 час</strong>.</p>
 
-              <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+            <a href="${resetUrl}" style="display: inline-block; background-color: #007bff; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+              Создать новый пароль
+            </a>
 
-              <p style="color: #d9534f; font-weight: bold;">⚠️ Если вы НЕ запрашивали сброс пароля:</p>
-              <ul style="color: #666;">
-                <li>Проигнорируйте это письмо</li>
-                <li>Ваш пароль не изменится</li>
-                <li>Возможно кто-то пытается получить доступ к вашему аккаунту</li>
-              </ul>
+            <p>Или скопируйте ссылку:</p>
+            <p style="word-break: break-all; color: #666; font-size: 13px;">${resetUrl}</p>
 
-              <p style="margin-top: 32px; font-size: 12px; color: #999;">
-                По вопросам: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a>
-              </p>
-            </body>
-          </html>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+
+            <p style="color: #d9534f; font-weight: bold; margin-bottom: 8px;">Если вы не запрашивали сброс:</p>
+            <ul style="color: #666; margin-left: 20px;">
+              <li>Проигнорируйте это письмо</li>
+              <li>Ваш пароль останется прежним</li>
+              <li>Если подозреваете взлом — смените пароль в настройках</li>
+            </ul>
+
+            <p style="margin-top: 32px; font-size: 12px; color: #999;">
+              Вопросы? Пишите: <a href="mailto:delovoi.acount@gmail.com" style="color: #007bff;">delovoi.acount@gmail.com</a>
+            </p>
+          </body>
+        </html>
         `,
       });
 
@@ -277,87 +275,106 @@ export class EmailService {
     }
   }
 
-  async sendLowTokensWarning(email: string, remainingTokens: number, totalLimit: number): Promise<void> {
-  if (!this.isEnabled || !this.transporter) {
-    throw new Error('Email sending is temporarily unavailable.');
-  }
+  async sendLowTokensWarning(
+    email: string,
+    remainingTokens: number,
+    totalLimit: number,
+    triggerType: 'threshold' | 'error'
+  ): Promise<void> {
+    if (!this.isEnabled || !this.transporter) {
+      throw new Error('Email sending is temporarily unavailable.');
+    }
 
-  console.log('📧 [EmailService] Preparing low tokens warning email...');
-  console.log('📧 [EmailService] To:', email);
-  console.log('📧 [EmailService] From:', this.fromEmail);
-  console.log('📧 [EmailService] Remaining tokens:', remainingTokens);
-  console.log('📧 [EmailService] Total limit:', totalLimit);
+    const percentLeft = Math.round((remainingTokens / totalLimit) * 100);
+    const subject = triggerType === 'threshold'
+      ? `⚠️ Внимание: осталось ${percentLeft}% токенов`
+      : `🚨 Критично: не хватило токенов для обработки запроса`;
 
-  // Рассчитываем процент оставшихся токенов
-  const percentLeft = Math.round((remainingTokens / totalLimit) * 100);
 
-  try {
-    await this.transporter.sendMail({
-      from: `Vadim from Zuuma <${this.fromEmail}>`,
-      to: email,
-      subject: `⚠️ Внимание: осталось ${percentLeft}% токенов`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
-            <h2>⚠️ Внимание: низкий баланс токенов</h2>
-            
-            <p>Здравствуйте!</p>
-            
-            <p>Мы заметили, что в вашем аккаунте осталось всего:</p>
-            <ul style="margin: 16px 0; padding-left: 20px;">
-              <li><strong>${remainingTokens} токенов</strong> из ${totalLimit}</li>
-              <li>Это составляет <strong>${percentLeft}%</strong> от общего лимита</li>
-            </ul>
-            
-            <p>При текущем уровне использования ваши клиенты скоро могут перестать получать ответы от AI‑ассистента.</p>
-            
-            <p>Чтобы избежать прерывания обслуживания, рекомендуем как можно скорее обновить тарифный план:</p>
-            
-            <a href="${this.frontendUrl}/billing" style="display: inline-block; background-color: #d9534f; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
-              Обновить тариф
-            </a>
-            
-            <p>После пополнения баланса обслуживание возобновится мгновенно, и ваши клиенты снова смогут получать ответы в привычном режиме.</p>
-            
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
-            
-            <h3>Почему это важно?</h3>
-            <ul style="color: #666;">
-              <li>Прерывание ответов AI может негативно повлиять на опыт ваших клиентов</li>
-              <li>Возобновление работы потребует времени на пополнение баланса</li>
-              <li>Проактивное обновление тарифа гарантирует бесперебойную работу</li>
-            </ul>
+    const preheader = triggerType === 'threshold'
+      ? 'Ваш баланс токенов ниже 10%. Пополните, чтобы избежать прерывания работы.'
+      : 'Ваш запрос не обработан из-за нехватки токенов. Срочно пополните баланс.';
 
-            <div style="margin-top: 24px; padding: 16px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
-              <p style="margin: 0; color: #495057;">
-                <strong>Совет:</strong> Рассмотрите тариф с большим лимитом токенов — это поможет избежать частых уведомлений и обеспечит стабильную работу ассистента.
+
+    const callToAction = triggerType === 'threshold'
+      ? 'Обновить тариф'
+      : 'Пополнить баланс сейчас';
+
+
+    const explanation = triggerType === 'threshold'
+      ? `<p>При текущем уровне использования ваши клиенты скоро могут перестать получать ответы от AI‑ассистента.</p>`
+      : `<p>Ваш последний запрос не был обработан из-за недостатка токенов. Чтобы возобновить работу, срочно пополните баланс.</p>`;
+
+
+    try {
+      await this.transporter.sendMail({
+        from: `Vadim from Zuuma <${this.fromEmail}>`,
+        to: email,
+        subject,
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            </head>
+            <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+              <h2>${subject}</h2>
+              
+              <p>Здравствуйте!</p>
+              
+              ${explanation}
+              
+              <ul style="margin: 16px 0; padding-left: 20px;">
+                <li><strong>${remainingTokens} токенов</strong> из ${totalLimit}</li>
+                <li>Это составляет <strong>${percentLeft}%</strong> от общего лимита</li>
+              </ul>
+              
+              <p>Чтобы избежать прерывания обслуживания, рекомендуем как можно скорее обновить тарифный план:</p>
+              
+              <a href="${this.frontendUrl}/billing" style="display: inline-block; background-color: ${triggerType === 'error' ? '#dc3545' : '#d9534f'}; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+                ${callToAction}
+              </a>
+              
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+              
+              <h3>Почему это важно?</h3>
+              <ul style="color: #666;">
+                <li>Прерывание ответов AI может негативно повлиять на опыт ваших клиентов</li>
+                <li>Возобновление работы потребует времени на пополнение баланса</li>
+                <li>Проактивное обновление тарифа гарантирует бесперебойную работу</li>
+              </ul>
+
+              ${triggerType === 'threshold' ? `
+              <div style="margin-top: 24px; padding: 16px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+                <p style="margin: 0; color: #495057;">
+                  <strong>Совет:</strong> Рассмотрите тариф с большим лимитом токенов — это поможет избежать частых уведомлений и обеспечит стабильную работу ассистента.
+                </p>
+              </div>
+              ` : ''}
+
+              <p style="margin-top: 32px; font-size: 14px; color: #999;">
+                Если у вас возникли вопросы, напишите нам: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a>
               </p>
-            </div>
-            
-            <p style="margin-top: 32px; font-size: 14px; color: #999;">
-              Если у вас возникли вопросы, напишите нам: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a>
-            </p>
-            
-            <p style="margin-top: 10px; font-size: 12px; color: #999;">
-              Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.
-            </p>
-          </body>
-        </html>
-      `,
-    });
+              
+              <p style="margin-top: 10px; font-size: 12px; color: #999;">
+                Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.
+              </p>
+            </body>
+          </html>
+        `,
+        // Для почтовых клиентов (прехедер)
+        text: preheader,
+      });
 
-    console.log('✅ [EmailService] Low tokens warning email sent successfully');
-  } catch (error: any) {
-    console.error('❌ [EmailService] Failed to send low tokens warning email:', error.message);
-    if (error.code) {
-      console.error('❌ [EmailService] Error code:', error.code);
+      console.log(`✅ [EmailService] ${triggerType === 'threshold' ? 'Warning' : 'Alert'} sent to: ${email}`);
+    } catch (error: any) {
+      console.error(`❌ [EmailService] Failed to send ${triggerType} email to ${email}:`, error.message);
+      if (error.code) console.error('❌ [EmailService] Error code:', error.code);
+      if (error.response) console.error('❌ [EmailService] SMTP response:', error.response);
+      throw new Error(`Failed to send ${triggerType} email: ${error.message}`);
     }
-    if (error.response) {
-      console.error('❌ [EmailService] SMTP response:', error.response);
-    }
-    throw new Error(`Failed to send low tokens warning: ${error.message}`);
   }
-}
+
 
 }
