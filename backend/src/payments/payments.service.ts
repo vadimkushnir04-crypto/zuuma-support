@@ -158,60 +158,74 @@ async createPayment(userId: string, planSlug: string) {
 }
 
   /**
-   * ✅ ОБНОВЛЕНО: Webhook с сохранением payment_method_id
-   */
-  async handleWebhook(webhookData: any) {
-    console.log('🔥 Webhook received:', webhookData.event);
+ * ✅ Обновлённый обработчик Webhook от YooKassa
+ * - фильтрует дубликаты
+ * - логирует только важные события
+ * - возвращает "duplicate" при повторных уведомлениях
+ */
+async handleWebhook(webhookData: any) {
+  const eventType = webhookData.event;
+  const paymentObject = webhookData.object;
+  const yooPaymentId = paymentObject?.id;
 
-    const eventType = webhookData.event;
-
-    if (eventType === 'refund.succeeded') {
-      console.log('💸 Refund webhook, no action needed');
-      return;
-    }
-
-    const yooPaymentId = webhookData.object?.id;
-    if (!yooPaymentId) {
-      console.error('❌ No payment ID in webhook');
-      return;
-    }
-
-    const payment = await this.paymentRepository.findOne({
-      where: { yookassaPaymentId: yooPaymentId },
-      relations: ['plan'],
-    });
-
-    if (!payment) {
-      console.error('❌ Payment not found:', yooPaymentId);
-      return;
-    }
-
-    payment.yookassaStatus = webhookData.object.status;
-    payment.paymentMethod = webhookData.object.payment_method?.type;
-    await this.paymentRepository.save(payment);
-
-    if (webhookData.object.status === 'succeeded') {
-      console.log('🚀 Activating subscription...');
-      
-      if (payment.subscriptionId) {
-        console.log('⚠️ Subscription already exists');
-        return;
-      }
-      
-      // ✅ ВАЖНО: Извлекаем payment_method_id из webhook
-      const paymentMethodId = webhookData.object.payment_method?.id;
-      
-      try {
-        await this.activateSubscription(payment, paymentMethodId);
-        console.log('✅ Subscription activated with payment method:', paymentMethodId);
-      } catch (error) {
-        console.error('❌ Failed to activate subscription:', error);
-        throw error;
-      }
-    }
-
-    console.log('✅ Webhook processed');
+  // 🚨 Проверяем корректность webhook
+  if (!eventType || !yooPaymentId) {
+    console.warn('⚠️ Некорректный webhook: нет event или id');
+    return;
   }
+
+  // 🔁 Игнорируем нерелевантные события
+  if (['refund.succeeded', 'payout.succeeded'].includes(eventType)) {
+    console.log(`ℹ️ Webhook ${eventType} — пропущен`);
+    return;
+  }
+
+  // 🔍 Ищем платеж в базе
+  const payment = await this.paymentRepository.findOne({
+    where: { yookassaPaymentId: yooPaymentId },
+    relations: ['plan'],
+  });
+
+  if (!payment) {
+    console.warn(`⚠️ Платёж ${yooPaymentId} не найден (возможно тестовый)`);
+    return;
+  }
+
+  // 🌀 Проверяем дубликаты
+  if (payment.yookassaStatus === 'succeeded' && eventType === 'payment.succeeded') {
+    console.log(`🔁 Повторный webhook от YooKassa для платежа ${yooPaymentId} (игнорируем)`);
+    return 'duplicate';
+  }
+
+  // 💾 Обновляем статус платежа
+  payment.yookassaStatus = paymentObject.status;
+  payment.paymentMethod = paymentObject.payment_method?.type;
+  await this.paymentRepository.save(payment);
+
+  // 🚀 Активация подписки при успешном платеже
+  if (eventType === 'payment.succeeded') {
+    console.log(`✅ Платёж ${yooPaymentId} прошёл успешно`);
+
+    if (payment.subscriptionId) {
+      console.log(`⚠️ Подписка для платежа ${yooPaymentId} уже существует`);
+      return 'duplicate';
+    }
+
+    const paymentMethodId = paymentObject.payment_method?.id;
+
+    try {
+      await this.activateSubscription(payment, paymentMethodId);
+      console.log(`🎉 Подписка активирована (paymentMethodId: ${paymentMethodId})`);
+    } catch (error) {
+      console.error('❌ Ошибка при активации подписки:', error.message);
+    }
+  }
+
+  console.log(`✅ Webhook обработан: ${eventType} (${yooPaymentId})`);
+  return 'processed';
+}
+
+
 
   /**
    * ✅ Активация подписки с учетом тестового аккаунта
