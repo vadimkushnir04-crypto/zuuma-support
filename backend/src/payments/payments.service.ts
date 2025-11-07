@@ -355,19 +355,37 @@ async handleWebhook(webhookData: any) {
 
       console.log(`📊 Found ${expiredSubs.length} expired subscriptions`);
 
+      if (expiredSubs.length === 0) return;
+
+      // ⚙️ Получаем Free Plan из БД
+      const freePlan = await this.planRepository.findOne({
+        where: { title: 'Free Plan - Тестовый' },
+      });
+
+      if (!freePlan) {
+        console.warn('⚠️ Free план не найден — обновление пропущено');
+        return;
+      }
+
       for (const sub of expiredSubs) {
         try {
+          // 📴 Деактивируем подписку
           sub.status = 'cancelled';
           sub.autoRenew = false;
           await this.subscriptionRepository.save(sub);
 
-          // 🔄 Переключаем пользователя на бесплатный тариф (Free)
+          // 🔄 Переключаем пользователя на бесплатный тариф
           if (sub.user) {
             sub.user.plan = 'free';
+            sub.user.plan_id = freePlan.id;
+            sub.user.tokens_used = 0;
+            sub.user.tokens_limit = 100000; // лимит Free тарифа
+            sub.user.assistants_limit = 1;
             await this.userRepository.save(sub.user);
+
+            console.log(`✅ Subscription expired: ${sub.id}, user: ${sub.user.email} → switched to Free`);
           }
 
-          console.log(`✅ Subscription expired: ${sub.id}, user: ${sub.user.email}`);
         } catch (err) {
           console.error(`❌ Failed to deactivate subscription ${sub.id}:`, err);
         }
@@ -385,6 +403,7 @@ async handleWebhook(webhookData: any) {
       this.isProcessing = false;
     }
   }
+
 
   /**
    * ✅ НОВОЕ: Обработка автоматических платежей

@@ -34,6 +34,9 @@ export class User {
   @Column({ type: 'varchar', length: 20, default: 'free' })
   plan: 'free' | 'pro' | 'max';
 
+  @Column({ type: 'uuid', nullable: true })
+  plan_id: string | null;
+
   @Column({ type: 'bigint', default: 0 })
   tokens_used: number;
 
