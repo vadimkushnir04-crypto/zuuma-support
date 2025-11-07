@@ -61,92 +61,101 @@ export class PaymentsService {
   }
 
 
-  /**
-   * ✅ Создание платежа с учетом тестового аккаунта и реальной кассы
-   */
-  async createPayment(userId: string, planSlug: string) {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+async createPayment(userId: string, planSlug: string) {
+  const user = await this.userRepository.findOne({ where: { id: userId } });
+  if (!user) throw new NotFoundException('User not found');
 
-    const plan = await this.planRepository.findOne({ where: { slug: planSlug } });
-    if (!plan) throw new NotFoundException('Plan not found');
+  const plan = await this.planRepository.findOne({ where: { slug: planSlug } });
+  if (!plan) throw new NotFoundException('Plan not found');
 
-    if (parseInt(plan.price_cents) === 0) {
-      throw new BadRequestException('Cannot create payment for free plan');
-    }
+  if (parseInt(plan.price_cents) === 0) {
+    throw new BadRequestException('Cannot create payment for free plan');
+  }
 
-    const isTestAccount = user.email === 'delovoi.acount@gmail.com';
-    const testPriceCents = 5000; // 50 рублей
+  const isTestAccount = user.email === 'delovoi.acount@gmail.com';
+  const testPriceCents = 5000; // 50 рублей
 
-    const priceCents = isTestAccount ? testPriceCents : parseInt(plan.price_cents);
-    const amountInRubles = (priceCents / 100).toFixed(2);
+  const priceCents = isTestAccount ? testPriceCents : parseInt(plan.price_cents);
+  const amountInRubles = (priceCents / 100).toFixed(2);
 
-    const descriptionBase = `Подписка на план ${plan.title} (автопродление)`;
-    const description = isTestAccount
-      ? `${descriptionBase} — ТЕСТОВОЕ СПИСАНИЕ для ${user.email}`
-      : descriptionBase;
+  const description = `Подписка на план ${plan.title}`;
 
-    const payment = this.paymentRepository.create({
-      userId,
-      planId: plan.id,
-      amountCents: priceCents,
-      currency: 'RUB',
-      yookassaStatus: 'pending',
+  const payment = this.paymentRepository.create({
+    userId,
+    planId: plan.id,
+    amountCents: priceCents,
+    currency: 'RUB',
+    yookassaStatus: 'pending',
+    description,
+    metadata: {
+      planSlug,
+      planTitle: plan.title,
+      ...(isTestAccount && { test_account: true }),
+    },
+  });
+
+  const savedPayment = await this.paymentRepository.save(payment);
+
+  try {
+    const yooPayment = await this.yooKassa.createPayment({
+      amount: {
+        value: amountInRubles,
+        currency: 'RUB',
+      },
+      confirmation: {
+        type: 'redirect',
+        return_url: `${this.configService.get('FRONTEND_URL')}/profile?payment_success=true`,
+      },
+      capture: true,
+      save_payment_method: false, // ❌ отключаем рекурренты
       description,
+      receipt: {
+        customer: {
+          email: user.email,
+        },
+        items: [
+          {
+            description: plan.title,
+            amount: {
+              value: amountInRubles,
+              currency: 'RUB',
+            },
+            quantity: "1",
+            vat_code: 1, // без НДС
+          },
+        ],
+      },
       metadata: {
+        userId,
+        paymentId: savedPayment.id,
+        planId: plan.id,
         planSlug,
-        planTitle: plan.title,
         ...(isTestAccount && { test_account: true }),
       },
     });
 
-    const savedPayment = await this.paymentRepository.save(payment);
+    savedPayment.yookassaPaymentId = yooPayment.id;
+    savedPayment.yookassaStatus = yooPayment.status;
+    savedPayment.confirmationUrl = yooPayment.confirmation?.confirmation_url;
+    await this.paymentRepository.save(savedPayment);
 
-    try {
-      const yooPayment = await this.yooKassa.createPayment({
-        amount: {
-          value: amountInRubles,
-          currency: 'RUB',
-        },
-        confirmation: {
-          type: 'redirect',
-          return_url: `${this.configService.get('FRONTEND_URL')}/profile?payment_success=true`,
-        },
-        capture: true,
-        save_payment_method: false,
-        description,
-        metadata: {
-          userId,
-          paymentId: savedPayment.id,
-          planId: plan.id,
-          planSlug,
-          ...(isTestAccount && { test_account: true }),
-        },
-      });
+    console.log('✅ Payment created:', {
+      paymentId: savedPayment.id,
+      yookassaId: yooPayment.id,
+      amount: yooPayment.amount.value,
+      test: isTestAccount,
+    });
 
-      savedPayment.yookassaPaymentId = yooPayment.id;
-      savedPayment.yookassaStatus = yooPayment.status;
-      savedPayment.confirmationUrl = yooPayment.confirmation?.confirmation_url;
-      await this.paymentRepository.save(savedPayment);
-
-      console.log('✅ Payment created:', {
-        paymentId: savedPayment.id,
-        yookassaId: yooPayment.id,
-        amount: yooPayment.amount.value,
-        test: isTestAccount,
-      });
-
-      return {
-        paymentId: savedPayment.id,
-        confirmationUrl: yooPayment.confirmation?.confirmation_url,
-        amount: yooPayment.amount.value,
-      };
-    } catch (error) {
-      console.error('❌ YooKassa payment creation failed:', error);
-      throw new BadRequestException('Failed to create payment');
-    }
+    return {
+      paymentId: savedPayment.id,
+      confirmationUrl: yooPayment.confirmation?.confirmation_url,
+      amount: yooPayment.amount.value,
+    };
+  } catch (error) {
+    console.error('❌ YooKassa payment creation failed:', error.response?.data || error);
+    throw new BadRequestException('Failed to create payment');
   }
-
+}
 
   /**
    * ✅ ОБНОВЛЕНО: Webhook с сохранением payment_method_id

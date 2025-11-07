@@ -262,7 +262,6 @@ export default function ProfilePage() {
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
         'Всё, что в Free, плюс:',
         'До 10 ассистентов',
-        'API доступ',
       ];
     } else if (plan.slug === 'max') {
       features = [
@@ -479,7 +478,7 @@ export default function ProfilePage() {
 
           {activeTab === 'billing' && (
             <>
-              {/* ✅ Информация об автопродлении */}
+              {/* 🔒 Временно скрыто: автопродление
               {subscription && subscription.status === 'active' && !subscription.cancelledAt && subscription.autoRenew && (
                 <div style={styles.autoRenewSection}>
                   <div style={styles.autoRenewHeader}>
@@ -536,6 +535,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               )}
+            */}
 
               {/* ✅ Блок информации о подписке - показываем если активна ИЛИ отменена но еще действует */}
               {subscription && (
