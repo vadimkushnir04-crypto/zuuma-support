@@ -277,4 +277,87 @@ export class EmailService {
     }
   }
 
+  async sendLowTokensWarning(email: string, remainingTokens: number, totalLimit: number): Promise<void> {
+  if (!this.isEnabled || !this.transporter) {
+    throw new Error('Email sending is temporarily unavailable.');
+  }
+
+  console.log('📧 [EmailService] Preparing low tokens warning email...');
+  console.log('📧 [EmailService] To:', email);
+  console.log('📧 [EmailService] From:', this.fromEmail);
+  console.log('📧 [EmailService] Remaining tokens:', remainingTokens);
+  console.log('📧 [EmailService] Total limit:', totalLimit);
+
+  // Рассчитываем процент оставшихся токенов
+  const percentLeft = Math.round((remainingTokens / totalLimit) * 100);
+
+  try {
+    await this.transporter.sendMail({
+      from: `Vadim from Zuuma <${this.fromEmail}>`,
+      to: email,
+      subject: `⚠️ Внимание: осталось ${percentLeft}% токенов`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <body style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; line-height: 1.6; color: #333;">
+            <h2>⚠️ Внимание: низкий баланс токенов</h2>
+            
+            <p>Здравствуйте!</p>
+            
+            <p>Мы заметили, что в вашем аккаунте осталось всего:</p>
+            <ul style="margin: 16px 0; padding-left: 20px;">
+              <li><strong>${remainingTokens} токенов</strong> из ${totalLimit}</li>
+              <li>Это составляет <strong>${percentLeft}%</strong> от общего лимита</li>
+            </ul>
+            
+            <p>При текущем уровне использования ваши клиенты скоро могут перестать получать ответы от AI‑ассистента.</p>
+            
+            <p>Чтобы избежать прерывания обслуживания, рекомендуем как можно скорее обновить тарифный план:</p>
+            
+            <a href="${this.frontendUrl}/billing" style="display: inline-block; background-color: #d9534f; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 16px 0;">
+              Обновить тариф
+            </a>
+            
+            <p>После пополнения баланса обслуживание возобновится мгновенно, и ваши клиенты снова смогут получать ответы в привычном режиме.</p>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 32px 0;" />
+            
+            <h3>Почему это важно?</h3>
+            <ul style="color: #666;">
+              <li>Прерывание ответов AI может негативно повлиять на опыт ваших клиентов</li>
+              <li>Возобновление работы потребует времени на пополнение баланса</li>
+              <li>Проактивное обновление тарифа гарантирует бесперебойную работу</li>
+            </ul>
+
+            <div style="margin-top: 24px; padding: 16px; background-color: #f8f9fa; border-left: 4px solid #007bff;">
+              <p style="margin: 0; color: #495057;">
+                <strong>Совет:</strong> Рассмотрите тариф с большим лимитом токенов — это поможет избежать частых уведомлений и обеспечит стабильную работу ассистента.
+              </p>
+            </div>
+            
+            <p style="margin-top: 32px; font-size: 14px; color: #999;">
+              Если у вас возникли вопросы, напишите нам: <a href="mailto:delovoi.acount@gmail.com">delovoi.acount@gmail.com</a>
+            </p>
+            
+            <p style="margin-top: 10px; font-size: 12px; color: #999;">
+              Это автоматическое уведомление. Пожалуйста, не отвечайте на это письмо.
+            </p>
+          </body>
+        </html>
+      `,
+    });
+
+    console.log('✅ [EmailService] Low tokens warning email sent successfully');
+  } catch (error: any) {
+    console.error('❌ [EmailService] Failed to send low tokens warning email:', error.message);
+    if (error.code) {
+      console.error('❌ [EmailService] Error code:', error.code);
+    }
+    if (error.response) {
+      console.error('❌ [EmailService] SMTP response:', error.response);
+    }
+    throw new Error(`Failed to send low tokens warning: ${error.message}`);
+  }
+}
+
 }

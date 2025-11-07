@@ -82,81 +82,83 @@ async createPayment(userId: string, planSlug: string) {
 
   const description = `Подписка на план ${plan.title}`;
 
-  const payment = this.paymentRepository.create({
-    userId,
-    planId: plan.id,
-    amountCents: priceCents,
-    currency: 'RUB',
-    yookassaStatus: 'pending',
-    description,
-    metadata: {
-      planSlug,
-      planTitle: plan.title,
-      ...(isTestAccount && { test_account: true }),
-    },
-  });
-
-  const savedPayment = await this.paymentRepository.save(payment);
-
-  try {
-    const yooPayment = await this.yooKassa.createPayment({
-      amount: {
-        value: amountInRubles,
-        currency: 'RUB',
-      },
-      confirmation: {
-        type: 'redirect',
-        return_url: `${this.configService.get('FRONTEND_URL')}/profile?payment_success=true`,
-      },
-      capture: true,
-      save_payment_method: false, // ❌ отключаем рекурренты
+  return await this.dataSource.transaction(async (manager) => {
+    const payment = manager.create(Payment, {
+      userId,
+      planId: plan.id,
+      amountCents: priceCents,
+      currency: 'RUB',
+      yookassaStatus: 'pending',
       description,
-      receipt: {
-        customer: {
-          email: user.email,
-        },
-        items: [
-          {
-            description: plan.title,
-            amount: {
-              value: amountInRubles,
-              currency: 'RUB',
-            },
-            quantity: "1",
-            vat_code: 1, // без НДС
-          },
-        ],
-      },
       metadata: {
-        userId,
-        paymentId: savedPayment.id,
-        planId: plan.id,
         planSlug,
+        planTitle: plan.title,
         ...(isTestAccount && { test_account: true }),
       },
     });
 
-    savedPayment.yookassaPaymentId = yooPayment.id;
-    savedPayment.yookassaStatus = yooPayment.status;
-    savedPayment.confirmationUrl = yooPayment.confirmation?.confirmation_url;
-    await this.paymentRepository.save(savedPayment);
+    const savedPayment = await manager.save(payment);
 
-    console.log('✅ Payment created:', {
-      paymentId: savedPayment.id,
-      yookassaId: yooPayment.id,
-      amount: yooPayment.amount.value,
-      test: isTestAccount,
-    });
+    try {
+      const yooPayment = await this.yooKassa.createPayment({
+        amount: {
+          value: amountInRubles,
+          currency: 'RUB',
+        },
+        confirmation: {
+          type: 'redirect',
+          return_url: `${this.configService.get('FRONTEND_URL')}/profile?payment_success=true`,
+        },
+        capture: true,
+        save_payment_method: false, // ❌ отключаем рекурренты
+        description,
+        receipt: {
+          customer: {
+            email: user.email,
+          },
+          items: [
+            {
+              description: plan.title,
+              amount: {
+                value: amountInRubles,
+                currency: 'RUB',
+              },
+              quantity: "1",
+              vat_code: 1, // без НДС
+            },
+          ],
+        },
+        metadata: {
+          userId,
+          paymentId: savedPayment.id,
+          planId: plan.id,
+          planSlug,
+          ...(isTestAccount && { test_account: true }),
+        },
+      });
 
-    return {
-      paymentId: savedPayment.id,
-      confirmationUrl: yooPayment.confirmation?.confirmation_url,
-      amount: yooPayment.amount.value,
-    };
-  } catch (error) {
-    console.error('❌ YooKassa payment creation failed:', error.response?.data || error);
-    throw new BadRequestException('Failed to create payment');
-  }
+      savedPayment.yookassaPaymentId = yooPayment.id;
+      savedPayment.yookassaStatus = yooPayment.status;
+      savedPayment.confirmationUrl = yooPayment.confirmation?.confirmation_url;
+      await manager.save(savedPayment);
+
+      console.log('✅ Payment created:', {
+        paymentId: savedPayment.id,
+        yookassaId: yooPayment.id,
+        amount: yooPayment.amount.value,
+        test: isTestAccount,
+      });
+
+      return {
+        paymentId: savedPayment.id,
+        confirmationUrl: yooPayment.confirmation?.confirmation_url,
+        amount: yooPayment.amount.value,
+      };
+    } catch (error) {
+      console.error('❌ YooKassa payment creation failed:', error.response?.data || error);
+      throw new BadRequestException('Failed to create payment');
+    }
+  });
 }
 
   /**
@@ -232,87 +234,81 @@ async handleWebhook(webhookData: any) {
   /**
    * ✅ Активация подписки с учетом тестового аккаунта
    */
-  private async activateSubscription(payment: Payment, paymentMethodId?: string) {
-    console.log('📄 Starting subscription activation');
+private async activateSubscription(payment: Payment, paymentMethodId?: string) {
+  console.log('📄 Starting subscription activation');
 
-    const subscription = await this.dataSource.transaction(async (manager) => {
-      const plan = await manager.findOne(Plan, { where: { id: payment.planId } });
-      if (!plan) throw new Error('Plan not found');
+  const subscription = await this.dataSource.transaction(async (manager) => {
+    const plan = await manager.findOne(Plan, { where: { id: payment.planId } });
+    if (!plan) throw new Error('Plan not found');
 
-      const user = await manager.findOne(User, { where: { id: payment.userId } });
-      const isTestAccount = user?.email === 'delovoi.acount@gmail.com';
+    const user = await manager.findOne(User, { where: { id: payment.userId } });
 
-      // Отменяем старые подписки
-      const oldSubs = await manager.find(Subscription, {
-        where: { userId: payment.userId, status: 'active' },
-      });
-      for (const s of oldSubs) {
-        s.status = 'cancelled';
-        s.cancelledAt = new Date();
-        await manager.save(s);
-      }
+    // Отменяем старые подписки
+    const oldSubs = await manager.find(Subscription, {
+      where: { userId: payment.userId, status: 'active' },
+    });
+    for (const s of oldSubs) {
+      s.status = 'cancelled';
+      s.cancelledAt = new Date();
+      await manager.save(s);
+    }
 
-      const now = new Date();
-      const expiresAt = new Date(now);
-      const nextBillingDate = new Date(now);
+    const now = new Date();
+    const expiresAt = new Date(now);
+    const nextBillingDate = new Date(now);
 
-      if (isTestAccount) {
-        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // истекает через 10 минут
-        nextBillingDate.setMinutes(nextBillingDate.getMinutes() + 10);
-        console.log(`⚠️ TEST ACCOUNT: short billing period for ${user.email}`);
-      } else if (this.TEST_MODE) {
-        expiresAt.setMinutes(expiresAt.getMinutes() + this.TEST_PERIOD_MINUTES);
-        nextBillingDate.setMinutes(nextBillingDate.getMinutes() + this.TEST_PERIOD_MINUTES);
-      } else {
-        expiresAt.setMonth(expiresAt.getMonth() + 1);
-        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
-      }
+    if (this.TEST_MODE) {
+      expiresAt.setMinutes(expiresAt.getMinutes() + this.TEST_PERIOD_MINUTES);
+      nextBillingDate.setMinutes(nextBillingDate.getMinutes() + this.TEST_PERIOD_MINUTES);
+    } else {
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+    }
 
-      const refundDeadline = new Date(now);
-      refundDeadline.setDate(refundDeadline.getDate() + this.GRACE_PERIOD_DAYS);
+    const refundDeadline = new Date(now);
+    refundDeadline.setDate(refundDeadline.getDate() + this.GRACE_PERIOD_DAYS);
 
-      const subscription = manager.create(Subscription, {
-        userId: payment.userId,
-        planId: plan.id,
-        status: 'active',
-        startedAt: now,
-        expiresAt,
-        refundDeadline,
-        canRefund: true,
-        autoRenew: true,
-        paymentMethodId,
-        nextBillingDate,
-        failedPaymentsCount: 0,
-      });
-
-      const savedSubscription = await manager.save(subscription);
-
-      payment.subscriptionId = savedSubscription.id;
-      await manager.save(payment);
-
-      if (user) {
-        user.plan = plan.slug as 'free' | 'pro' | 'max';
-        user.tokens_limit = parseInt(plan.monthly_tokens);
-        user.tokens_used = 0;
-        user.assistants_limit =
-          plan.slug === 'free' ? 1 :
-          plan.slug === 'pro' ? 10 :
-          plan.slug === 'max' ? 50 : 1;
-        await manager.save(user);
-      }
-
-      console.log('✅ Subscription activated:', {
-        id: savedSubscription.id,
-        expiresAt: expiresAt.toISOString(),
-        nextBillingDate: nextBillingDate.toISOString(),
-        testAccount: isTestAccount,
-      });
-
-      return savedSubscription;
+    const subscription = manager.create(Subscription, {
+      userId: payment.userId,
+      planId: plan.id,
+      status: 'active',
+      startedAt: now,
+      expiresAt,
+      refundDeadline,
+      canRefund: true,
+      autoRenew: true,
+      paymentMethodId,
+      nextBillingDate,
+      failedPaymentsCount: 0,
     });
 
-    return subscription;
-  }
+    const savedSubscription = await manager.save(subscription);
+
+    payment.subscriptionId = savedSubscription.id;
+    await manager.save(payment);
+
+    if (user) {
+      user.plan = plan.slug as 'free' | 'pro' | 'max';
+      user.tokens_limit = parseInt(plan.monthly_tokens);
+      user.tokens_used = 0;
+      user.assistants_limit =
+        plan.slug === 'free' ? 1 :
+        plan.slug === 'pro' ? 10 :
+        plan.slug === 'max' ? 50 : 1;
+      await manager.save(user);
+    }
+
+    console.log('✅ Subscription activated:', {
+      id: savedSubscription.id,
+      expiresAt: expiresAt.toISOString(),
+      nextBillingDate: nextBillingDate.toISOString(),
+    });
+
+    return savedSubscription;
+  });
+
+  return subscription;
+}
 
 
      /**
@@ -596,44 +592,47 @@ async handleWebhook(webhookData: any) {
     // TODO: Отправить email о отмене подписки
   }
 
-  /**
+/**
    * Отмена подписки пользователем
    */
   async cancelSubscription(userId: string, subscriptionId: string) {
-    const subscription = await this.subscriptionRepository.findOne({
-      where: { id: subscriptionId, userId },
-      relations: ['plan'],
+    return await this.dataSource.transaction(async (manager) => {
+      const subscription = await manager.findOne(Subscription, {
+        where: { id: subscriptionId, userId },
+        relations: ['plan'],
+      });
+
+      if (!subscription) {
+        throw new NotFoundException('Subscription not found');
+      }
+
+      if (subscription.status !== 'active') {
+        throw new BadRequestException('Subscription is not active');
+      }
+
+      const now = new Date();
+      subscription.status = 'cancelled';
+      subscription.cancelledAt = now;
+      subscription.autoRenew = false; // ✅ ОТКЛЮЧАЕМ автопродление
+
+      await manager.save(subscription);
+
+      console.log('✅ Subscription cancelled by user:', subscriptionId);
+      
+      const expiresAt = subscription.expiresAt || now;
+      const refundDeadline = subscription.refundDeadline || now;
+      const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      return {
+        success: true,
+        canRefund: subscription.canRefund && now <= refundDeadline,
+        expiresAt,
+        daysLeft,
+        message: subscription.canRefund && now <= refundDeadline
+          ? `Подписка отменена. Автопродление отключено. Вы можете запросить возврат средств. План будет активен до ${expiresAt.toLocaleDateString('ru-RU')}.`
+          : `Подписка отменена. Автопродление отключено. Токены останутся активными до ${expiresAt.toLocaleDateString('ru-RU')} (${daysLeft} дн.).`,
+      };
     });
-
-    if (!subscription) {
-      throw new NotFoundException('Subscription not found');
-    }
-
-    if (subscription.status !== 'active') {
-      throw new BadRequestException('Subscription is not active');
-    }
-
-    const now = new Date();
-    subscription.status = 'cancelled';
-    subscription.cancelledAt = now;
-    subscription.autoRenew = false; // ✅ ОТКЛЮЧАЕМ автопродление
-
-    await this.subscriptionRepository.save(subscription);
-
-    console.log('✅ Subscription cancelled by user:', subscriptionId);
-    
-    const expiresAt = subscription.expiresAt;
-    const daysLeft = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    return {
-      success: true,
-      canRefund: subscription.canRefund && now <= subscription.refundDeadline!,
-      expiresAt,
-      daysLeft,
-      message: subscription.canRefund && now <= subscription.refundDeadline!
-        ? `Подписка отменена. Автопродление отключено. Вы можете запросить возврат средств. План будет активен до ${expiresAt.toLocaleDateString('ru-RU')}.`
-        : `Подписка отменена. Автопродление отключено. Токены останутся активными до ${expiresAt.toLocaleDateString('ru-RU')} (${daysLeft} дн.).`,
-    };
   }
 
   /**
@@ -890,7 +889,7 @@ async handleWebhook(webhookData: any) {
     await this.subscriptionRepository.save(subscription);
 
     const message = subscription.autoRenew
-      ? `✅ Автопродление включено. Следующее списание: ${subscription.nextBillingDate?.toLocaleDateString('ru-RU')}`
+      ? `✅ Автопродление включено. Следующее списание: ${(subscription.nextBillingDate || new Date()).toLocaleDateString('ru-RU')}`
       : '❌ Автопродление отключено. Подписка останется активной до конца оплаченного периода.';
 
     console.log(`🔄 Auto-renew toggled:`, {

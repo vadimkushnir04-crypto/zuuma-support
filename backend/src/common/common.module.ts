@@ -5,6 +5,7 @@ import { RateLimiterService } from './rate-limiter.service';
 import { RateLimitGuard } from './rate-limit.guard';
 import { CacheService } from './cache.service';
 import { LLMService } from './llm.service';
+import { EmailService } from './email.service';
 
 @Global()
 @Module({
@@ -14,6 +15,7 @@ import { LLMService } from './llm.service';
     RateLimitGuard,
     CacheService,
     LLMService,
+    EmailService,
   ],
   exports: [
     EncryptionService,
@@ -21,6 +23,7 @@ import { LLMService } from './llm.service';
     RateLimitGuard,
     CacheService,
     LLMService,
+    EmailService,
   ],
 })
 export class CommonModule {

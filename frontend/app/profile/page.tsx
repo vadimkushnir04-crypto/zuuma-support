@@ -448,6 +448,12 @@ export default function ProfilePage() {
                         }}
                       ></div>
                     </div>
+                    {tokensLimit - tokensUsed < 2000 && (
+                      <div style={{ marginTop: 8, color: '#ff6b6b', fontSize: 14 }}>
+                        <AlertCircle size={16} style={{ marginRight: 4 }} />
+                        Токенов недостаточно для полноценного ответа. Обновите тариф, чтобы ассистент продолжал отвечать вашим клиентам!
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -29,6 +29,9 @@ import { DataSource } from 'typeorm';
 import { TokensService } from '../tokens/tokens.service';
 import { Assistant } from '../assistants/entities/assistant.entity';
 
+import { EmailService } from '../common/email.service';
+import { User } from '../entities/user.entity';
+
 
 @Injectable()
 export class KnowledgeService {
@@ -39,6 +42,7 @@ constructor(
   private readonly globalFunctionsService: GlobalFunctionsService,
   private readonly aiFunctionService: AIFunctionCallingService,
   private readonly answerCache: AnswerCacheService,
+  private emailService: EmailService,
   private readonly fileProcessingService: FileProcessingService,
   private readonly llmService: LLMService,
   private readonly cannedResponsesService: CannedResponsesService,
@@ -179,7 +183,7 @@ constructor(
       }
     }
 
-  async generateAnswer(
+async generateAnswer(
     query: string,
     collectionName: string,
     systemPrompt?: string,
@@ -505,55 +509,84 @@ constructor(
 
     console.log('🚫 Support-phrases filtered');
     
-    // ============================================
-    // 💰 СПИСАНИЕ ТОКЕНОВ (ОДИН РАЗ!)
-    // ============================================
+      // ============================================
+      // 💰 СПИСАНИЕ ТОКЕНОВ (ОДИН РАЗ!)
+      // ============================================
 
-    if (assistantId) {
-      try {
-        const assistant = await this.dataSource
-          .getRepository('Assistant')
-          .findOne({ where: { id: assistantId }, relations: ['user'] });
+      if (assistantId) {
+        try {
+          const assistant = await this.dataSource
+            .getRepository('Assistant')
+            .findOne({ where: { id: assistantId }, relations: ['user'] });
 
-        if (assistant?.user?.id) {
-          const embeddingTokens = Math.ceil(query.length / 4);
-          const totalTokensToCharge = totalTokens + embeddingTokens;
-          
-          console.log('💰 Token calculation:', {
-            llmTokens: totalTokens,
-            embeddingTokens: embeddingTokens,
-            totalToCharge: totalTokensToCharge
-          });
-          
-          await this.tokensService.consumeTokens(
-            assistant.user.id,
-            totalTokensToCharge,
-            assistantId,
-            {
-              question: query.substring(0, 100),
-              promptTokens: promptTokens,
-              completionTokens: completionTokens,
+          if (assistant?.user?.id) {
+            const embeddingTokens = Math.ceil(query.length / 4);
+            const totalTokensToCharge = totalTokens + embeddingTokens;
+            
+            console.log('💰 Token calculation:', {
+              llmTokens: totalTokens,
               embeddingTokens: embeddingTokens,
-              totalTokens: totalTokensToCharge,
-              hasContext: isRelevant,
+              totalToCharge: totalTokensToCharge
+            });
+            
+            await this.tokensService.consumeTokens(
+              assistant.user.id,
+              totalTokensToCharge,
+              assistantId,
+              {
+                question: query.substring(0, 100),
+                promptTokens: promptTokens,
+                completionTokens: completionTokens,
+                embeddingTokens: embeddingTokens,
+                totalTokens: totalTokensToCharge,
+                hasContext: isRelevant,
+              }
+            );
+            
+            console.log(`✅ Charged ${totalTokensToCharge} tokens successfully`);
+
+            // ============================================
+            // 📧 ПРОВЕРКА И ОТПРАВКА EMAIL О НИЗКОМ БАЛАНСЕ
+            // ============================================
+            
+            // Получаем актуальный баланс после списания
+            const user = assistant.user;
+            const tokensLimit = Number(user.tokens_limit || 0);
+            const tokensUsed = Number(user.tokens_used || 0);
+            const remaining = tokensLimit - tokensUsed;
+            const percentLeft = (remaining / tokensLimit) * 100;
+
+            if (percentLeft <= 10 && !user.low_tokens_email_sent) {
+              try {
+                await this.emailService.sendLowTokensWarning(
+                  user.email,
+                  remaining,
+                  tokensLimit
+                );
+                console.log(`📧 Low tokens warning sent to: ${user.email}`);
+                
+                // Устанавливаем флаг
+                user.low_tokens_email_sent = true;
+                await this.dataSource.getRepository(User).save(user);
+              } catch (emailError) {
+                console.error('❌ Failed to send low tokens email:', emailError.message);
+                // Не бросаем ошибку - не блокируем ответ
+              }
             }
-          );
+          }
+        } catch (error) {
+          console.error('❌ Token consumption error:', error.message);
           
-          console.log(`✅ Charged ${totalTokensToCharge} tokens successfully`);
+          if (error.message === 'Недостаточно токенов') {
+            throw new BadRequestException({
+              success: false,
+              error: 'Недостаточно токенов. Пожалуйста, пополните баланс.',
+              type: 'INSUFFICIENT_TOKENS'
+            });
+          }
+          throw error;
         }
-      } catch (error) {
-        console.error('❌ Token consumption error:', error.message);
-        
-        if (error.message === 'Недостаточно токенов') {
-          throw new BadRequestException({
-            success: false,
-            error: 'Недостаточно токенов. Пожалуйста, пополните баланс.',
-            type: 'INSUFFICIENT_TOKENS'
-          });
-        }
-        throw error;
       }
-    }
     
     // ============================================
     // 🚨 ПРОВЕРКА НА ЭСКАЛАЦИЮ
@@ -572,7 +605,7 @@ constructor(
         searchResults: searchResults.slice(0, 3).map(r => ({
           text: r.payload.text.substring(0, 200) + '...',
           score: Math.round(r.score * 100) / 100,
-          title: r.payload.title ?? 'Документ',        // ✅
+          title: r.payload.title ?? 'Документ',
           chunkIndex: r.payload.chunkIndex,
         }))
       };
@@ -692,7 +725,7 @@ constructor(
       } catch (error) {
         console.error('❌ Error in generateAnswer:', error);
         return { 
-          answer: 'Извините, произошла ошибка. Попробуйте ещё раз.', 
+          answer: 'Извините, произошла ошибка. Попробуйте обратиться позже.', 
           hasContext: false, 
           sources: 0, 
           error: error.message 
