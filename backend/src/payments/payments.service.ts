@@ -12,6 +12,8 @@ import { Plan } from '../tokens/plan.entity';
 import { TokensService } from '../tokens/tokens.service';
 import { YooCheckout } from '@a2seven/yoo-checkout';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { LessThan } from 'typeorm';
+
 
 @Injectable()
 export class PaymentsService {
@@ -317,41 +319,65 @@ async handleWebhook(webhookData: any) {
    * ✅ CRON-задача с защитой от параллельного запуска
    * Использует advisory lock на уровне PostgreSQL
    */
-// ❌ Отключаем автосписания пока что
-// @Cron(process.env.SUBSCRIPTION_TEST_MODE === 'true'
-//   ? `*/${parseInt(process.env.SUBSCRIPTION_CRON_INTERVAL_MINUTES || '10', 10)} * * * *`
-//   : '10 * * * *')
-  async checkExpiringSubs() {
+  @Cron('*/10 * * * *') // каждые 10 минут
+  async checkExpiredSubscriptions() {
     if (this.isProcessing) {
-      console.log('⚠️ Skip cron — already running in this instance');
+      console.log('⚠️ Skip cron — already running');
       return;
     }
 
     this.isProcessing = true;
-    console.log('🕒 CRON TRIGGERED', new Date().toISOString());
+    console.log('🕒 Checking expired subscriptions:', new Date().toISOString());
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
     try {
-      // 🔒 Пытаемся захватить advisory lock (уникальный ключ 987654321)
-      const lockResult = await queryRunner.query(`SELECT pg_try_advisory_lock(987654321);`);
+      // 🔒 Захватываем блокировку, чтобы не запустилось несколько раз
+      const lockResult = await queryRunner.query(`SELECT pg_try_advisory_lock(123456789);`);
       const lockAcquired = lockResult[0]?.pg_try_advisory_lock;
 
       if (!lockAcquired) {
-        console.log('⚠️ Another instance is already running checkExpiringSubs() — skipping');
+        console.log('⚠️ Another instance is already running this job');
         return;
       }
 
-      console.log('🔐 Lock acquired — processing recurring payments...');
-      await this.processRecurringPayments();
+      const now = new Date();
+
+      // 🔍 Ищем все активные подписки, срок которых истёк
+      const expiredSubs = await this.subscriptionRepository.find({
+        where: {
+          status: 'active',
+          expiresAt: LessThan(now),
+        },
+        relations: ['user', 'plan'],
+      });
+
+      console.log(`📊 Found ${expiredSubs.length} expired subscriptions`);
+
+      for (const sub of expiredSubs) {
+        try {
+          sub.status = 'cancelled';
+          sub.autoRenew = false;
+          await this.subscriptionRepository.save(sub);
+
+          // 🔄 Переключаем пользователя на бесплатный тариф (Free)
+          if (sub.user) {
+            sub.user.plan = 'free';
+            await this.userRepository.save(sub.user);
+          }
+
+          console.log(`✅ Subscription expired: ${sub.id}, user: ${sub.user.email}`);
+        } catch (err) {
+          console.error(`❌ Failed to deactivate subscription ${sub.id}:`, err);
+        }
+      }
 
     } catch (error) {
-      console.error('❌ Error in cron job:', error);
+      console.error('❌ Error in checkExpiredSubscriptions:', error);
     } finally {
-      // 🔓 Освобождаем блокировку, если взяли её
       try {
-        await queryRunner.query(`SELECT pg_advisory_unlock(987654321);`);
+        await queryRunner.query(`SELECT pg_advisory_unlock(123456789);`);
       } catch (e) {
         console.warn('⚠️ Could not release advisory lock:', e);
       }
