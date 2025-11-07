@@ -75,7 +75,7 @@ async createPayment(userId: string, planSlug: string) {
   }
 
   const isTestAccount = user.email === 'delovoi.acount@gmail.com';
-  const testPriceCents = 5000; // 50 рублей
+  const testPriceCents = 2000; // 20 рублей
 
   const priceCents = isTestAccount ? testPriceCents : parseInt(plan.price_cents);
   const amountInRubles = (priceCents / 100).toFixed(2);
