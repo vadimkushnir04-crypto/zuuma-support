@@ -379,7 +379,7 @@ async handleWebhook(webhookData: any) {
             sub.user.plan = 'free';
             sub.user.plan_id = freePlan.id;
             sub.user.tokens_used = 0;
-            sub.user.tokens_limit = 100000; // лимит Free тарифа
+            sub.user.tokens_limit = parseInt(freePlan.monthly_tokens);
             sub.user.assistants_limit = 1;
             await this.userRepository.save(sub.user);
 
