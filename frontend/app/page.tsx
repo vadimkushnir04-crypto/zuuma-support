@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Bot, Database, Zap, MessageCircle, CheckCircle, Smile, Upload, Puzzle, ArrowRight } from "lucide-react";
 
+
 export const metadata: Metadata = {
   title: "Главная",
   description: "AI-ассистенты для вашего бизнеса. Превратите свои документы в интеллектуальных помощников. Бесплатный тариф, интеграция с Telegram.",
@@ -9,6 +10,9 @@ export const metadata: Metadata = {
     title: "Zuuma — AI Ассистенты для бизнеса",
     description: "Создайте AI-ассистента за 5 минут. Обучение на ваших документах.",
   },
+  other: {
+    'yandex-verification': 'e1f34ea762753642'  // <-- ваш код верификации
+  }
 };
 
 export default function Home() {
