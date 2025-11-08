@@ -66,19 +66,6 @@ export default function Home() {
               Ассистент сам научится отвечать клиентам в Telegram, на сайте или по API.
             </p>
 
-            <div className="business-hero-stats">
-              <div className="stat-item">
-                <div className="stat-number">24/7</div>
-                <div className="stat-label">Работа без выходных</div>
-              </div>
-              <div className="stat-divider"></div>
-              <div className="stat-divider"></div>
-              <div className="stat-item">
-                <div className="stat-number">0₽</div>
-                <div className="stat-label">Старт бесплатно</div>
-              </div>
-            </div>
-
             <div className="business-hero-actions">
               <Link href="/assistants/create" className="btn-primary-large">
                 <Bot className="w-6 h-6" />
