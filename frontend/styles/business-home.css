@@ -1,0 +1,666 @@
+/* ============================================
+   BUSINESS HOME PAGE STYLES
+   Современный дизайн для бизнес-аудитории
+   ============================================ */
+
+.business-home {
+  background: #121212;
+  color: #E0E0E0;
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.business-hero {
+  min-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.business-hero::before {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  top: -250px;
+  right: -250px;
+  pointer-events: none;
+}
+
+.business-hero-content {
+  max-width: 900px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.business-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60A5FA;
+  padding: 0.5rem 1.5rem;
+  border-radius: 100px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+.business-hero-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+  color: #FFFFFF;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.business-hero-subtitle {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: #B0B0B0;
+  margin-bottom: 3rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.business-hero-stats {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #808080;
+  font-weight: 500;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: #2a2a2a;
+}
+
+.business-hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+  color: white;
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(59, 130, 246, 0.4);
+}
+
+.btn-secondary-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: transparent;
+  color: #E0E0E0;
+  padding: 1rem 2.5rem;
+  border-radius: 12px;
+  border: 2px solid #2a2a2a;
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary-large:hover {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.business-hero-note {
+  font-size: 0.875rem;
+  color: #808080;
+  margin-top: 2rem;
+}
+
+/* ============================================
+   STEPS SECTION
+   ============================================ */
+
+.business-steps {
+  padding: 6rem 2rem;
+  background: #121212;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #FFFFFF;
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  text-align: center;
+  color: #B0B0B0;
+  margin-bottom: 4rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  align-items: center;
+}
+
+.step-card {
+  background: linear-gradient(135deg, #1a1a1a 0%, #151515 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.step-card:hover {
+  transform: translateY(-5px);
+  border-color: #3B82F6;
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.2);
+}
+
+.step-number {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #60A5FA;
+}
+
+.step-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-icon-upload {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22C55E;
+}
+
+.step-icon-ai {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #A855F7;
+}
+
+.step-icon-integrate {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #3B82F6;
+}
+
+.step-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #FFFFFF;
+}
+
+.step-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #B0B0B0;
+}
+
+.step-arrow {
+  font-size: 2rem;
+  color: #3B82F6;
+  text-align: center;
+  font-weight: 300;
+}
+
+/* ============================================
+   BENEFITS SECTION
+   ============================================ */
+
+.business-benefits {
+  padding: 6rem 2rem;
+  background: linear-gradient(180deg, #121212 0%, #0a0a0a 100%);
+}
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.benefit-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.benefit-card:hover {
+  border-color: #3B82F6;
+  transform: translateY(-3px);
+}
+
+.benefit-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.benefit-icon-cost {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+}
+
+.benefit-icon-time {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+}
+
+.benefit-icon-scale {
+  background: rgba(168, 85, 247, 0.1);
+  color: #A855F7;
+}
+
+.benefit-icon-security {
+  background: rgba(234, 179, 8, 0.1);
+  color: #EAB308;
+}
+
+.benefit-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: #FFFFFF;
+}
+
+.benefit-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #B0B0B0;
+}
+
+/* ============================================
+   USE CASES SECTION
+   ============================================ */
+
+.business-usecases {
+  padding: 6rem 2rem;
+  background: #121212;
+}
+
+.usecases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.usecase-card {
+  background: linear-gradient(135deg, #1a1a1a 0%, #151515 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.usecase-card:hover {
+  transform: translateY(-5px);
+  border-color: #3B82F6;
+}
+
+.usecase-emoji {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.usecase-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  color: #FFFFFF;
+}
+
+.usecase-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #B0B0B0;
+}
+
+/* ============================================
+   PRICING PREVIEW SECTION
+   ============================================ */
+
+.business-pricing-preview {
+  padding: 6rem 2rem;
+  background: linear-gradient(180deg, #0a0a0a 0%, #121212 100%);
+}
+
+.pricing-preview-content {
+  text-align: center;
+}
+
+.pricing-cards-mini {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 3rem;
+}
+
+.pricing-card-mini {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 16px;
+  padding: 2rem;
+  min-width: 220px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.pricing-card-mini:hover {
+  transform: translateY(-5px);
+  border-color: #3B82F6;
+}
+
+.pricing-card-featured {
+  border-color: #3B82F6;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  transform: scale(1.05);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+  color: white;
+  padding: 0.25rem 1rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pricing-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 1rem;
+}
+
+.pricing-price {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.5rem;
+}
+
+.pricing-price span {
+  font-size: 1rem;
+  color: #808080;
+  font-weight: 500;
+}
+
+.pricing-feature {
+  font-size: 0.875rem;
+  color: #B0B0B0;
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================
+   CTA SECTION
+   ============================================ */
+
+.business-cta {
+  padding: 6rem 2rem;
+  background: #121212;
+}
+
+.cta-card {
+  max-width: 700px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+  border: 1px solid #2a2a2a;
+  border-radius: 24px;
+  padding: 4rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-card::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+  top: -150px;
+  left: -150px;
+  pointer-events: none;
+}
+
+.cta-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: #FFFFFF;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-subtitle {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: #B0B0B0;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-note {
+  font-size: 0.875rem;
+  color: #808080;
+  margin-top: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-link {
+  color: #60A5FA;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.cta-link:hover {
+  color: #A78BFA;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  .business-hero {
+    min-height: auto;
+    padding: 3rem 1.5rem;
+  }
+
+  .business-hero-title {
+    font-size: 2rem;
+  }
+
+  .business-hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .business-hero-stats {
+    gap: 1rem;
+  }
+
+  .stat-number {
+    font-size: 2rem;
+  }
+
+  .stat-divider {
+    display: none;
+  }
+
+  .business-hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-primary-large,
+  .btn-secondary-large {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .step-arrow {
+    transform: rotate(90deg);
+    margin: 1rem 0;
+  }
+
+  .section-title {
+    font-size: 2rem;
+  }
+
+  .business-steps,
+  .business-benefits,
+  .business-usecases,
+  .business-pricing-preview,
+  .business-cta {
+    padding: 3rem 1.5rem;
+  }
+
+  .pricing-cards-mini {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pricing-card-featured {
+    transform: scale(1);
+  }
+
+  .cta-card {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .cta-title {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .business-badge {
+    font-size: 0.75rem;
+    padding: 0.4rem 1rem;
+  }
+
+  .business-hero-title {
+    font-size: 1.75rem;
+  }
+
+  .stat-item {
+    flex: 1;
+    min-width: 100px;
+  }
+}

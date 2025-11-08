@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, Database, Zap, MessageCircle, CheckCircle, Smile, Upload, Puzzle, ArrowRight } from "lucide-react";
-
+import { Bot, Upload, Zap, CheckCircle, TrendingUp, Clock, Shield } from "lucide-react";
+import Script from "next/script";
+import '../styles/business-home.css'
 
 export const metadata: Metadata = {
   title: "Главная",
@@ -11,142 +12,242 @@ export const metadata: Metadata = {
     description: "Создайте AI-ассистента за 5 минут. Обучение на ваших документах.",
   },
   other: {
-    'yandex-verification': 'e1f34ea762753642'  // <-- ваш код верификации
+    'yandex-verification': 'e1f34ea762753642'
   }
 };
 
 export default function Home() {
-  const workflowSteps = [
-    { 
-      id: 1, 
-      title: "1. Создайте ассистента", 
-      description: "Настройте, как он будет общаться с клиентами: дружелюбно, профессионально или в вашем уникальном стиле",
-      icon: Bot,
-      color: "from-blue-500 to-blue-600"
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Zuuma",
+    "applicationCategory": "BusinessApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "RUB",
+      "description": "Бесплатный тариф доступен"
     },
-    { 
-      id: 2, 
-      title: "2. Загрузите данные", 
-      description: "Добавьте тексты, изображения или подключите простые интеграции, например, с Telegram или вашей базой данных",
-      icon: Upload,
-      color: "from-green-500 to-green-600"
+    "description": "Платформа для создания AI-ассистентов для автоматизации поддержки клиентов. Интеграция с Telegram, обучение на ваших данных.",
+    "operatingSystem": "Web",
+    "url": "https://zuuma.ru",
+    "provider": {
+      "@type": "Organization",
+      "name": "Zuuma",
+      "url": "https://zuuma.ru"
     },
-    { 
-      id: 3, 
-      title: "3. Автоматическая обработка", 
-      description: "Мы подготовим вашу информацию для быстрого и удобного использования",
-      icon: Puzzle,
-      color: "from-purple-500 to-purple-600"
-    },
-    { 
-      id: 4, 
-      title: "4. Хранение знаний", 
-      description: "Все данные надежно сохранятся в нашей системе для круглосуточной работы ассистента",
-      icon: Database,
-      color: "from-orange-500 to-orange-600"
-    },
-    { 
-      id: 5, 
-      title: "5. Клиент спрашивает", 
-      description: "Вопрос приходит в чат, Telegram или на сайт",
-      icon: MessageCircle,
-      color: "from-pink-500 to-pink-600"
-    },
-    { 
-      id: 6, 
-      title: "6. Поиск информации", 
-      description: "Ассистент быстро находит нужные сведения из ваших данных",
-      icon: Zap,
-      color: "from-yellow-500 to-yellow-600"
-    },
-    { 
-      id: 7, 
-      title: "7. Ответ клиенту", 
-      description: "Ассистент формирует точный ответ на основе вашей информации",
-      icon: CheckCircle,
-      color: "from-emerald-500 to-emerald-600"
-    },
-    { 
-      id: 8, 
-      title: "8. Довольный клиент", 
-      description: "Клиент получает полезный ответ, как от живого специалиста",
-      icon: Smile,
-      color: "from-emerald-500 to-emerald-600"
-    }
-  ];
+    "featureList": [
+      "Создание AI-ассистентов",
+      "Обучение на документах",
+      "Интеграция с Telegram",
+      "Веб-виджет для сайта",
+      "RAG (Retrieval-Augmented Generation)",
+      "Поддержка YandexGPT"
+    ]
+  };
 
   return (
-    <div className="modern-home">
-      {/* Hero Section */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">
-            AI-ассистенты для вашего бизнеса
-          </h1>
-          
-          <p className="hero-subtitle">
-            Превратите свои документы и знания в умных помощников, 
-            которые отвечают клиентам круглосуточно — просто и без программирования
-          </p>
+    <>
+      <Script
+        id="structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
 
-          <div className="hero-actions">
-            <Link href="/assistants/create" className="hero-btn-primary">
-              <Bot className="w-5 h-5" />
-              Создать ассистента
-            </Link>
-            <Link href="/assistants" className="hero-btn-primary">
-              <Bot className="w-5 h-5" />
-              Мои ассистенты
-            </Link>
-            <Link href="/tutorials" className="hero-btn-secondary">
-              Посмотреть инструкции
-            </Link>
-          </div>
-        </div>
-      </section>
+      <div className="business-home">
+        {/* Hero Section - Увеличен и акцентирован */}
+        <section className="business-hero">
+          <div className="business-hero-content">
+            <div className="business-badge">
+              ⚡ Запуск за 5 минут
+            </div>
+            
+            <h1 className="business-hero-title">
+              Замените чат менеджера на <span className="gradient-text">AI-ассистента</span>
+            </h1>
+            
+            <p className="business-hero-subtitle">
+              Загрузите информацию о продукте, как для нового сотрудника. 
+              Ассистент сам научится отвечать клиентам в Telegram, на сайте.
+            </p>
 
-      {/* How it works */}
-      <section className="workflow-section">
-        <div className="workflow-grid">
-          {workflowSteps.map((step, index) => {
-            const IconComponent = step.icon;
-            return (
-              <div key={step.id} className="workflow-card">
-                <div className="workflow-card-header">
-                  <div className={`workflow-icon bg-gradient-to-r ${step.color}`}>
-                    <IconComponent className="w-6 h-6 text-white" />
-                  </div>
-                </div>
-                
-                <div className="workflow-content">
-                  <h3 className="workflow-title">{step.title}</h3>
-                  <p className="workflow-description">{step.description}</p>
-                </div>
-                
-                {index < workflowSteps.length - 1 && (
-                  <div className="workflow-arrow">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
-                )}
+            <div className="business-hero-stats">
+              <div className="stat-item">
+                <div className="stat-number">24/7</div>
+                <div className="stat-label">Работа без выходных</div>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <div className="stat-number">10x</div>
+                <div className="stat-label">Быстрее ответы</div>
+              </div>
+              <div className="stat-divider"></div>
+              <div className="stat-item">
+                <div className="stat-number">0₽</div>
+                <div className="stat-label">Можно начать с бесплатного тарифа</div>
+              </div>
+            </div>
 
-      {/* CTA Section */}
-      <section className="cta-section">
-        <div className="cta-content">
-          <h2 className="cta-title">Готовы начать?</h2>
-          <p className="cta-subtitle">
-            Создайте своего первого AI-ассистента прямо сейчас — бесплатно и просто
-          </p>
-          <Link href="/assistants/create" className="cta-button">
-            <Bot className="w-5 h-5" />
-            Создать ассистента бесплатно
-          </Link>
-        </div>
-      </section>
-    </div>
+            <div className="business-hero-actions">
+              <Link href="/assistants/create" className="btn-primary-large">
+                <Bot className="w-6 h-6" />
+                Создать ассистента бесплатно
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* How it works - Упрощенно для бизнесменов */}
+        <section className="business-steps">
+          <div className="container">
+            <h2 className="section-title">Как это работает</h2>
+            <p className="section-subtitle">
+              Три простых шага от идеи до работающего ассистента
+            </p>
+
+            <div className="steps-grid">
+              <div className="step-card">
+                <div className="step-number">1</div>
+                <div className="step-icon-wrapper step-icon-upload">
+                  <Upload className="w-8 h-8" />
+                </div>
+                <h3 className="step-title">Загрузите знания</h3>
+                <p className="step-description">
+                  Добавьте тексты, прайс-листы, инструкции — всё, что обычно объясняете новому сотруднику. 
+                  Система сама всё обработает.
+                </p>
+              </div>
+
+              <div className="step-arrow">→</div>
+
+              <div className="step-card">
+                <div className="step-number">2</div>
+                <div className="step-icon-wrapper step-icon-ai">
+                  <Zap className="w-8 h-8" />
+                </div>
+                <h3 className="step-title">AI учится</h3>
+                <p className="step-description">
+                  Искусственный интеллект изучает вашу информацию и готовится отвечать на вопросы клиентов 
+                  точно и по делу.
+                </p>
+              </div>
+
+              <div className="step-arrow">→</div>
+
+              <div className="step-card">
+                <div className="step-number">3</div>
+                <div className="step-icon-wrapper step-icon-integrate">
+                  <CheckCircle className="w-8 h-8" />
+                </div>
+                <h3 className="step-title">Интегрируйте</h3>
+                <p className="step-description">
+                  Добавьте ассистента в Telegram-бот, на сайт или подключите через API. 
+                  Готово — клиенты получают ответы мгновенно.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Benefits - Что получает бизнес */}
+        <section className="business-benefits">
+          <div className="container">
+            <h2 className="section-title">Что это даст вашему бизнесу</h2>
+            
+            <div className="benefits-grid">
+              <div className="benefit-card">
+                <div className="benefit-icon benefit-icon-cost">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <h3 className="benefit-title">Экономия на поддержке</h3>
+                <p className="benefit-text">
+                  Ассистент обрабатывает рутинные вопросы. Менеджеры занимаются только сложными кейсами.
+                </p>
+              </div>
+
+              <div className="benefit-card">
+                <div className="benefit-icon benefit-icon-time">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <h3 className="benefit-title">Ответы за секунды</h3>
+                <p className="benefit-text">
+                  Клиенты не ждут. Получают точные ответы мгновенно, даже ночью и в выходные.
+                </p>
+              </div>
+
+              <div className="benefit-card">
+                <div className="benefit-icon benefit-icon-scale">
+                  <Bot className="w-6 h-6" />
+                </div>
+                <h3 className="benefit-title">Масштабируемость</h3>
+                <p className="benefit-text">
+                  Один ассистент обслуживает хоть 10, хоть 10 000 клиентов одновременно без потери качества.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Use Cases - Примеры использования */}
+        <section className="business-usecases">
+          <div className="container">
+            <h2 className="section-title">Где применяется</h2>
+            
+            <div className="usecases-grid">
+              <div className="usecase-card">
+                <div className="usecase-emoji">🛍️</div>
+                <h3 className="usecase-title">Интернет-магазин</h3>
+                <p className="usecase-text">
+                  Ассистент помогает выбрать товар, отвечает на вопросы о доставке и оплате, 
+                  проверяет наличие на складе.
+                </p>
+              </div>
+
+              <div className="usecase-card">
+                <div className="usecase-emoji">🏢</div>
+                <h3 className="usecase-title">B2B компания</h3>
+                <p className="usecase-text">
+                  Отвечает партнёрам про условия сотрудничества, прайсы, технические характеристики продукции.
+                </p>
+              </div>
+
+              <div className="usecase-card">
+                <div className="usecase-emoji">🎓</div>
+                <h3 className="usecase-title">Онлайн-школа</h3>
+                <p className="usecase-text">
+                  Консультирует студентов по расписанию, программе курсов, отвечает на частые вопросы об обучении.
+                </p>
+              </div>
+
+              <div className="usecase-card">
+                <div className="usecase-emoji">🏥</div>
+                <h3 className="usecase-title">Клиника</h3>
+                <p className="usecase-text">
+                  Информирует о врачах, услугах и ценах, помогает записаться на приём, отвечает про подготовку к процедурам.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="business-cta">
+          <div className="cta-card">
+            <h2 className="cta-title">Попробуйте прямо сейчас</h2>
+            <p className="cta-subtitle">
+              Создайте своего первого AI-ассистента за 5 минут. 
+              Бесплатно, без карты, без обязательств.
+            </p>
+            <Link href="/assistants/create" className="btn-primary-large">
+              <Bot className="w-6 h-6" />
+              Начать бесплатно
+            </Link>
+            <p className="cta-note">
+              Уже есть аккаунт? <Link href="/assistants" className="cta-link">Войти →</Link>
+            </p>
+          </div>
+        </section>
+      </div>
+    </>
   );
 }
