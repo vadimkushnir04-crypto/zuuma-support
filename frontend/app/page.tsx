@@ -63,7 +63,7 @@ export default function Home() {
             
             <p className="business-hero-subtitle">
               Загрузите информацию о продукте, как для нового сотрудника. 
-              Ассистент сам научится отвечать клиентам в Telegram, на сайте или по API.
+              Ассистент сам научится отвечать клиентам в Telegram или на сайте
             </p>
 
             <div className="business-hero-actions">
