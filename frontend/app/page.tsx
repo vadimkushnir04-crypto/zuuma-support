@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, Upload, Zap, CheckCircle, TrendingUp, Clock, Shield } from "lucide-react";
+import { Bot, Upload, Zap, TrendingUp, Clock, Shield } from "lucide-react";
 import Script from "next/script";
-import '../styles/business-home.css'
 
 export const metadata: Metadata = {
   title: "Главная",
@@ -55,20 +54,16 @@ export default function Home() {
       />
 
       <div className="business-home">
-        {/* Hero Section - Увеличен и акцентирован */}
+        {/* Hero Section */}
         <section className="business-hero">
           <div className="business-hero-content">
-            <div className="business-badge">
-              ⚡ Запуск за 5 минут
-            </div>
-            
             <h1 className="business-hero-title">
               Замените чат менеджера на <span className="gradient-text">AI-ассистента</span>
             </h1>
             
             <p className="business-hero-subtitle">
               Загрузите информацию о продукте, как для нового сотрудника. 
-              Ассистент сам научится отвечать клиентам в Telegram, на сайте.
+              Ассистент сам научится отвечать клиентам в Telegram, на сайте или по API.
             </p>
 
             <div className="business-hero-stats">
@@ -77,14 +72,10 @@ export default function Home() {
                 <div className="stat-label">Работа без выходных</div>
               </div>
               <div className="stat-divider"></div>
-              <div className="stat-item">
-                <div className="stat-number">10x</div>
-                <div className="stat-label">Быстрее ответы</div>
-              </div>
               <div className="stat-divider"></div>
               <div className="stat-item">
                 <div className="stat-number">0₽</div>
-                <div className="stat-label">Можно начать с бесплатного тарифа</div>
+                <div className="stat-label">Старт бесплатно</div>
               </div>
             </div>
 
@@ -108,41 +99,37 @@ export default function Home() {
             <div className="steps-grid">
               <div className="step-card">
                 <div className="step-number">1</div>
-                <div className="step-icon-wrapper step-icon-upload">
-                  <Upload className="w-8 h-8" />
+                <div className="step-icon-wrapper step-icon-create">
+                  <Bot className="w-8 h-8" />
                 </div>
-                <h3 className="step-title">Загрузите знания</h3>
+                <h3 className="step-title">Создайте ассистента</h3>
                 <p className="step-description">
-                  Добавьте тексты, прайс-листы, инструкции — всё, что обычно объясняете новому сотруднику. 
-                  Система сама всё обработает.
+                  Настройте, как ваш AI-помощник будет общаться с клиентами — профессионально, 
+                  дружелюбно или в вашем уникальном стиле.
                 </p>
               </div>
-
-              <div className="step-arrow">→</div>
 
               <div className="step-card">
                 <div className="step-number">2</div>
-                <div className="step-icon-wrapper step-icon-ai">
-                  <Zap className="w-8 h-8" />
+                <div className="step-icon-wrapper step-icon-upload">
+                  <Upload className="w-8 h-8" />
                 </div>
-                <h3 className="step-title">AI учится</h3>
+                <h3 className="step-title">Обучите загрузив данные</h3>
                 <p className="step-description">
-                  Искусственный интеллект изучает вашу информацию и готовится отвечать на вопросы клиентов 
-                  точно и по делу.
+                  Загрузите прайс-листы, инструкции, FAQ — всю информацию, которую нужно знать вашему ассистенту. 
+                  Система автоматически обработает данные.
                 </p>
               </div>
-
-              <div className="step-arrow">→</div>
 
               <div className="step-card">
                 <div className="step-number">3</div>
                 <div className="step-icon-wrapper step-icon-integrate">
-                  <CheckCircle className="w-8 h-8" />
+                  <Zap className="w-8 h-8" />
                 </div>
-                <h3 className="step-title">Интегрируйте</h3>
+                <h3 className="step-title">Интегрируйте в Telegram или на сайт</h3>
                 <p className="step-description">
-                  Добавьте ассистента в Telegram-бот, на сайт или подключите через API. 
-                  Готово — клиенты получают ответы мгновенно.
+                  Подключите ассистента к Telegram-боту или добавьте виджет на свой сайт. 
+                  Готово — ваши клиенты получают мгновенные ответы 24/7.
                 </p>
               </div>
             </div>
@@ -166,16 +153,6 @@ export default function Home() {
               </div>
 
               <div className="benefit-card">
-                <div className="benefit-icon benefit-icon-time">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <h3 className="benefit-title">Ответы за секунды</h3>
-                <p className="benefit-text">
-                  Клиенты не ждут. Получают точные ответы мгновенно, даже ночью и в выходные.
-                </p>
-              </div>
-
-              <div className="benefit-card">
                 <div className="benefit-icon benefit-icon-scale">
                   <Bot className="w-6 h-6" />
                 </div>
@@ -184,6 +161,7 @@ export default function Home() {
                   Один ассистент обслуживает хоть 10, хоть 10 000 клиентов одновременно без потери качества.
                 </p>
               </div>
+
             </div>
           </div>
         </section>
