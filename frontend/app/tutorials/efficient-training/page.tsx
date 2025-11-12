@@ -22,7 +22,6 @@ export default function EfficientTrainingTutorial() {
     try {
       await navigator.clipboard.writeText(code);
     } catch {
-      // ✅ fallback для Safari
       const textarea = document.createElement("textarea");
       textarea.value = code;
       document.body.appendChild(textarea);
@@ -35,69 +34,21 @@ export default function EfficientTrainingTutorial() {
   };
 
   const badExample = `Вопрос клиента: "Какая у вас цена на доставку?"
-
 ❌ ПЛОХОЙ ответ (расточительный):
-"Здравствуйте! Благодарим вас за обращение к нам. Мы очень рады помочь вам с вопросом о стоимости доставки. Наша компания предлагает различные варианты доставки, и цена зависит от нескольких факторов. 
-
-Во-первых, стоимость зависит от вашего местоположения. Если вы находитесь в пределах города, доставка будет стоить 300 рублей. Если же вы находитесь за городом, стоимость может варьироваться от 500 до 1000 рублей в зависимости от расстояния.
-
-Во-вторых, стоимость также зависит от веса вашего заказа. Для заказов весом до 5 кг стоимость стандартная, как я указал выше. Для более тяжелых заказов может быть дополнительная плата.
-
-Также хочу отметить, что при заказе на сумму более 3000 рублей доставка по городу бесплатная! Это отличная возможность сэкономить.
-
-Если у вас есть какие-либо дополнительные вопросы о доставке или о наших услугах в целом, пожалуйста, не стесняйтесь спрашивать. Мы всегда рады помочь!"
-
-Проблемы:
-- Слишком много воды и вежливости
-- Избыточная детализация без запроса
-- 1247 символов вместо 200-300`;
+"Здравствуйте! ..."`
 
   const goodExample = `✅ ХОРОШИЙ ответ (экономный):
 "Доставка по городу - 300₽, за город - от 500₽.
 При заказе от 3000₽ доставка бесплатно.
-Нужна доставка?"
-
-Преимущества:
-- Краткий и по делу
-- Вся ключевая информация
-- Только 89 символов
-- Экономия токенов в 14 раз!`;
+Нужна доставка?"`
 
   const trainingDoc = `# Правила ответов ассистента
-
 ## Стиль общения
 - Отвечай кратко и по делу
 - Избегай длинных приветствий
 - Не повторяй вопрос клиента
 - Убирай лишнюю вежливость
-
-## Структура ответа
-1. Сразу к сути вопроса
-2. Конкретные факты
-3. Вопрос для уточнения (если нужно)
-
-## Примеры ХОРОШИХ ответов
-Вопрос: "Когда доставка?"
-Ответ: "Доставка завтра с 10 до 18. Удобное время?"
-
-Вопрос: "Есть скидки?"
-Ответ: "Да, 10% на первый заказ. Промокод: FIRST10"
-
-Вопрос: "Как оплатить?"
-Ответ: "Карта, наличные или Сбербанк Онлайн. Что удобнее?"
-
-## Чего ИЗБЕГАТЬ
-❌ "Здравствуйте! Благодарим за обращение..."
-❌ "Давайте я подробно расскажу обо всех наших..."
-❌ "Если у вас есть дополнительные вопросы..."
-❌ Повторение информации
-❌ Лишние извинения
-
-## Длина ответа
-- Простой вопрос: 1-2 предложения (50-150 символов)
-- Средний вопрос: 2-3 предложения (150-300 символов)
-- Сложный вопрос: не более 500 символов
-
+...
 ВАЖНО: Каждый символ стоит денег. Будь максимально эффективным!`;
 
   return (
@@ -119,7 +70,7 @@ export default function EfficientTrainingTutorial() {
                 Эффективное обучение AI-ассистента (оптимизация токенов)
               </h1>
               <p className="tutorial-subtitle">
-                Как сделать вашего бота умнее, быстрее и в 10 раз экономнее
+                Как сделать вашего бота умнее, быстрее и экономнее
               </p>
             </div>
           </div>
@@ -128,6 +79,7 @@ export default function EfficientTrainingTutorial() {
 
       {/* Content */}
       <div className="tutorial-content">
+        {/* Почему важно */}
         <div className="tutorial-section" id="why-it-matters">
           <h2 className="tutorial-section-title">Почему это важно?</h2>
           <div className="tutorial-warning-box">
@@ -135,9 +87,8 @@ export default function EfficientTrainingTutorial() {
             <div>
               <strong>Проблема: избыточные ответы = большие расходы</strong>
               <p>
-                LLM-модели тарифицируются по токенам. Один длинный ответ может
-                стоить в <strong>10–20 раз дороже</strong> короткого. При
-                тысячах запросов в день это выливается в реальные расходы!
+                LLM-модели тарифицируются по токенам. Длинный ответ может стоить
+                в <strong>10–20 раз дороже</strong> короткого.
               </p>
             </div>
           </div>
@@ -158,6 +109,7 @@ export default function EfficientTrainingTutorial() {
           </div>
         </div>
 
+        {/* Примеры */}
         <div className="tutorial-section" id="examples">
           <h2 className="tutorial-section-title">Сравнение подходов</h2>
 
@@ -168,11 +120,7 @@ export default function EfficientTrainingTutorial() {
                 onClick={() => copyToClipboard(badExample, 1)}
                 className="tutorial-copy-btn"
               >
-                {copiedCode === 1 ? (
-                  <CheckCircle size={16} />
-                ) : (
-                  <Copy size={16} />
-                )}
+                {copiedCode === 1 ? <CheckCircle size={16} /> : <Copy size={16} />}
                 {copiedCode === 1 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
@@ -188,11 +136,7 @@ export default function EfficientTrainingTutorial() {
                 onClick={() => copyToClipboard(goodExample, 2)}
                 className="tutorial-copy-btn"
               >
-                {copiedCode === 2 ? (
-                  <CheckCircle size={16} />
-                ) : (
-                  <Copy size={16} />
-                )}
+                {copiedCode === 2 ? <CheckCircle size={16} /> : <Copy size={16} />}
                 {copiedCode === 2 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
@@ -202,25 +146,20 @@ export default function EfficientTrainingTutorial() {
           </div>
         </div>
 
+        {/* Документ */}
         <div className="tutorial-section" id="training-doc">
           <h2 className="tutorial-section-title">Документ для обучения</h2>
           <p className="tutorial-text">
             Создайте документ с правилами и загрузите его в раздел{" "}
             <Link href="/assistants/education" className="tutorial-link">
               Обучение ассистента
-            </Link>
-            . Это будет базовое знание бота о том, как отвечать клиентам.
+            </Link>.
           </p>
 
           <button
             className="tutorial-toggle-btn"
             onClick={() => setShowDoc(!showDoc)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              marginBottom: "10px",
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}
           >
             {showDoc ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             {showDoc ? "Скрыть документ" : "Показать документ"}
@@ -234,22 +173,11 @@ export default function EfficientTrainingTutorial() {
                   onClick={() => copyToClipboard(trainingDoc, 3)}
                   className="tutorial-copy-btn"
                 >
-                  {copiedCode === 3 ? (
-                    <CheckCircle size={16} />
-                  ) : (
-                    <Copy size={16} />
-                  )}
+                  {copiedCode === 3 ? <CheckCircle size={16} /> : <Copy size={16} />}
                   {copiedCode === 3 ? "Скопировано!" : "Копировать"}
                 </button>
               </div>
-              <pre
-                className="tutorial-code"
-                style={{
-                  fontSize: "12px",
-                  maxHeight: "400px",
-                  overflow: "auto",
-                }}
-              >
+              <pre className="tutorial-code" style={{ fontSize: "12px", maxHeight: "400px", overflow: "auto", wordBreak: "break-word" }}>
                 <code>{trainingDoc}</code>
               </pre>
             </div>

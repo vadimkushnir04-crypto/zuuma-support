@@ -167,15 +167,16 @@ module.exports = { sendConfiguredMessage, config };`;
               <p className="tutorial-subtitle">
                 Универсальная настройка чат-бота через конфигурационные файлы
               </p>
+              {/* Beta notice */}
+              <div className="tutorial-beta-notice">
+                ⚠️ API подключения и JSON конфигурация находятся в бета-версии. Возможны ошибки и нестабильная работа.
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Beta notice */}
-      <div className="tutorial-beta-notice">
-        ⚠️ API подключения и JSON конфигурация находятся в бета-версии. Возможны ошибки и нестабильная работа.
-      </div>
+
 
       {/* Content */}
       <div className="tutorial-content">
