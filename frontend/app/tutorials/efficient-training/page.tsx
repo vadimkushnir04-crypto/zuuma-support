@@ -1,14 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Copy, CheckCircle, Brain, AlertTriangle, TrendingDown, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  CheckCircle,
+  Brain,
+  AlertTriangle,
+  TrendingDown,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function EfficientTrainingTutorial() {
   const [copiedCode, setCopiedCode] = useState<number | null>(null);
+  const [showDoc, setShowDoc] = useState(false);
 
-  const copyToClipboard = (code: string, index: number) => {
-    navigator.clipboard.writeText(code);
+  const copyToClipboard = async (code: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      // ✅ fallback для Safari
+      const textarea = document.createElement("textarea");
+      textarea.value = code;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
     setCopiedCode(index);
     setTimeout(() => setCopiedCode(null), 2000);
   };
@@ -88,15 +109,17 @@ export default function EfficientTrainingTutorial() {
             <ArrowLeft size={20} />
             Назад к туториалам
           </Link>
-          
+
           <div className="tutorial-header-main">
             <div className="tutorial-icon-wrapper">
               <Brain className="tutorial-icon" size={32} />
             </div>
             <div>
-              <h1 className="tutorial-title">Эффективное обучение ассистента</h1>
+              <h1 className="tutorial-title">
+                Эффективное обучение AI-ассистента (оптимизация токенов)
+              </h1>
               <p className="tutorial-subtitle">
-                Как сделать бота экономным и эффективным
+                Как сделать вашего бота умнее, быстрее и в 10 раз экономнее
               </p>
             </div>
           </div>
@@ -105,19 +128,23 @@ export default function EfficientTrainingTutorial() {
 
       {/* Content */}
       <div className="tutorial-content">
-        <div className="tutorial-section">
+        <div className="tutorial-section" id="why-it-matters">
           <h2 className="tutorial-section-title">Почему это важно?</h2>
           <div className="tutorial-warning-box">
             <TrendingDown size={24} />
             <div>
               <strong>Проблема: избыточные ответы = большие расходы</strong>
-              <p>LLM модели тарифицируются по токенам. Один длинный ответ может стоить в 10-20 раз дороже короткого. При тысячах запросов в день разница огромная!</p>
+              <p>
+                LLM-модели тарифицируются по токенам. Один длинный ответ может
+                стоить в <strong>10–20 раз дороже</strong> короткого. При
+                тысячах запросов в день это выливается в реальные расходы!
+              </p>
             </div>
           </div>
 
           <div className="tutorial-stats-grid">
             <div className="tutorial-stat-card">
-              <div className="tutorial-stat-value">10-20x</div>
+              <div className="tutorial-stat-value">10–20x</div>
               <div className="tutorial-stat-label">Экономия токенов</div>
             </div>
             <div className="tutorial-stat-card">
@@ -125,29 +152,109 @@ export default function EfficientTrainingTutorial() {
               <div className="tutorial-stat-label">Снижение затрат</div>
             </div>
             <div className="tutorial-stat-card">
-              <div className="tutorial-stat-value">2-3x</div>
+              <div className="tutorial-stat-value">2–3x</div>
               <div className="tutorial-stat-label">Быстрее ответы</div>
             </div>
           </div>
         </div>
 
-        <div className="tutorial-section">
+        <div className="tutorial-section" id="examples">
           <h2 className="tutorial-section-title">Сравнение подходов</h2>
+
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">Плохой пример</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(badExample, 1)}
                 className="tutorial-copy-btn"
               >
-                {copiedCode === 1 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 1 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 1 ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  <Copy size={16} />
+                )}
+                {copiedCode === 1 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
-            <pre className="tutorial-code" style={{ fontSize: '13px' }}>
+            <pre className="tutorial-code" style={{ fontSize: "13px" }}>
               <code>{badExample}</code>
             </pre>
           </div>
+
+          <div className="tutorial-code-block" style={{ marginTop: "20px" }}>
+            <div className="tutorial-code-header">
+              <span className="tutorial-code-language">Хороший пример</span>
+              <button
+                onClick={() => copyToClipboard(goodExample, 2)}
+                className="tutorial-copy-btn"
+              >
+                {copiedCode === 2 ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  <Copy size={16} />
+                )}
+                {copiedCode === 2 ? "Скопировано!" : "Копировать"}
+              </button>
+            </div>
+            <pre className="tutorial-code" style={{ fontSize: "13px" }}>
+              <code>{goodExample}</code>
+            </pre>
+          </div>
+        </div>
+
+        <div className="tutorial-section" id="training-doc">
+          <h2 className="tutorial-section-title">Документ для обучения</h2>
+          <p className="tutorial-text">
+            Создайте документ с правилами и загрузите его в раздел{" "}
+            <Link href="/assistants/education" className="tutorial-link">
+              Обучение ассистента
+            </Link>
+            . Это будет базовое знание бота о том, как отвечать клиентам.
+          </p>
+
+          <button
+            className="tutorial-toggle-btn"
+            onClick={() => setShowDoc(!showDoc)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              marginBottom: "10px",
+            }}
+          >
+            {showDoc ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            {showDoc ? "Скрыть документ" : "Показать документ"}
+          </button>
+
+          {showDoc && (
+            <div className="tutorial-code-block">
+              <div className="tutorial-code-header">
+                <span className="tutorial-code-language">Markdown</span>
+                <button
+                  onClick={() => copyToClipboard(trainingDoc, 3)}
+                  className="tutorial-copy-btn"
+                >
+                  {copiedCode === 3 ? (
+                    <CheckCircle size={16} />
+                  ) : (
+                    <Copy size={16} />
+                  )}
+                  {copiedCode === 3 ? "Скопировано!" : "Копировать"}
+                </button>
+              </div>
+              <pre
+                className="tutorial-code"
+                style={{
+                  fontSize: "12px",
+                  maxHeight: "400px",
+                  overflow: "auto",
+                }}
+              >
+                <code>{trainingDoc}</code>
+              </pre>
+            </div>
+          )}
+        </div>
 
           <div className="tutorial-code-block" style={{ marginTop: '20px' }}>
             <div className="tutorial-code-header">
@@ -319,6 +426,5 @@ export default function EfficientTrainingTutorial() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

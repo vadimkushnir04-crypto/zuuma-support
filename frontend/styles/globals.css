@@ -6588,4 +6588,14 @@ body.sidebar-open .sidebar {
     text-decoration: none;
   }
 
+  .beta-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
 }

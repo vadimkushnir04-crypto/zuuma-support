@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Copy, CheckCircle, Code, Globe, Zap, BookOpen } from "lucide-react";
+import { ArrowLeft, Copy, CheckCircle, Code, Zap, Globe } from "lucide-react";
 import Link from "next/link";
 
 export default function HtmlWidgetTutorial() {
@@ -13,37 +13,50 @@ export default function HtmlWidgetTutorial() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  // === Пример полного HTML-файла ===
   const codeExample1 = `<!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Мой сайт с ассистентом</title>
+  <meta charset="UTF-8" />
+  <title>AI ассистент на сайте</title>
 </head>
 <body>
-    <h1>Добро пожаловать на сайт!</h1>
-    
-    <!-- Виджет ассистента -->
-    <script src="https://zuuma.ru/chat-widget.js"></script>
-    <script>
-        ChatWidget.init({
-            apiKey: 'your_api_key_here',
-            theme: 'light',
-            position: 'bottom-right'
-        });
-    </script>
+  <h1>Добро пожаловать!</h1>
+
+  <!-- Конфигурация чата -->
+  <script>
+    window.chatConfig = {
+      apiKey: 'YOUR_API_KEY', // 🔑 обязательный параметр
+      serverUrl: 'https://zuuma.ru/api',
+      theme: 'dark',
+      assistantName: 'AI Agent',
+      customGreeting: 'Привет! Чем могу помочь?',
+      primaryColor: '#de8434',
+      accentColor: '#1A1A2E',
+      autoOpen: false,
+      alwaysVisible: true,
+      hideUntilUsed: false,
+    };
+  </script>
+
+  <!-- Подключение виджета -->
+  <script src="https://zuuma.ru/chat-widget.js"></script>
 </body>
 </html>`;
 
-  const codeExample2 = `<script>
-ChatWidget.init({
-    apiKey: 'your_api_key_here',
-    theme: 'dark', // light, dark, auto
-    position: 'bottom-right', // bottom-left, bottom-right
-    greeting: 'Привет! Как дела?',
-    placeholder: 'Введите ваше сообщение...',
-    width: '400px',
-    height: '600px'
-});
-</script>`;
+  // === Пример только конфигурации ===
+  const codeExample2 = `window.chatConfig = {
+  apiKey: 'YOUR_API_KEY',
+  serverUrl: 'https://zuuma.ru/api',
+  theme: 'light', // варианты: light | dark
+  assistantName: 'Support Bot',
+  customGreeting: 'Здравствуйте! Чем могу помочь?',
+  primaryColor: '#ff914d',
+  accentColor: '#1A1A2E',
+  autoOpen: true, // автоматически открывать чат
+  alwaysVisible: true, // показывать иконку чата постоянно
+  hideUntilUsed: false, // скрывать до первого использования
+};`;
 
   return (
     <div className="tutorial-page">
@@ -54,7 +67,7 @@ ChatWidget.init({
             <ArrowLeft size={20} />
             Назад к туториалам
           </Link>
-          
+
           <div className="tutorial-header-main">
             <div className="tutorial-icon-wrapper">
               <Code className="tutorial-icon" size={32} />
@@ -62,65 +75,80 @@ ChatWidget.init({
             <div>
               <h1 className="tutorial-title">HTML Widget Integration</h1>
               <p className="tutorial-subtitle">
-                Простое встраивание чат-бота на ваш сайт
+                Добавьте чат-ассистента на любой сайт с помощью одной строки кода
               </p>
             </div>
           </div>
-          
         </div>
       </div>
 
       {/* Content */}
       <div className="tutorial-content">
+        {/* Что такое HTML Widget */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Что такое HTML Widget?</h2>
           <p className="tutorial-text">
-            HTML Widget — это самый простой способ добавить чат-бота на ваш сайт. 
-            Всего несколько строк кода, и ваши посетители смогут общаться с ассистентом 
-            прямо на странице.
+            HTML Widget — это самый простой способ встроить чат-ассистента Zuuma
+            на ваш сайт. Просто добавьте скрипт и настройте внешний вид с помощью параметров.
+            Инициализация выполняется автоматически — без вызова функций.
           </p>
         </div>
 
+        {/* Быстрый старт */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Быстрый старт</h2>
+
           <div className="tutorial-steps">
             <div className="tutorial-step">
               <div className="tutorial-step-number">1</div>
               <div className="tutorial-step-content">
                 <h3>Получите API ключ</h3>
-                <p>Войдите в личный кабинет и скопируйте API ключ вашего бота</p>
+                <p>
+                  Войдите в ваш личный кабинет на{" "}
+                  <a href="https://zuuma.ru" target="_blank" className="tutorial-link">
+                    zuuma.ru
+                  </a>{" "}
+                  и скопируйте API ключ вашего ассистента.
+                </p>
               </div>
             </div>
-            
+
             <div className="tutorial-step">
               <div className="tutorial-step-number">2</div>
               <div className="tutorial-step-content">
-                <h3>Добавьте скрипт на сайт</h3>
-                <p>Вставьте код виджета перед закрывающим тегом &lt;/body&gt;</p>
+                <h3>Добавьте код на сайт</h3>
+                <p>
+                  Вставьте конфигурацию и подключите скрипт <code>chat-widget.js</code>{" "}
+                  перед закрывающим тегом <code>&lt;/body&gt;</code>.
+                </p>
               </div>
             </div>
-            
+
             <div className="tutorial-step">
               <div className="tutorial-step-number">3</div>
               <div className="tutorial-step-content">
                 <h3>Настройте внешний вид</h3>
-                <p>Измените тему, положение и другие параметры виджета</p>
+                <p>
+                  Измените тему, имя ассистента, цвета и поведение под ваш бренд.
+                </p>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Пример кода */}
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Пример кода</h2>
+          <h2 className="tutorial-section-title">Пример полного HTML-файла</h2>
+
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">HTML</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(codeExample1, 1)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 1 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 1 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 1 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -129,21 +157,23 @@ ChatWidget.init({
           </div>
         </div>
 
+        {/* Настройка */}
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Настройка виджета</h2>
+          <h2 className="tutorial-section-title">Настройка конфигурации</h2>
           <p className="tutorial-text">
-            Вы можете настроить внешний вид и поведение виджета через параметры конфигурации:
+            Настройки передаются через объект <code>window.chatConfig</code> до подключения
+            скрипта. После этого виджет автоматически загрузится и подключится к вашему ассистенту.
           </p>
-          
+
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">JavaScript</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(codeExample2, 2)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 2 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 2 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 2 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -152,42 +182,80 @@ ChatWidget.init({
           </div>
         </div>
 
+        {/* Таблица параметров */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Параметры конфигурации</h2>
+
           <div className="tutorial-table">
             <div className="tutorial-table-row tutorial-table-header">
               <div>Параметр</div>
               <div>Тип</div>
               <div>Описание</div>
             </div>
+
             <div className="tutorial-table-row">
               <div><code>apiKey</code></div>
               <div>string</div>
-              <div>API ключ вашего бота (обязательный)</div>
+              <div>API ключ вашего ассистента (обязательный)</div>
             </div>
+
+            <div className="tutorial-table-row">
+              <div><code>serverUrl</code></div>
+              <div>string</div>
+              <div>URL сервера API. По умолчанию: <code>https://zuuma.ru/api</code></div>
+            </div>
+
             <div className="tutorial-table-row">
               <div><code>theme</code></div>
               <div>string</div>
-              <div>Тема оформления: light, dark, auto</div>
+              <div>Тема оформления: <code>light</code> или <code>dark</code></div>
             </div>
+
             <div className="tutorial-table-row">
-              <div><code>position</code></div>
+              <div><code>assistantName</code></div>
               <div>string</div>
-              <div>Позиция: bottom-right, bottom-left</div>
+              <div>Имя, отображаемое в заголовке окна чата</div>
             </div>
+
             <div className="tutorial-table-row">
-              <div><code>greeting</code></div>
+              <div><code>customGreeting</code></div>
               <div>string</div>
-              <div>Приветственное сообщение</div>
+              <div>Приветственное сообщение при открытии</div>
             </div>
+
             <div className="tutorial-table-row">
-              <div><code>placeholder</code></div>
+              <div><code>primaryColor</code></div>
               <div>string</div>
-              <div>Текст в поле ввода</div>
+              <div>Основной цвет (например, кнопки отправки)</div>
+            </div>
+
+            <div className="tutorial-table-row">
+              <div><code>accentColor</code></div>
+              <div>string</div>
+              <div>Акцентный цвет интерфейса</div>
+            </div>
+
+            <div className="tutorial-table-row">
+              <div><code>autoOpen</code></div>
+              <div>boolean</div>
+              <div>Автоматически открывать чат при загрузке страницы</div>
+            </div>
+
+            <div className="tutorial-table-row">
+              <div><code>alwaysVisible</code></div>
+              <div>boolean</div>
+              <div>Показывать кнопку чата всегда, даже при закрытом окне</div>
+            </div>
+
+            <div className="tutorial-table-row">
+              <div><code>hideUntilUsed</code></div>
+              <div>boolean</div>
+              <div>Скрывать кнопку до первого открытия пользователем</div>
             </div>
           </div>
         </div>
 
+        {/* Что дальше */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Что дальше?</h2>
           <div className="tutorial-next-steps">
@@ -195,15 +263,15 @@ ChatWidget.init({
               <Zap size={24} />
               <div>
                 <h3>JavaScript SDK</h3>
-                <p>Расширенная интеграция с больше возможностей</p>
+                <p>Используйте API чата напрямую из вашего кода</p>
               </div>
             </Link>
-            
+
             <Link href="/tutorials/rag-training" className="tutorial-next-card">
               <Globe size={24} />
               <div>
                 <h3>Обучение бота</h3>
-                <p>Как загрузить знания и настроить RAG</p>
+                <p>Загрузите документы и обучите вашего ассистента</p>
               </div>
             </Link>
           </div>

@@ -1,21 +1,42 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Copy, CheckCircle, Zap, AlertCircle, Code, Settings } from "lucide-react";
+import {
+  ArrowLeft,
+  Copy,
+  CheckCircle,
+  Zap,
+  AlertCircle,
+  Code,
+  Database,
+  Settings,
+  Cloud,
+  Shield,
+  Brain,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function ApiFunctionsTutorial() {
   const [copiedCode, setCopiedCode] = useState<number | null>(null);
 
-  const copyToClipboard = (code: string, index: number) => {
-    navigator.clipboard.writeText(code);
+  const copyToClipboard = async (code: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = code;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
     setCopiedCode(index);
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
   const exampleFunction = `{
   "name": "Получить погоду",
-  "description": "Получает текущую погоду для указанного города",
+  "description": "Возвращает текущую погоду для указанного города",
   "endpoint_url": "https://api.openweathermap.org/data/2.5/weather?q={city}&appid={apiKey}&units=metric&lang=ru",
   "method": "GET",
   "headers": {
@@ -33,20 +54,34 @@ export default function ApiFunctionsTutorial() {
   ]
 }`;
 
-  const exampleCode2 = `// Параметры функции:
-// 1. name - имя параметра, которое будет использоваться в URL
-// 2. type - тип данных (string, number, boolean)
-// 3. required - обязательный параметр или нет
-// 4. description - описание для LLM, чтобы он понимал когда использовать
-// 5. defaultValue - значение по умолчанию для LLM
-// 6. testValue - значение для ручного тестирования функции`;
+  const dbFunction = `{
+  "name": "Получить баланс клиента",
+  "description": "Возвращает текущий баланс пользователя из внутренней базы данных",
+  "endpoint_url": "https://api.company.com/db/user-balance?userId={userId}",
+  "method": "GET",
+  "headers": {
+    "Authorization": "Bearer {apiKey}"
+  },
+  "parameters": [
+    {
+      "name": "userId",
+      "type": "string",
+      "required": true,
+      "description": "Уникальный идентификатор пользователя в БД"
+    }
+  ]
+}`;
 
-  const exampleCode3 = `// Пример использования параметров в URL:
-// До: https://api.example.com/users/{userId}/orders/{orderId}
-// После: https://api.example.com/users/12345/orders/67890
+  const howAiUsesIt = `// Пример работы ИИ
+Пользователь: "Сколько у меня сейчас на счету?"
+🤖 AI анализирует описание функций и понимает,
+что нужно вызвать функцию "Получить баланс клиента"
+и автоматически подставляет userId из контекста.
 
-// LLM автоматически заменит {userId} и {orderId} на реальные значения
-// из контекста диалога с пользователем`;
+// Результат:
+AI → вызывает API: https://api.company.com/db/user-balance?userId=42
+AI ← получает JSON: { "balance": 15300 }
+AI → отвечает пользователю: "Ваш баланс — 15 300 рублей."`;
 
   return (
     <div className="tutorial-page">
@@ -57,15 +92,18 @@ export default function ApiFunctionsTutorial() {
             <ArrowLeft size={20} />
             Назад к туториалам
           </Link>
-          
+
           <div className="tutorial-header-main">
             <div className="tutorial-icon-wrapper">
               <Zap className="tutorial-icon" size={32} />
             </div>
             <div>
-              <h1 className="tutorial-title">Создание API Функций</h1>
+              <h1 className="tutorial-title">
+                API Функции — подключение внешних систем
+              </h1>
               <p className="tutorial-subtitle">
-                Подключайте внешние API к вашим ассистентам
+                Научите вашего ассистента вызывать реальные API и получать
+                данные из внешних источников
               </p>
             </div>
           </div>
@@ -74,33 +112,44 @@ export default function ApiFunctionsTutorial() {
 
       {/* Content */}
       <div className="tutorial-content">
-        <div className="tutorial-section">
+        <div className="tutorial-section" id="intro">
           <h2 className="tutorial-section-title">Что такое API функции?</h2>
           <p className="tutorial-text">
-            API функции позволяют вашему ассистенту взаимодействовать с внешними сервисами и API. 
-            Это значит, что бот может получать актуальные данные, совершать действия и интегрироваться 
-            с любыми внешними системами - от погоды до CRM и баз данных.
+            API функции позволяют ассистенту взаимодействовать с внешними
+            системами, базами данных и сервисами. Это делает его не просто
+            чат-ботом, а полноценным <strong>оператором данных</strong>.
           </p>
+
           <div className="tutorial-info-box">
             <AlertCircle size={20} />
             <div>
-              <strong>Важно!</strong> LLM автоматически определяет, когда нужно вызвать функцию, 
-              на основе описания функции и параметров. Чем точнее описание, тем лучше работает ассистент.
+              <strong>Важно:</strong> LLM сама решает, когда вызывать функцию,
+              анализируя контекст диалога. Вы лишь описываете функцию и её
+              параметры.
             </div>
           </div>
         </div>
 
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Структура API функции</h2>
+        <div className="tutorial-section" id="weather">
+          <h2 className="tutorial-section-title">Пример: Подключение к внешнему API</h2>
+          <p className="tutorial-text">
+            Допустим, вы хотите, чтобы бот умел сообщать актуальную погоду.
+            Для этого создайте API функцию со структурой ниже:
+          </p>
+
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">JSON</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(exampleFunction, 1)}
                 className="tutorial-copy-btn"
               >
-                {copiedCode === 1 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 1 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 1 ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  <Copy size={16} />
+                )}
+                {copiedCode === 1 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -109,207 +158,135 @@ export default function ApiFunctionsTutorial() {
           </div>
         </div>
 
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Параметры функции</h2>
+        <div className="tutorial-section" id="db">
+          <h2 className="tutorial-section-title">Пример: Запрос к базе данных клиента</h2>
+          <p className="tutorial-text">
+            API функции можно подключать не только к открытым API, но и к вашим
+            внутренним сервисам — например, к CRM или MySQL-базе клиента через
+            внутренний REST-эндпоинт.
+          </p>
+
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
-              <span className="tutorial-code-language">JavaScript</span>
-              <button 
-                onClick={() => copyToClipboard(exampleCode2, 2)}
+              <span className="tutorial-code-language">JSON</span>
+              <button
+                onClick={() => copyToClipboard(dbFunction, 2)}
                 className="tutorial-copy-btn"
               >
-                {copiedCode === 2 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 2 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 2 ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  <Copy size={16} />
+                )}
+                {copiedCode === 2 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
-              <code>{exampleCode2}</code>
+              <code>{dbFunction}</code>
             </pre>
           </div>
+        </div>
 
+        <div className="tutorial-section" id="ai-use">
+          <h2 className="tutorial-section-title">Как ассистент вызывает функции</h2>
+          <p className="tutorial-text">
+            После создания функции, ассистент сможет автоматически использовать
+            её при общении с пользователем:
+          </p>
+
+          <div className="tutorial-code-block">
+            <div className="tutorial-code-header">
+              <span className="tutorial-code-language">LLM логика</span>
+              <button
+                onClick={() => copyToClipboard(howAiUsesIt, 3)}
+                className="tutorial-copy-btn"
+              >
+                {copiedCode === 3 ? (
+                  <CheckCircle size={16} />
+                ) : (
+                  <Copy size={16} />
+                )}
+                {copiedCode === 3 ? "Скопировано!" : "Копировать"}
+              </button>
+            </div>
+            <pre className="tutorial-code">
+              <code>{howAiUsesIt}</code>
+            </pre>
+          </div>
+        </div>
+
+        <div className="tutorial-section" id="table">
+          <h2 className="tutorial-section-title">Структура API функции</h2>
           <div className="tutorial-table">
             <div className="tutorial-table-row tutorial-table-header">
               <div>Поле</div>
               <div>Описание</div>
-              <div>Использование</div>
+              <div>Пример</div>
             </div>
             <div className="tutorial-table-row">
               <div><code>name</code></div>
-              <div>Имя параметра</div>
-              <div>Используется в URL как {'{name}'}</div>
-            </div>
-            <div className="tutorial-table-row">
-              <div><code>type</code></div>
-              <div>Тип данных</div>
-              <div>string, number, boolean</div>
+              <div>Имя функции</div>
+              <div>Получить погоду</div>
             </div>
             <div className="tutorial-table-row">
               <div><code>description</code></div>
-              <div>Описание для LLM</div>
-              <div>Помогает LLM понять, когда использовать параметр</div>
+              <div>Краткое описание действия функции</div>
+              <div>Возвращает температуру и описание погоды</div>
             </div>
             <div className="tutorial-table-row">
-              <div><code>defaultValue</code></div>
-              <div>Значение по умолчанию</div>
-              <div>Используется LLM, если значение не указано</div>
+              <div><code>endpoint_url</code></div>
+              <div>Адрес API с параметрами</div>
+              <div>https://api.site.com/data/{'{param}'}</div>
             </div>
             <div className="tutorial-table-row">
-              <div><code>testValue</code></div>
-              <div>Тестовое значение</div>
-              <div>Используется только при ручном тестировании</div>
+              <div><code>parameters</code></div>
+              <div>Список входных параметров</div>
+              <div>city, userId, token</div>
+            </div>
+            <div className="tutorial-table-row">
+              <div><code>headers</code></div>
+              <div>HTTP заголовки (включая авторизацию)</div>
+              <div>{'{"Authorization": "Bearer ..."}'}</div>
             </div>
           </div>
         </div>
 
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Подстановка параметров в URL</h2>
-          <div className="tutorial-code-block">
-            <div className="tutorial-code-header">
-              <span className="tutorial-code-language">Example</span>
-              <button 
-                onClick={() => copyToClipboard(exampleCode3, 3)}
-                className="tutorial-copy-btn"
-              >
-                {copiedCode === 3 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 3 ? 'Скопировано!' : 'Копировать'}
-              </button>
+        <div className="tutorial-section" id="security">
+          <h2 className="tutorial-section-title">Безопасность</h2>
+          <div className="tutorial-info-box">
+            <Shield size={20} />
+            <div>
+              <strong>Не передавайте ключи в URL!</strong>
+              Используйте заголовки или защищённые proxy-эндпоинты для
+              авторизации.
             </div>
-            <pre className="tutorial-code">
-              <code>{exampleCode3}</code>
-            </pre>
           </div>
+          <p className="tutorial-text">
+            Пример безопасного подхода — скрывать API ключи в заголовках:
+          </p>
+          <pre className="tutorial-code">
+            <code>
+              {`"headers": { "Authorization": "Bearer {apiKey}" }`}
+            </code>
+          </pre>
         </div>
 
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Пошаговая инструкция</h2>
-          <div className="tutorial-steps">
-            <div className="tutorial-step">
-              <div className="tutorial-step-number">1</div>
-              <div className="tutorial-step-content">
-                <h3>Создайте функцию</h3>
-                <p>Перейдите в раздел "API Функции" и нажмите "Создать функцию"</p>
-              </div>
-            </div>
-            
-            <div className="tutorial-step">
-              <div className="tutorial-step-number">2</div>
-              <div className="tutorial-step-content">
-                <h3>Заполните основные данные</h3>
-                <p>Укажите название, описание, URL эндпоинта и HTTP метод</p>
-              </div>
-            </div>
-            
-            <div className="tutorial-step">
-              <div className="tutorial-step-number">3</div>
-              <div className="tutorial-step-content">
-                <h3>Добавьте параметры</h3>
-                <p>Создайте параметры, которые будут использоваться в запросе. Укажите тестовые значения для проверки</p>
-              </div>
-            </div>
-
-            <div className="tutorial-step">
-              <div className="tutorial-step-number">4</div>
-              <div className="tutorial-step-content">
-                <h3>Протестируйте функцию</h3>
-                <p>Используйте кнопку "Тестировать" с тестовыми значениями параметров</p>
-              </div>
-            </div>
-
-            <div className="tutorial-step">
-              <div className="tutorial-step-number">5</div>
-              <div className="tutorial-step-content">
-                <h3>Назначьте ботам</h3>
-                <p>Назначьте функцию одному или нескольким ассистентам</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Примеры использования</h2>
-          
-          <div className="tutorial-example-card">
-            <h3>Проверка погоды</h3>
-            <p>Бот может отвечать на вопросы о погоде, вызывая API OpenWeatherMap</p>
-            <div className="tutorial-example-tags">
-              <span className="tutorial-tag">GET</span>
-              <span className="tutorial-tag">Публичное API</span>
-            </div>
-          </div>
-
-          <div className="tutorial-example-card">
-            <h3>Проверка статуса заказа</h3>
-            <p>Интеграция с вашей CRM для получения информации о заказах клиента</p>
-            <div className="tutorial-example-tags">
-              <span className="tutorial-tag">POST</span>
-              <span className="tutorial-tag">Приватное API</span>
-              <span className="tutorial-tag">Авторизация</span>
-            </div>
-          </div>
-
-          <div className="tutorial-example-card">
-            <h3>Создание тикета</h3>
-            <p>Автоматическое создание заявок в вашей системе поддержки</p>
-            <div className="tutorial-example-tags">
-              <span className="tutorial-tag">POST</span>
-              <span className="tutorial-tag">Webhook</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Лучшие практики</h2>
-          <div className="tutorial-best-practices">
-            <div className="tutorial-practice-item">
-              <CheckCircle size={20} className="practice-icon" />
-              <div>
-                <strong>Подробные описания</strong>
-                <p>Чем точнее описание функции и параметров, тем лучше LLM понимает, когда их использовать</p>
-              </div>
-            </div>
-
-            <div className="tutorial-practice-item">
-              <CheckCircle size={20} className="practice-icon" />
-              <div>
-                <strong>Тестовые значения</strong>
-                <p>Всегда указывайте тестовые значения для удобной проверки работы функции</p>
-              </div>
-            </div>
-
-            <div className="tutorial-practice-item">
-              <CheckCircle size={20} className="practice-icon" />
-              <div>
-                <strong>Безопасность</strong>
-                <p>Храните API ключи в заголовках, не передавайте их в URL параметрах</p>
-              </div>
-            </div>
-
-            <div className="tutorial-practice-item">
-              <CheckCircle size={20} className="practice-icon" />
-              <div>
-                <strong>Обработка ошибок</strong>
-                <p>Убедитесь, что ваш API возвращает понятные сообщения об ошибках</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="tutorial-section">
+        <div className="tutorial-section" id="next">
           <h2 className="tutorial-section-title">Что дальше?</h2>
           <div className="tutorial-next-steps">
             <Link href="/assistants/functions" className="tutorial-next-card">
-              <Zap size={24} />
+              <Settings size={24} />
               <div>
                 <h3>Создать API функцию</h3>
-                <p>Перейти к созданию вашей первой функции</p>
+                <p>Откройте конструктор функций и добавьте свой API</p>
               </div>
             </Link>
-            
-            <Link href="/tutorials/rag-training" className="tutorial-next-card">
-              <Code size={24} />
+
+            <Link href="/tutorials/efficient-training" className="tutorial-next-card">
+              <Brain size={24} />
               <div>
-                <h3>Обучение ассистента</h3>
-                <p>Узнайте, как обучить бота работать с функциями</p>
+                <h3>Эффективное обучение</h3>
+                <p>Узнайте, как научить ассистента использовать функции осмысленно</p>
               </div>
             </Link>
           </div>

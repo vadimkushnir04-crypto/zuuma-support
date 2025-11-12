@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Copy, CheckCircle, Terminal, Code, BookOpen, Zap } from "lucide-react";
+import { ArrowLeft, Copy, CheckCircle, Terminal, Code, Zap } from "lucide-react";
 import Link from "next/link";
 
 export default function CurlTutorial() {
@@ -13,25 +13,25 @@ export default function CurlTutorial() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const basicExample = `curl -X POST https://zuuma.ru/api/chat/ask \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer your_api_key_here" \\
-  -d '{
-    "message": "Привет! Как дела?",
-    "user_id": "user_123"
-  }'`;
+  // Примеры запросов
+  const basicExample = `curl -X POST https://zuuma.ru/api/v1/chat \\
+-H "Content-Type: application/json" \\
+-H "Authorization: Bearer your_api_key_here" \\
+-d '{
+  "message": "Привет! Как дела?",
+  "user_id": "user_123"
+}'`;
 
   const responseExample = `{
   "success": true,
   "response": {
     "text": "Привет! У меня всё отлично! Чем могу помочь?",
     "session_id": "sess_1234567890",
-    "timestamp": "2024-03-15T10:30:00Z",
-    "sources": []
+    "timestamp": "2025-03-15T10:30:00Z"
   }
 }`;
 
-  const ragExample = `curl -X POST https://zuuma.ru/api/chat/ask \\
+  const ragExample = `curl -X POST https://zuuma.ru/api/v1/chat \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer your_api_key_here" \\
   -d '{
@@ -48,12 +48,9 @@ export default function CurlTutorial() {
   const uploadExample = `curl -X POST https://zuuma.ru/api/v1/documents/upload \\
   -H "Authorization: Bearer your_api_key_here" \\
   -F "document=@/path/to/your/document.pdf" \\
-  -F "metadata={\"category\":\"documentation\",\"version\":\"1.0\"}" \\
+  -F "metadata={\\"category\\":\\"docs\\",\\"version\\":\\"1.0\\"}" \\
   -F "chunk_size=1000" \\
   -F "overlap=200"`;
-
-  const historyExample = `curl -X GET "https://zuuma.ru/api/v1/sessions/sess_1234567890/history?limit=10" \\
-  -H "Authorization: Bearer your_api_key_here"`;
 
   const sessionExample = `curl -X POST https://zuuma.ru/api/v1/sessions \\
   -H "Content-Type: application/json" \\
@@ -68,62 +65,44 @@ export default function CurlTutorial() {
 
   const bashScript = `#!/bin/bash
 
-# Настройки
 API_KEY="your_api_key_here"
 BASE_URL="https://zuuma.ru/api/v1"
 USER_ID="bash_user"
 
-# Функция для отправки сообщения
 send_message() {
     local message="$1"
     local session_id="$2"
-    
     curl -s -X POST "$BASE_URL/chat" \\
         -H "Content-Type: application/json" \\
         -H "Authorization: Bearer $API_KEY" \\
         -d "{
-            \"message\": \"$message\",
-            \"user_id\": \"$USER_ID\",
-            \"session_id\": \"$session_id\"
+            \\"message\\": \\"$message\\",
+            \\"user_id\\": \\"$USER_ID\\",
+            \\"session_id\\": \\"$session_id\\"
         }"
 }
 
-# Функция для создания сессии
 create_session() {
     curl -s -X POST "$BASE_URL/sessions" \\
         -H "Content-Type: application/json" \\
         -H "Authorization: Bearer $API_KEY" \\
         -d "{
-            \"user_id\": \"$USER_ID\"
+            \\"user_id\\": \\"$USER_ID\\"
         }"
 }
 
-# Создаем сессию
-echo "Создаем новую сессию..."
+echo "Создаем сессию..."
 SESSION_RESPONSE=$(create_session)
 SESSION_ID=$(echo "$SESSION_RESPONSE" | jq -r '.session_id')
-
 echo "ID сессии: $SESSION_ID"
-echo ""
 
-# Основной цикл чата
 while true; do
     echo -n "Вы: "
     read user_message
-    
-    if [ "$user_message" = "выход" ]; then
-        echo "До свидания!"
-        break
-    fi
-    
-    echo "Бот печатает..."
-    
-    # Отправляем сообщение
+    [[ "$user_message" == "выход" ]] && echo "Пока!" && break
     RESPONSE=$(send_message "$user_message" "$SESSION_ID")
     BOT_MESSAGE=$(echo "$RESPONSE" | jq -r '.response.text')
-    
     echo "Бот: $BOT_MESSAGE"
-    echo ""
 done`;
 
   return (
@@ -135,7 +114,7 @@ done`;
             <ArrowLeft size={20} />
             Назад к туториалам
           </Link>
-          
+
           <div className="tutorial-header-main">
             <div className="tutorial-icon-wrapper">
               <Terminal className="tutorial-icon" size={32} />
@@ -143,60 +122,61 @@ done`;
             <div>
               <h1 className="tutorial-title">REST API с cURL</h1>
               <p className="tutorial-subtitle">
-                Прямая работа с API чат-бота через HTTP-запросы
+                Отправляйте HTTP-запросы напрямую к API Zuuma
               </p>
+
+              {/* ⚠️ Beta notice */}
+              <div className="beta-warning">
+                ⚠️ API находится в <strong>бета-версии</strong>. Возможны ошибки и нестабильная работа.
+              </div>
             </div>
           </div>
-          
         </div>
       </div>
 
       {/* Content */}
       <div className="tutorial-content">
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Что такое cURL?</h2>
+          <h2 className="tutorial-section-title">Быстрый старт</h2>
           <p className="tutorial-text">
-            cURL — это инструмент командной строки для выполнения HTTP-запросов. 
-            Он идеально подходит для тестирования API, автоматизации и интеграции 
-            с системами, где нет готовых SDK.
+            Все запросы выполняются на <code>https://zuuma.ru/api/v1</code> и требуют
+            заголовок авторизации:
           </p>
+          <pre className="tutorial-code">
+            <code>Authorization: Bearer your_api_key_here</code>
+          </pre>
         </div>
 
+        {/* Базовый запрос */}
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Базовый запрос</h2>
-          <p className="tutorial-text">
-            Простейший пример отправки сообщения боту:
-          </p>
-          
+          <h2 className="tutorial-section-title">Отправка сообщения</h2>
+          <p className="tutorial-text">Пример простого запроса к боту:</p>
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">Bash</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(basicExample, 1)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 1 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 1 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 1 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
               <code>{basicExample}</code>
             </pre>
           </div>
-          
-          <p className="tutorial-text">
-            <strong>Ответ от сервера:</strong>
-          </p>
-          
+
+          <p className="tutorial-text">Пример ответа:</p>
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">JSON</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(responseExample, 2)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 2 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 2 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 2 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -205,21 +185,21 @@ done`;
           </div>
         </div>
 
+        {/* RAG */}
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Запрос с использованием RAG</h2>
+          <h2 className="tutorial-section-title">RAG-запрос</h2>
           <p className="tutorial-text">
-            Как отправить запрос с поиском по загруженным документам:
+            Чтобы бот использовал ваши документы, добавьте параметр <code>use_rag: true</code>:
           </p>
-          
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">Bash</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(ragExample, 3)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 3 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 3 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 3 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -228,21 +208,19 @@ done`;
           </div>
         </div>
 
+        {/* Загрузка документов */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Загрузка документов</h2>
-          <p className="tutorial-text">
-            Загрузка файлов для обучения RAG системы:
-          </p>
-          
+          <p className="tutorial-text">Добавьте файл в базу знаний вашего бота:</p>
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">Bash</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(uploadExample, 4)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 4 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 4 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 4 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -251,21 +229,21 @@ done`;
           </div>
         </div>
 
+        {/* Сессии */}
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Работа с сессиями</h2>
+          <h2 className="tutorial-section-title">Создание сессии</h2>
           <p className="tutorial-text">
-            Создание новой сессии для пользователя:
+            Используйте этот endpoint для создания новой сессии пользователя:
           </p>
-          
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">Bash</span>
-              <button 
+              <button
                 onClick={() => copyToClipboard(sessionExample, 5)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 5 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 5 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 5 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -274,44 +252,21 @@ done`;
           </div>
         </div>
 
+        {/* Bash чат */}
         <div className="tutorial-section">
-          <h2 className="tutorial-section-title">История сообщений</h2>
+          <h2 className="tutorial-section-title">Пример Bash-бота</h2>
           <p className="tutorial-text">
-            Получение истории сообщений из сессии:
+            Вы можете реализовать консольного ассистента на чистом Bash:
           </p>
-          
           <div className="tutorial-code-block">
             <div className="tutorial-code-header">
               <span className="tutorial-code-language">Bash</span>
-              <button 
-                onClick={() => copyToClipboard(historyExample, 6)}
+              <button
+                onClick={() => copyToClipboard(bashScript, 6)}
                 className="tutorial-copy-btn"
               >
                 {copiedCode === 6 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 6 ? 'Скопировано!' : 'Копировать'}
-              </button>
-            </div>
-            <pre className="tutorial-code">
-              <code>{historyExample}</code>
-            </pre>
-          </div>
-        </div>
-
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Bash скрипт для чата</h2>
-          <p className="tutorial-text">
-            Полноценный интерактивный чат-бот на Bash:
-          </p>
-          
-          <div className="tutorial-code-block">
-            <div className="tutorial-code-header">
-              <span className="tutorial-code-language">Bash</span>
-              <button 
-                onClick={() => copyToClipboard(bashScript, 7)}
-                className="tutorial-copy-btn"
-              >
-                {copiedCode === 7 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 7 ? 'Скопировано!' : 'Копировать'}
+                {copiedCode === 6 ? "Скопировано!" : "Копировать"}
               </button>
             </div>
             <pre className="tutorial-code">
@@ -320,6 +275,7 @@ done`;
           </div>
         </div>
 
+        {/* Таблица эндпоинтов */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Основные endpoints</h2>
           <div className="tutorial-table">
@@ -329,7 +285,7 @@ done`;
               <div>Описание</div>
             </div>
             <div className="tutorial-table-row">
-              <div><code>/chat/ask</code></div>
+              <div><code>/v1/chat</code></div>
               <div>POST</div>
               <div>Отправка сообщения боту</div>
             </div>
@@ -337,11 +293,6 @@ done`;
               <div><code>/v1/sessions</code></div>
               <div>POST</div>
               <div>Создание новой сессии</div>
-            </div>
-            <div className="tutorial-table-row">
-              <div><code>/v1/sessions/&#123;id&#125;/history</code></div>
-              <div>GET</div>
-              <div>История сообщений сессии</div>
             </div>
             <div className="tutorial-table-row">
               <div><code>/v1/documents/upload</code></div>
@@ -356,6 +307,7 @@ done`;
           </div>
         </div>
 
+        {/* Что дальше */}
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Что дальше?</h2>
           <div className="tutorial-next-steps">
@@ -363,15 +315,15 @@ done`;
               <Code size={24} />
               <div>
                 <h3>Python SDK</h3>
-                <p>Удобная работа через Python SDK</p>
+                <p>Быстрая интеграция через Python</p>
               </div>
             </Link>
-            
+
             <Link href="/tutorials/nodejs" className="tutorial-next-card">
-              <Terminal size={24} />
+              <Zap size={24} />
               <div>
-                <h3>Node.js Integration</h3>
-                <p>Серверная интеграция для JavaScript</p>
+                <h3>Node.js SDK</h3>
+                <p>Серверная интеграция на JavaScript</p>
               </div>
             </Link>
           </div>

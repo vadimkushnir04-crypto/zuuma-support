@@ -6,7 +6,7 @@ import { Search, Book, Code, Brain, Settings, Zap, Terminal, FileText, Sparkles,
 import Link from "next/link";
 
 const tutorials = [
-  {
+  /*{
     id: "rag-training",
     title: "Как обучать ассистентов (RAG)",
     description: "Загрузка документов, настройка знаний и лучшие практики обучения ассистентов с использованием технологии RAG.",
@@ -16,7 +16,7 @@ const tutorials = [
     gradient: "from-purple-500 to-pink-500",
     level: "Средний",
     time: "15 мин"
-  },
+  },*/
   {
     id: "efficient-training",
     title: "Эффективное обучение бота",
@@ -60,17 +60,6 @@ const tutorials = [
     gradient: "from-yellow-500 to-orange-500",
     level: "Средний",
     time: "12 мин"
-  },
-  {
-    id: "nodejs",
-    title: "Node.js Integration",
-    description: "Серверная интеграция ассистента в Node.js приложения с примерами Express.js.",
-    link: "/tutorials/nodejs",
-    category: "Интеграция",
-    icon: Terminal,
-    gradient: "from-green-500 to-emerald-500",
-    level: "Продвинутый",
-    time: "20 мин"
   },
   {
     id: "python",
@@ -140,10 +129,15 @@ export default function TutorialsPage() {
             <div>
               <h1>Документы</h1>
               <p>Создавайте функции один раз и используйте для любых ботов</p>
+
+              {/* Beta warning */}
+            <div className="beta-warning">
+              ⚠️ API и SDK находятся в <strong>бета-версии</strong>. Некоторые функции могут работать некорректно или выдавать ошибки.
             </div>
           </div>
         </div>
       </div>
+    </div>
 
       {/* Search Section */}
       <div className="tutorials-search-section">
