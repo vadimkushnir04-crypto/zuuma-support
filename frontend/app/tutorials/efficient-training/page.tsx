@@ -199,31 +199,6 @@ export default function EfficientTrainingTutorial() {
               <code>{goodExample}</code>
             </pre>
           </div>
-        </div>
-
-        <div className="tutorial-section">
-          <h2 className="tutorial-section-title">Документ для обучения</h2>
-          <p className="tutorial-text">
-            Создайте документ с правилами и загрузите его в раздел "Обучение ассистента". 
-            Это будет базовое знание бота о том, как отвечать клиентам.
-          </p>
-          <div className="tutorial-code-block">
-            <div className="tutorial-code-header">
-              <span className="tutorial-code-language">Markdown</span>
-              <button 
-                onClick={() => copyToClipboard(trainingDoc, 3)}
-                className="tutorial-copy-btn"
-              >
-                {copiedCode === 3 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 3 ? 'Скопировано!' : 'Копировать'}
-              </button>
-            </div>
-            <pre className="tutorial-code" style={{ fontSize: '12px', maxHeight: '400px', overflow: 'auto' }}>
-              <code>{trainingDoc}</code>
-            </pre>
-          </div>
-        </div>
-
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Основные принципы экономного бота</h2>
           <div className="tutorial-principles-grid">
@@ -354,5 +329,8 @@ export default function EfficientTrainingTutorial() {
           </div>
         </div>
       </div>
+    </div>
+
+
   );
 }
