@@ -6597,5 +6597,139 @@ body.sidebar-open .sidebar {
   margin-bottom: 20px;
   font-size: 14px;
 }
+/* Video Tutorial Section */
+.business-video {
+  padding: 80px 20px;
+  background: linear-gradient(180deg, 
+    var(--background-secondary) 0%, 
+    var(--background-primary) 100%
+  );
+}
 
+.video-container {
+  max-width: 900px;
+  margin: 0 auto;
+  margin-top: 48px;
+}
+
+/* Platform Selector */
+.video-platform-selector {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.platform-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--background-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.platform-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.platform-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+}
+
+.platform-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* YouTube button specific styles */
+.platform-btn-youtube.active {
+  background: #FF0000;
+  border-color: #FF0000;
+}
+
+.platform-btn-youtube:hover:not(.active) {
+  border-color: #FF0000;
+  color: #FF0000;
+}
+
+/* Rutube button specific styles */
+.platform-btn-rutube.active {
+  background: #00A8E8;
+  border-color: #00A8E8;
+}
+
+.platform-btn-rutube:hover:not(.active) {
+  border-color: #00A8E8;
+  color: #00A8E8;
+}
+
+/* Video Player Wrapper */
+.video-player-wrapper {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background: var(--background-tertiary);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.video-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-frame iframe {
+  border: none;
+  border-radius: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .business-video {
+    padding: 60px 16px;
+  }
+
+  .video-platform-selector {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .platform-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+
+  .video-container {
+    margin-top: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .platform-btn {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+
+  .platform-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+}
 }
