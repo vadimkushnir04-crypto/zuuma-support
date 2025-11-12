@@ -184,21 +184,6 @@ export default function EfficientTrainingTutorial() {
           )}
         </div>
 
-          <div className="tutorial-code-block" style={{ marginTop: '20px' }}>
-            <div className="tutorial-code-header">
-              <span className="tutorial-code-language">Хороший пример</span>
-              <button 
-                onClick={() => copyToClipboard(goodExample, 2)}
-                className="tutorial-copy-btn"
-              >
-                {copiedCode === 2 ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {copiedCode === 2 ? 'Скопировано!' : 'Копировать'}
-              </button>
-            </div>
-            <pre className="tutorial-code" style={{ fontSize: '13px' }}>
-              <code>{goodExample}</code>
-            </pre>
-          </div>
         <div className="tutorial-section">
           <h2 className="tutorial-section-title">Основные принципы экономного бота</h2>
           <div className="tutorial-principles-grid">
