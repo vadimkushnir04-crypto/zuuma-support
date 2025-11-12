@@ -2,6 +2,7 @@
 @import url('../styles/telegram.css');
 @import './responsive-utils.css';
 @import './business-home.css';
+@import './video-section.css';
 
 :root {
   --bg-main: #0a0a0a;

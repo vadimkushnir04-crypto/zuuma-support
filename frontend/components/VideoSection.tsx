@@ -64,18 +64,18 @@ export default function VideoSection() {
                 <iframe
                   width="100%"
                   height="100%"
-                  src="https://www.youtube.com/embed/jlrZK5DUXMg?autoplay=1"
+                  src="https://www.youtube.com/embed/jlrZK5DUXMg"
                   title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
                 />
               ) : (
                 <iframe
                   width="100%"
                   height="100%"
-                  src="https://rutube.ru/play/embed/77217ed2fd9ddc2c7f7bb71d7c54b51e/?p=null&skinColor=000000&autoplay=1"
+                  src="https://rutube.ru/play/embed/77217ed2fd9ddc2c7f7bb71d7c54b51e/?p=null&skinColor=000000"
                   title="Rutube video player"
-                  allow="clipboard-write; autoplay"
+                  allow="clipboard-write"
                   allowFullScreen
                 />
               )}

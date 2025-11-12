@@ -1,0 +1,247 @@
+/* Video Tutorial Section */
+.business-video {
+  padding: 80px 20px;
+  background: linear-gradient(180deg, 
+    var(--background-secondary) 0%, 
+    var(--background-primary) 100%
+  );
+}
+
+.business-video .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Video Buttons Container */
+.video-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  margin: 48px auto 0;
+  flex-wrap: wrap;
+  max-width: 600px;
+}
+
+/* Video Button Styles */
+.video-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg-panel) !important;
+  color: var(--fg-main) !important;
+  border: 1px solid var(--border-color) !important;
+  text-decoration: none !important;
+  min-width: 140px;
+}
+
+.video-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.video-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* YouTube button - red accent on hover */
+.video-btn-youtube:hover {
+  border-color: #FF0000 !important;
+  color: #FF0000 !important;
+}
+
+.video-btn-youtube:hover .video-icon {
+  color: #FF0000;
+}
+
+/* Rutube button - default accent on hover */
+.video-btn-rutube:hover {
+  border-color: var(--primary-color) !important;
+}
+
+/* Video Modal Overlay */
+.video-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 40px 20px;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Video Modal Content */
+.video-modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto; /* Центрирование */
+  animation: slideUp 0.3s ease;
+  cursor: default;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Close Button */
+.video-modal-close {
+  position: absolute;
+  top: -50px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  z-index: 100000;
+}
+
+.video-modal-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.video-modal-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Video Player Container */
+.video-modal-player {
+  position: relative;
+  width: 100%;
+  max-width: 1280px; /* Дополнительное ограничение */
+  margin: 0 auto; /* Центрирование на всякий случай */
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
+}
+
+.video-modal-player iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .business-video {
+    padding: 60px 16px;
+  }
+
+  .video-buttons {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 32px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .video-btn {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+
+  .video-modal-overlay {
+    padding: 20px 16px;
+  }
+
+  .video-modal-close {
+    top: -44px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .video-modal-close svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .video-modal-player {
+    border-radius: 8px;
+  }
+
+  .video-modal-player iframe {
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-btn {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+
+  .video-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .video-modal-close {
+    top: -40px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .video-modal-overlay {
+    padding: 16px 12px;
+  }
+}
+
+/* Prevent body scroll when modal is open */
+body:has(.video-modal-overlay) {
+  overflow: hidden;
+}
