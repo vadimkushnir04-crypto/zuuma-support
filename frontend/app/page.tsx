@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bot, Upload, Zap, TrendingUp, Clock, Shield } from "lucide-react";
+import { Bot, Upload, Zap, TrendingUp, Clock, Shield, Sparkles } from "lucide-react";
 import Script from "next/script";
 
 export const metadata: Metadata = {
@@ -149,6 +149,25 @@ export default function Home() {
                 </p>
               </div>
 
+              <div className="benefit-card">
+                <div className="benefit-icon benefit-icon-time">
+                  <Clock className="w-6 h-6" />
+                </div>
+                <h3 className="benefit-title">Работа 24/7</h3>
+                <p className="benefit-text">
+                  Ваш ассистент не спит и не уходит на обед. Клиенты получают ответы в любое время суток.
+                </p>
+              </div>
+
+              <div className="benefit-card">
+                <div className="benefit-icon benefit-icon-security">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <h3 className="benefit-title">Безопасность данных</h3>
+                <p className="benefit-text">
+                  Все данные хранятся на серверах в России. Полное соответствие 152-ФЗ о персональных данных.
+                </p>
+              </div>
             </div>
           </div>
         </section>

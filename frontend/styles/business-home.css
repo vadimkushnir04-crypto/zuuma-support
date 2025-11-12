@@ -2,6 +2,7 @@
    BUSINESS HOME PAGE STYLES
    Современный дизайн для бизнес-аудитории
    Цветовая схема: Telegram Blue (#0088cc)
+   ✅ ИСПРАВЛЕНО: Равномерные отступы, grid для 4 карточек
    ============================================ */
 
 .business-home {
@@ -176,11 +177,11 @@
 
 /* ============================================
    STEPS SECTION
-   ✅ ИСПРАВЛЕНО: Уменьшены отступы для размещения в одну линию
+   ✅ ИСПРАВЛЕНО: Единый padding для всех секций
    ============================================ */
 
 .business-steps {
-  padding: 4rem 2rem; /* Было 6rem - уменьшили */
+  padding: 5rem 2rem; /* ✅ Стандартизировано */
   background: #121212;
 }
 
@@ -201,7 +202,7 @@
   font-size: 1.125rem;
   text-align: center;
   color: #B0B0B0;
-  margin-bottom: 3rem; /* Было 4rem - уменьшили */
+  margin-bottom: 3rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
@@ -209,12 +210,11 @@
 
 .steps-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3 равные колонки */
-  gap: 2rem; /* Нормальный gap между карточками */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
   align-items: stretch;
   max-width: 1400px;
   margin: 0 auto;
-  margin-top: 10px;
 }
 
 .step-card {
@@ -281,14 +281,14 @@
 }
 
 .step-title {
-  font-size: 1.35rem; /* Было 1.5rem - немного уменьшили */
+  font-size: 1.35rem;
   font-weight: 700;
   margin-bottom: 1rem;
   color: #FFFFFF;
 }
 
 .step-description {
-  font-size: 0.95rem; /* Было 1rem - немного уменьшили */
+  font-size: 0.95rem;
   line-height: 1.6;
   color: #B0B0B0;
   flex-grow: 1;
@@ -296,20 +296,20 @@
 
 /* ============================================
    BENEFITS SECTION
-   ✅ ИСПРАВЛЕНО: Увеличен отступ сверху
+   ✅ ИСПРАВЛЕНО: 4 карточки в grid 2x2
    ============================================ */
 
 .business-benefits {
-  padding: 5rem 2rem 6rem; /* Увеличили верхний padding с 6rem до 5rem и нижний тоже */
+  padding: 5rem 2rem; /* ✅ Стандартизировано */
   background: linear-gradient(180deg, #121212 0%, #0a0a0a 100%);
-  margin-top: 2rem; /* ✅ Добавили дополнительный отступ сверху */
 }
 
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr); /* ✅ Всегда 2 колонки на десктопе */
   gap: 2rem;
-  margin-top: 10px;
+  max-width: 1000px; /* ✅ Ограничиваем ширину для лучшей читабельности */
+  margin: 0 auto;
 }
 
 .benefit-card {
@@ -373,7 +373,7 @@
    ============================================ */
 
 .business-usecases {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem; /* ✅ Стандартизировано */
   background: #121212;
 }
 
@@ -381,7 +381,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 2rem;
-  margin-top: 10px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .usecase-card {
@@ -421,7 +422,7 @@
    ============================================ */
 
 .business-pricing-preview {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem; /* ✅ Стандартизировано */
   background: linear-gradient(180deg, #0a0a0a 0%, #121212 100%);
 }
 
@@ -502,7 +503,7 @@
    ============================================ */
 
 .business-cta {
-  padding: 6rem 2rem;
+  padding: 5rem 2rem; /* ✅ Стандартизировано */
   background: #121212;
 }
 
@@ -568,6 +569,7 @@
 
 /* ============================================
    RESPONSIVE DESIGN
+   ✅ ОБНОВЛЕНО: Адаптив для benefits grid
    ============================================ */
 
 @media (max-width: 1200px) {
@@ -626,8 +628,9 @@
     padding: 3rem 1.5rem;
   }
 
-  .business-benefits {
-    margin-top: 1rem;
+  /* ✅ Benefits на мобилке - 1 колонка */
+  .benefits-grid {
+    grid-template-columns: 1fr;
   }
 
   .pricing-cards-mini {
