@@ -1,4 +1,6 @@
 // backend/src/telegram/telegram-webhook.service.ts
+// ✅ ИСПРАВЛЕНО: История загружается из БД вместо Map в памяти
+
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -30,11 +32,8 @@ interface TelegramUpdate {
 
 @Injectable()
 export class TelegramWebhookService {
-  private conversations = new Map<string, Array<{
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-  }>>();
+  // ❌ УДАЛЕНО: Map в памяти больше не используется
+  // private conversations = new Map<...>();
 
   constructor(
     @InjectRepository(TelegramBot)
@@ -62,7 +61,6 @@ export class TelegramWebhookService {
 
     console.log(`💬 Message from user ${userId} in chat ${chatId}: "${userMessage}"`);
 
-    // ✅ ИСПРАВЛЕНО: Ищем бота по UUID (из webhook URL)
     const bot = await this.botsRepository.findOne({ 
       where: { id: botIdentifier } 
     });
@@ -122,10 +120,26 @@ export class TelegramWebhookService {
       String(chatId),
     );
 
-    const conversationKey = `telegram:${userId}:bot:${currentBot.id}`;
-    const history = this.conversations.get(conversationKey) || [];
+    // ============================================
+    // ✅ ИСПРАВЛЕНИЕ: Загружаем историю из БД
+    // ============================================
+    
+    const maxHistoryMessages = assistant.settings?.maxHistoryMessages || 10;
+    
+    const dbMessages = await this.supportService.getChatMessages(
+      chatSession.id,
+      maxHistoryMessages * 2
+    );
+    
+    const history = dbMessages.map(msg => ({
+      role: msg.senderType === 'user' ? ('user' as const) : ('assistant' as const),
+      content: msg.content,
+      timestamp: msg.createdAt,
+    }));
+    
+    console.log(`📚 Loaded Telegram history from DB: ${history.length} messages`);
 
-    // 🔥 Сохраняем сообщение пользователя ОДИН РАЗ (saveMessage уже отправляет WebSocket)
+    // Сохраняем сообщение пользователя
     await this.supportService.saveMessage(
       chatSession.id,
       'user',
@@ -147,7 +161,7 @@ export class TelegramWebhookService {
         userMessage,
         assistant.collectionName,
         assistant.systemPrompt,
-        history,
+        history, // ✅ ПЕРЕДАЁМ РЕАЛЬНУЮ ИСТОРИЮ ИЗ БД!
         0,
         assistant.id
       );
@@ -162,7 +176,6 @@ export class TelegramWebhookService {
           urgency || 'medium',
         );
 
-        // 🔥 saveMessage уже отправляет WebSocket, не нужно вызывать emitMessageToSessionSafe
         await this.supportService.saveMessage(
           chatSession.id,
           'ai',
@@ -175,31 +188,25 @@ export class TelegramWebhookService {
         return;
       }
 
-        // Очистка ответа
-        let cleanAnswer = (result.answer || '').replace(/<\|channel\|>.*?<\|message\|>/gs, '').replace(/<\|[^|>]+\|>/g, '').trim();
-        if (!cleanAnswer || cleanAnswer.length < 2) cleanAnswer = result.answer;
+      // Очистка ответа
+      let cleanAnswer = (result.answer || '').replace(/<\|channel\|>.*?<\|message\|>/gs, '').replace(/<\|[^|>]+\|>/g, '').trim();
+      if (!cleanAnswer || cleanAnswer.length < 2) cleanAnswer = result.answer;
 
-        // ✅ ИСПРАВЛЕНО: Передаем files в saveMessage - он сам отправит в Telegram
-        await this.supportService.saveMessage(
-          chatSession.id,
-          'ai',
-          cleanAnswer,
-          undefined,
-          { sources: result.sources, hasContext: result.hasContext },
-          undefined,
-          result.files // ✅ Передаем файлы - saveMessage сам отправит в TG
-        );
+      // Сохраняем ответ AI в БД
+      await this.supportService.saveMessage(
+        chatSession.id,
+        'ai',
+        cleanAnswer,
+        undefined,
+        { sources: result.sources, hasContext: result.hasContext },
+        undefined,
+        result.files
+      );
 
-        // Обновляем историю...
-        const updatedHistory = [
-          ...history,
-          { role: 'user' as const, content: userMessage, timestamp: new Date() },
-          { role: 'assistant' as const, content: cleanAnswer, timestamp: new Date() },
-        ];
-
-        const maxHistory = assistant.settings?.maxHistoryMessages || 10;
-        if (updatedHistory.length > maxHistory * 2) updatedHistory.splice(0, updatedHistory.length - maxHistory * 2);
-        this.conversations.set(conversationKey, updatedHistory);
+      // ❌ УДАЛЕНО: Больше не обновляем Map в памяти
+      // const conversationKey = `telegram:${userId}:bot:${currentBot.id}`;
+      // const updatedHistory = [...];
+      // this.conversations.set(conversationKey, updatedHistory);
 
       currentBot.totalMessages = (currentBot.totalMessages || 0) + 1;
       currentBot.lastMessageAt = new Date();
@@ -234,9 +241,21 @@ export class TelegramWebhookService {
         break;
 
       case '/clear':
-        const conversationKey = `telegram:${chatId}:bot:${bot.id}`;
-        this.conversations.delete(conversationKey);
-        await this.sendTelegramMessage(botToken, chatId, 'История очищена!');
+        // ✅ ИСПРАВЛЕНО: Очищаем историю в БД, а не в памяти
+        const userIdentifier = `telegram:${chatId}`;
+        const chatSession = await this.supportService.getOrCreateChatSession(
+          bot.assistantId,
+          userIdentifier,
+          'telegram',
+          String(chatId),
+        );
+        
+        // Помечаем старую сессию как resolved и создаём новую
+        if (chatSession) {
+          await this.supportService.resolveChat(chatSession.id, 'user');
+        }
+        
+        await this.sendTelegramMessage(botToken, chatId, 'История очищена! Начните новый диалог.');
         break;
 
       default:
@@ -306,7 +325,6 @@ export class TelegramWebhookService {
     }
   }
 
-  // Helper для отправки сообщений из SupportService
   public async sendTelegramMessageForSession(session: ChatSession, text: string) {
     if (!session || !session.externalChatId) return;
 
@@ -327,13 +345,6 @@ export class TelegramWebhookService {
     }
   }
 
-  // ============================================
-  // 📎 МЕТОДЫ ДЛЯ ОТПРАВКИ ФАЙЛОВ В TELEGRAM
-  // ============================================
-
-  /**
-   * ✅ ПУБЛИЧНЫЙ метод - отправка фото в Telegram
-   */
   public async sendTelegramPhoto(
     botToken: string,
     chatId: number,
@@ -379,9 +390,6 @@ export class TelegramWebhookService {
     }
   }
 
-  /**
-   * ✅ ПУБЛИЧНЫЙ метод - отправка документа в Telegram
-   */
   public async sendTelegramDocument(
     botToken: string,
     chatId: number,
@@ -435,5 +443,4 @@ export class TelegramWebhookService {
       throw error;
     }
   }
-
 }

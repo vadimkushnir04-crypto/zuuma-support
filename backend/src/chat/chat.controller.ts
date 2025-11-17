@@ -1,4 +1,6 @@
 // backend/src/chat/chat.controller.ts
+// ✅ ИСПРАВЛЕНО: История загружается из БД вместо Map в памяти
+
 import { 
   Controller, 
   Post,
@@ -30,16 +32,13 @@ interface ChatRequest {
   telegramChatId?: string;
   userId?: string;
   sessionId?: string;
-  userIdentifier?: string; // 🔥 Добавлено
+  userIdentifier?: string;
 }
 
 @Controller('chat')
 export class ChatController {
-  private conversations = new Map<string, Array<{
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-  }>>();
+  // ❌ УДАЛЕНО: Map в памяти больше не используется
+  // private conversations = new Map<...>();
 
   constructor(
     private readonly knowledgeService: KnowledgeService,
@@ -54,14 +53,14 @@ export class ChatController {
 @UseGuards(RateLimitGuard)
 async chat(
   @Headers('authorization') authHeader: string,
-  @Headers('x-api-key') apiKeyHeader: string, // ✅ ДОБАВЛЕНО: получаем apiKey из заголовка
+  @Headers('x-api-key') apiKeyHeader: string,
   @Body() body: ChatRequest,
   @Request() req?: any
 ) {
   console.log('📥 Incoming chat request:', {
     hasAuth: !!authHeader,
     hasCookie: !!req?.cookies?.token,
-    hasApiKeyHeader: !!apiKeyHeader, // ✅ ДОБАВЛЕНО
+    hasApiKeyHeader: !!apiKeyHeader,
     hasApiKeyBody: !!body.apiKey,
     hasAssistantId: !!body.assistantId,
     hasTelegramUserId: !!body.telegramUserId,
@@ -73,9 +72,8 @@ async chat(
   let conversationKey: string;
   let userIdentifier: string;
 
-  // ✅ Вариант A: Фронтенд с JWT токеном (cookie ПРИОРИТЕТ, потом header) + assistantId
+  // ✅ Вариант A: Фронтенд с JWT токеном
   if ((req?.cookies?.token || authHeader?.startsWith('Bearer ')) && body.assistantId) {
-    // ... существующий код без изменений ...
     const token = req?.cookies?.token || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null);
     
     if (!token) {
@@ -109,7 +107,7 @@ async chat(
       throw new UnauthorizedException('Недействительный токен');
     }
   }
-  // ✅ Вариант B: Виджет с API ключом в заголовке (ПРИОРИТЕТ для виджета)
+  // ✅ Вариант B: Виджет с API ключом в заголовке
   else if (apiKeyHeader) {
     assistant = await this.assistantsService.getAssistantByApiKey(apiKeyHeader);
     userId = assistant?.userId;
@@ -131,7 +129,7 @@ async chat(
       collectionName: assistant.collectionName 
     });
   }
-  // ✅ Вариант C: Виджет с API ключом в теле (обратная совместимость)
+  // ✅ Вариант C: Виджет с API ключом в теле
   else if (body.apiKey) {
     assistant = await this.assistantsService.getAssistantByApiKey(body.apiKey);
     userId = assistant?.userId;
@@ -154,7 +152,6 @@ async chat(
     });
   }
   else if (body.telegramUserId && body.apiKey) {
-    // ... существующий код без изменений ...
     assistant = await this.assistantsService.getAssistantByApiKey(body.apiKey);
     userId = assistant?.userId;
     
@@ -177,7 +174,6 @@ async chat(
     );
   }
 
-  // 🔥 Определяем requestUserIdentifier ПОСЛЕ всех if/else блоков
   const requestUserIdentifier = body.userIdentifier || userIdentifier;
   console.log('🔑 Using userIdentifier:', requestUserIdentifier);
 
@@ -208,17 +204,17 @@ async chat(
 
   console.log(`💾 Chat session: ${chatSession.id}, status: ${chatSession.status}`);
 
-  // 🔥 Сохраняем сообщение пользователя всегда (даже в эскалированных чатах)
+  // Сохраняем сообщение пользователя
   const userMessage = await this.supportService.saveMessage(
     chatSession.id,
     'user',
     body.message,
     userId || undefined,
-    undefined, // metadata
-    requestUserIdentifier, // 🔥 Передаем userIdentifier
+    undefined,
+    requestUserIdentifier,
   );
 
-  // 🔥 Если чат эскалирован - просто сообщаем об этом, не генерируем ответ AI
+  // Если чат эскалирован - не генерируем ответ AI
   if (chatSession.status === 'pending_human' || chatSession.status === 'human_active') {
     return {
       success: true,
@@ -230,8 +226,34 @@ async chat(
     };
   }
 
-  const history = this.conversations.get(conversationKey) || [];
-  console.log(`📚 Conversation history: ${history.length} messages`);
+  // ============================================
+  // ✅ ИСПРАВЛЕНИЕ: Загружаем историю из БД
+  // ============================================
+  
+  const maxHistoryMessages = assistant.settings?.maxHistoryMessages || 10;
+  
+  // Берём последние N*2 сообщений (user + assistant пары)
+  const dbMessages = await this.supportService.getChatMessages(
+    chatSession.id, 
+    maxHistoryMessages * 2
+  );
+  
+  // Конвертируем в формат ConversationMessage
+  const history = dbMessages.map(msg => ({
+    role: msg.senderType === 'user' ? ('user' as const) : ('assistant' as const),
+    content: msg.content,
+    timestamp: msg.createdAt,
+  }));
+  
+  console.log(`📚 Loaded conversation history from DB: ${history.length} messages`);
+  
+  // ✅ ДЕБАГ: Выводим последние 3 сообщения для проверки
+  if (history.length > 0) {
+    console.log('📜 Recent history:', history.slice(-3).map(h => ({
+      role: h.role,
+      text: h.content.substring(0, 50)
+    })));
+  }
 
   try {
     console.log(`🎯 Calling generateAnswer with collection: ${assistant.collectionName}`);
@@ -240,9 +262,9 @@ async chat(
       body.message,
       assistant.collectionName,
       assistant.systemPrompt?.trim() || undefined,
-      history,
+      history, // ✅ ПЕРЕДАЁМ РЕАЛЬНУЮ ИСТОРИЮ ИЗ БД!
       0,
-      assistant.id // ✅ Теперь assistant.id всегда доступен
+      assistant.id
     );
 
     if (result.functionCalled === 'escalate_to_human' && result.functionArgs) {
@@ -285,7 +307,6 @@ async chat(
       };
     }
 
-    // Проверка на ошибку токенов (fallback)
     if (result.error && result.error.includes('Недостаточно токенов')) {
       throw new BadRequestException({
         success: false,
@@ -294,7 +315,6 @@ async chat(
       });
     }
 
-    // Токены уже списаны - только логируем
     if (result.tokensCharged && result.tokensCharged > 0) {
       console.log(`💰 Tokens already charged: ${result.tokensCharged}`);
     } else if (result.fromCannedResponses) {
@@ -323,18 +343,9 @@ async chat(
       result.files
     );
 
-    const updatedHistory = [
-      ...history,
-      { role: 'user' as const, content: body.message, timestamp: new Date() },
-      { role: 'assistant' as const, content: result.answer, timestamp: new Date() }
-    ];
-
-    const maxHistory = assistant.settings?.maxHistoryMessages || 10;
-    if (updatedHistory.length > maxHistory * 2) {
-      updatedHistory.splice(0, updatedHistory.length - maxHistory * 2);
-    }
-
-    this.conversations.set(conversationKey, updatedHistory);
+    // ❌ УДАЛЕНО: Больше не обновляем Map в памяти
+    // const updatedHistory = [...];
+    // this.conversations.set(conversationKey, updatedHistory);
 
     await this.assistantsService.incrementAssistantStats(assistant.id);
 
