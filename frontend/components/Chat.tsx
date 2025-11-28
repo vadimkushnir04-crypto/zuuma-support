@@ -31,18 +31,21 @@ export default function Chat() {
   const [userIdentifier, setUserIdentifier] = useState<string>(`frontend:${Date.now()}`);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { selectedAssistantId } = useContext(SelectedAssistantContext);
 
+  // ✅ ИСПРАВЛЕНИЕ: Скролл только внутри контейнера чата
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
 
   // Инициализация при выборе ассистента
   useEffect(() => {
@@ -62,62 +65,49 @@ export default function Chat() {
       }
       setUserIdentifier(identifier);
 
-      // Загружаем историю чата
       loadChatHistory(selectedAssistantId, identifier);
     }
   }, [selectedAssistantId, t]);
 
-    // Загрузка истории сообщений
-    const loadChatHistory = async (assistantId: string, userIdent: string) => {
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/support/sessions/by-identifier?assistantId=${assistantId}&userIdentifier=${userIdent}`,
-          { credentials: 'include' } // ✅ cookie
-        );
+  const loadChatHistory = async (assistantId: string, userIdent: string) => {
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/support/sessions/by-identifier?assistantId=${assistantId}&userIdentifier=${userIdent}`,
+        { credentials: 'include' }
+      );
 
-        if (res.ok) {
-          const data = await res.json();
+      if (res.ok) {
+        const data = await res.json();
 
-          if (data.session && data.messages && data.messages.length > 0) {
-            console.log('📜 Loaded chat history:', data.messages.length, 'messages');
-            setChatSessionId(data.session.id);
+        if (data.session && data.messages && data.messages.length > 0) {
+          console.log('📜 Loaded chat history:', data.messages.length, 'messages');
+          setChatSessionId(data.session.id);
 
-            const loadedMessages: Message[] = data.messages.map((msg: any) => {
-              // ✅ ДЕБАГ: Проверяем содержимое сообщения
-              if (msg.content && typeof msg.content === 'string' && msg.content.endsWith('0')) {
-                console.warn('⚠️ Message with trailing 0 detected:', {
-                  id: msg.id,
-                  rawContent: msg.content,
-                  sources: msg.metadata?.sources,
-                });
-              }
-              
-              return {
+          const loadedMessages: Message[] = data.messages.map((msg: any) => {
+            if (msg.content && typeof msg.content === 'string' && msg.content.endsWith('0')) {
+              console.warn('⚠️ Message with trailing 0 detected:', {
                 id: msg.id,
-                text: msg.content,
-                sender: msg.senderType === 'user' ? 'user' : 'assistant',
-                timestamp: new Date(msg.createdAt),
-                sources: typeof msg.metadata?.sources === 'number' && msg.metadata.sources > 0
-                  ? msg.metadata.sources
-                  : undefined, // ✅ undefined вместо 0
-                files: Array.isArray(msg.metadata?.files) 
-                  ? msg.metadata.files 
-                  : [],
-              };
-            });
+                rawContent: msg.content,
+                sources: msg.metadata?.sources,
+              });
+            }
+            
+            return {
+              id: msg.id,
+              text: msg.content,
+              sender: msg.senderType === 'user' ? 'user' : 'assistant',
+              timestamp: new Date(msg.createdAt),
+              sources: typeof msg.metadata?.sources === 'number' && msg.metadata.sources > 0
+                ? msg.metadata.sources
+                : undefined,
+              files: Array.isArray(msg.metadata?.files) 
+                ? msg.metadata.files 
+                : [],
+            };
+          });
 
-            setMessages(loadedMessages);
-          } else {
-            // Нет истории - показываем приветствие
-            setMessages([{
-              id: `welcome-${Date.now()}`,
-              text: t('welcomeMessage'),
-              sender: "assistant",
-              timestamp: new Date(),
-            }]);
-          }
+          setMessages(loadedMessages);
         } else {
-          console.error('❌ Failed to load chat history:', res.status);
           setMessages([{
             id: `welcome-${Date.now()}`,
             text: t('welcomeMessage'),
@@ -125,8 +115,8 @@ export default function Chat() {
             timestamp: new Date(),
           }]);
         }
-      } catch (err) {
-        console.error('❌ Error loading chat history:', err);
+      } else {
+        console.error('❌ Failed to load chat history:', res.status);
         setMessages([{
           id: `welcome-${Date.now()}`,
           text: t('welcomeMessage'),
@@ -134,19 +124,25 @@ export default function Chat() {
           timestamp: new Date(),
         }]);
       }
-    };
+    } catch (err) {
+      console.error('❌ Error loading chat history:', err);
+      setMessages([{
+        id: `welcome-${Date.now()}`,
+        text: t('welcomeMessage'),
+        sender: "assistant",
+        timestamp: new Date(),
+      }]);
+    }
+  };
 
   const isDuplicate = (newMessage: Message): boolean => {
     return messages.some(msg => {
-      // Проверка по ID
       if (msg.id === newMessage.id) return true;
       
-      // Проверка по содержимому + времени + отправителю
       const timeDiff = Math.abs(msg.timestamp.getTime() - newMessage.timestamp.getTime());
       const sameContent = msg.text.trim() === newMessage.text.trim();
       const sameSender = msg.sender === newMessage.sender;
       
-      // Дубль, если одинаковое содержимое и отправитель в течение 3 секунд
       if (sameContent && sameSender && timeDiff < 3000) {
         console.log('🚫 Duplicate detected:', {
           existingId: msg.id,
@@ -177,7 +173,6 @@ export default function Chat() {
     setMessages(prev => [...prev, newMessage]);
   };
 
-  // Отправка сообщения
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !selectedAssistantId) return;
 
@@ -218,7 +213,7 @@ export default function Chat() {
 
       const response = await fetch(`${API_BASE_URL}/chat/ask`, {
         method: "POST",
-        credentials: 'include', // ✅ cookie
+        credentials: 'include',
         headers: {
           "Content-Type": "application/json",
         },
@@ -270,7 +265,6 @@ export default function Chat() {
     }
   };
 
-  // WebSocket подключение
   useEffect(() => {
     if (!selectedAssistantId) return;
 
@@ -279,7 +273,7 @@ export default function Chat() {
     const socket = io('https://zuuma.ru', {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
-      withCredentials: true,  // ← УБЕДИСЬ ЧТО ЭТО ЕСТЬ!
+      withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -316,7 +310,7 @@ export default function Chat() {
         sources: typeof (payload.metadata?.sources || payload.sources) === 'number' 
           && (payload.metadata?.sources || payload.sources) > 0
           ? (payload.metadata?.sources || payload.sources) 
-          : undefined, // ✅ undefined вместо 0
+          : undefined,
         files: Array.isArray(payload.files) 
           ? payload.files 
           : (Array.isArray(payload.metadata?.files) ? payload.metadata.files : []),
@@ -333,7 +327,6 @@ export default function Chat() {
     };
   }, [selectedAssistantId, userIdentifier]);
 
-  // ✅ Отслеживание chatSessionId - ВТОРОЙ useEffect
   useEffect(() => {
     if (chatSessionId && socketRef.current?.connected) {
       console.log('🔄 ChatSessionId changed, joining room:', chatSessionId);
@@ -349,38 +342,36 @@ export default function Chat() {
     }
   }, [chatSessionId, selectedAssistantId, userIdentifier]);
 
-  // Если не выбран ассистент
-    if (!selectedAssistantId) {
-      return (
-        <div className="chat-wrapper">
-          <div className="chat-messages">
-            <div className="chat-empty">
-              {t('noAssistant')}
-            </div>
-          </div>
-          <div className="chat-input-wrapper">
-            <textarea
-              placeholder={t('placeholders.selectAssistant')}
-              disabled
-              className="disabled"
-              rows={1}
-            />
-            <button disabled>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" 
-                      stroke="currentColor" strokeWidth="2" />
-              </svg>
-            </button>
+  if (!selectedAssistantId) {
+    return (
+      <div className="chat-wrapper">
+        <div className="chat-messages">
+          <div className="chat-empty">
+            {t('noAssistant')}
           </div>
         </div>
-      );
-    }
+        <div className="chat-input-wrapper">
+          <textarea
+            placeholder={t('placeholders.selectAssistant')}
+            disabled
+            className="disabled"
+            rows={1}
+          />
+          <button disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" 
+                    stroke="currentColor" strokeWidth="2" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-  // Основной чат
   return (
     <div className="chat-wrapper">
-      {/* Контейнер сообщений - ВАЖНО: flex: 1, overflow-y: auto, min-height: 0 */}
-      <div className="chat-messages">
+      {/* ✅ ИСПРАВЛЕНИЕ: Добавлен ref для контейнера сообщений */}
+      <div className="chat-messages" ref={messagesContainerRef}>
         {messages.length === 0 ? (
           <div className="chat-empty">{t('askQuestion')}</div>
         ) : (
@@ -390,7 +381,6 @@ export default function Chat() {
                 <div className="chat-bubble">
                   {message.text}
                   
-                  {/* Файлы */}
                   {message.files && message.files.length > 0 && (
                     <div className="message-files">
                       {message.files.map((file, idx) => (
@@ -441,17 +431,15 @@ export default function Chat() {
                     </div>
                   )}
                   
-                {/* Источники */}
-                {message.sources !== undefined && message.sources > 0 && (
-                  <div className="message-sources">
-                    📄 {t('sources', { count: message.sources })}
-                  </div>
-                )}
+                  {message.sources !== undefined && message.sources > 0 && (
+                    <div className="message-sources">
+                      📄 {t('sources', { count: message.sources })}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             
-            {/* Индикатор загрузки */}
             {isLoading && (
               <div className="chat-message assistant">
                 <div className="chat-bubble thinking">
@@ -463,13 +451,12 @@ export default function Chat() {
               </div>
             )}
             
-            {/* Автоскролл к последнему сообщению */}
+            {/* ✅ ИСПРАВЛЕНИЕ: ref остается для определения конца списка */}
             <div ref={messagesEndRef} />
           </>
         )}
       </div>
 
-      {/* Поле ввода - ВАЖНО: flex-shrink: 0 */}
       <div className="chat-input-wrapper">
         <textarea
           ref={textareaRef}
@@ -505,7 +492,6 @@ export default function Chat() {
           </svg>
         </button>
       </div>
-
     </div>
   );
 }
