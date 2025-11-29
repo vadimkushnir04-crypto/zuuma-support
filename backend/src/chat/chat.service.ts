@@ -5,115 +5,91 @@ import { SupportBotConfig } from "../knowledge/support-bot.config";
 import { TokensService } from "../tokens/tokens.service";
 import { SupportService } from '../support/support.service';
 
-interface ConversationState {
-  hasGreeted: boolean;
-  escalationCount: number;
-  messages: { role: "user" | "assistant"; content: string }[];
-}
-
 @Injectable()
 export class ChatService {
-  private conversations = new Map<string, ConversationState>();
-
   constructor(
     private llmService: LLMService,
     private tokensService: TokensService,
     private supportService: SupportService,
   ) {}
 
-  private getState(conversationId: string): ConversationState {
-    if (!this.conversations.has(conversationId)) {
-      this.conversations.set(conversationId, {
-        hasGreeted: false,
-        escalationCount: 0,
-        messages: [],
-      });
-    }
-    return this.conversations.get(conversationId)!;
+  /**
+   * Загружает последние N сообщений из БД
+   */
+  private async loadHistory(conversationId: string, limit = 30) {
+    const dbMessages = await this.supportService.getChatMessages(conversationId, limit);
+
+    return dbMessages.map(m => ({
+      role: m.senderType === 'user' ? 'user' : 'assistant',
+      text: m.content
+    })) as ChatMessage[];
   }
 
+  /**
+   * Основной LLM-запрос
+   */
   async ask(
-    question: string, 
+    question: string,
     conversationId: string = "default",
     userId?: string,
     assistantId?: string
   ): Promise<string> {
-    const state = this.getState(conversationId);
 
-      // ✅ ДОБАВИТЬ: логирование для отладки
-      console.log('💬 ChatService.ask called:', {
-        conversationId,
-        userId: userId?.substring(0, 8) + '...',
-        assistantId: assistantId?.substring(0, 8) + '...',
-        questionLength: question.length
-      });
+    console.log('💬 ChatService.ask:', {
+      conversationId,
+      question: question.substring(0, 100)
+    });
 
-    // Проверка на эскалацию
+    // Найдём сессию
+    const session = await this.supportService.findByConversationId(conversationId);
+
+    // Сохраняем сообщение пользователя в БД
+    if (session) {
+      await this.supportService.handleIncomingMessage(session.id, question, 'user');
+    }
+
+    // Загружаем историю из БД
+    const history = await this.loadHistory(conversationId, 50);
+
+    console.log('📚 История из БД:', history.length, 'сообщений');
+
+    // Эскалация
     if (
       question.toLowerCase().includes("переведи") ||
       question.toLowerCase().includes("другому сотруднику")
     ) {
-      state.escalationCount++;
-      const activeSession = await this.supportService.findByConversationId(conversationId);
-      if (activeSession) {
-        await this.supportService.handleIncomingMessage(activeSession.id, question, 'user');
+      const lastTwo = history.slice(-2).map(m => m.text).join(" ");
+      if (lastTwo.includes("переведи")) {
+        return "Понимаю ваше желание 📞. Передаю ваш запрос старшему специалисту.";
       }
-      if (state.escalationCount >= 2) {
-        return "Понимаю ваше желание 📞. Передаю ваш запрос старшему специалисту, пожалуйста, оставайтесь на линии.";
-      } else {
-        return "Я постараюсь помочь вам сам 🤝. Расскажите подробнее о ситуации, и я постараюсь её решить.";
-      }
+      return "Я постараюсь помочь вам сам 🤝. Расскажите подробнее о ситуации.";
     }
 
-    // Приветствие только при первой реплике
-    let greeting: string | null = null;
-    if (!state.hasGreeted) {
-      state.hasGreeted = true;
-      greeting = SupportBotConfig.behavior.defaultGreeting;
-    }
-
-    // Сохраняем запрос пользователя в историю
-    state.messages.push({ role: "user", content: question });
-
-    // Формируем сообщения для LLM
-    const historyMessages = state.messages.slice(-10);
-
-    console.log("💬 Новый запрос:", question);
-    console.log("📚 История диалога:", state.messages.length, "сообщений");
-
-    // ============================================
-    // 🚀 ИСПОЛЬЗУЕМ НОВЫЙ LLM SERVICE
-    // ============================================
-    
+    // Формируем system + историю + новый вопрос
     const messages: ChatMessage[] = [
       {
         role: "system",
         text: SupportBotConfig.systemPrompts.standard.replace(
           "{contextText}",
           "Контекст отсутствует."
-        ),
+        )
       },
-      ...historyMessages.map(m => ({
-        role: m.role as 'user' | 'assistant',
-        text: m.content,
-      })),
+      ...history.slice(-SupportBotConfig.behavior.maxHistoryMessages),
+      { role: "user", text: question }
     ];
 
-    // Используем YandexGPT по умолчанию
+    // Вызов LLM
     const response = await this.llmService.chat(messages, {
       temperature: 0.7,
       maxTokens: 2000,
-      provider: 'yandexgpt', // или 'openrouter', 'gigachat'
-      model: 'yandexgpt-lite', // самая дешевая модель
+      provider: 'yandexgpt',
+      model: 'yandexgpt-lite',
     });
 
     const answer = response.content || "Нет ответа";
 
-    // Сохраняем ответ ассистента в историю
-    state.messages.push({ role: "assistant", content: answer });
-
-    // Передача через WebSocket
-    if (conversationId && assistantId) {
+    // Сохраняем ответ ассистента в БД
+    if (session && assistantId) {
       await this.supportService.emitMessageToSessionSafe(conversationId, {
         id: `msg-${Date.now()}`,
         content: answer,
@@ -122,54 +98,45 @@ export class ChatService {
         createdAt: new Date(),
         assistantId: assistantId,
       });
+
+      await this.supportService.handleIncomingMessage(
+        session.id,
+        answer,
+        'ai'   // <<<<<< правильный тип
+      );
     }
 
-    console.log("🤖 Ответ LLM:", answer.substring(0, 100) + "...");
-    console.log("📊 Токены использовано:", response.tokensUsed);
-
-    // ============================================
-    // 💰 ТОЧНЫЙ ПОДСЧЕТ И СПИСАНИЕ ТОКЕНОВ
-    // ============================================
-    
+    // Списание токенов
     if (userId && assistantId && response.tokensUsed) {
-      const tokensUsed = response.tokensUsed.total;
-      
+      const t = response.tokensUsed.total;
+
       try {
         await this.tokensService.consumeTokens(
           userId,
-          tokensUsed,
+          t,
           assistantId,
-          { 
+          {
             conversationId,
             question: question.substring(0, 100),
             model: response.model,
             promptTokens: response.tokensUsed.prompt,
             completionTokens: response.tokensUsed.completion,
-            timestamp: new Date(),
+            timestamp: new Date()
           }
         );
-        console.log(`💰 Списано токенов: ${tokensUsed} для ассистента ${assistantId.substring(0, 8)}...`);
-      } catch (error) {
-        console.error('❌ Ошибка списания токенов:', error.message);
-        // ✅ ВОЗВРАЩАТЬ понятную ошибку вместо прерывания
-        return "Извините, возникла проблема с обработкой запроса. Пожалуйста, попробуйте позже.";
+      } catch (e) {
+        console.error("❌ Ошибка списания токенов:", e);
       }
     }
 
-    // Добавляем приветствие к первому ответу
-    return greeting ? `${greeting}\n\n${answer}` : answer;
+    return answer;
   }
 
   /**
-   * Асинхронная версия (дешевле в 2 раза!)
-   * Используй для не срочных задач
+   * Асинхронная версия LLM
    */
-  async askAsync(
-    question: string,
-    conversationId: string = "default",
-  ): Promise<{ operationId: string }> {
-    const state = this.getState(conversationId);
-    state.messages.push({ role: "user", content: question });
+  async askAsync(question: string, conversationId: string = "default") {
+    const history = await this.loadHistory(conversationId, 50);
 
     const messages: ChatMessage[] = [
       {
@@ -177,12 +144,10 @@ export class ChatService {
         text: SupportBotConfig.systemPrompts.standard.replace(
           "{contextText}",
           "Контекст отсутствует."
-        ),
+        )
       },
-      ...state.messages.slice(-10).map(m => ({
-        role: m.role as 'user' | 'assistant',
-        text: m.content,
-      })),
+      ...history.slice(-10),
+      { role: "user", text: question }
     ];
 
     return await this.llmService.chatYandexGPTAsync(messages, {
@@ -193,7 +158,7 @@ export class ChatService {
   }
 
   /**
-   * Получить результат асинхронной операции
+   * Получение результата асинхронной операции
    */
   async getAsyncAnswer(
     operationId: string,
@@ -201,25 +166,26 @@ export class ChatService {
     userId?: string,
     assistantId?: string,
   ): Promise<string | null> {
+
     const response = await this.llmService.getAsyncResult(operationId);
-    
-    if (!response) {
-      return null; // Еще не готово
+    if (!response) return null;
+
+    const session = await this.supportService.findByConversationId(conversationId);
+
+    if (session) {
+      await this.supportService.handleIncomingMessage(
+        session.id,
+        response.content,
+        'ai'  // правильный тип
+      );
     }
 
-    const state = this.getState(conversationId);
-    state.messages.push({ 
-      role: "assistant", 
-      content: response.content 
-    });
-
-    // Списываем токены
     if (userId && assistantId && response.tokensUsed) {
       await this.tokensService.consumeTokens(
         userId,
         response.tokensUsed.total,
         assistantId,
-        { 
+        {
           conversationId,
           operationId,
           timestamp: new Date(),
