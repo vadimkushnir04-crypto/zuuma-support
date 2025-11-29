@@ -173,72 +173,90 @@ export default function Chat() {
     setMessages(prev => [...prev, newMessage]);
   };
 
-const sendMessage = async () => {
-  if (!input.trim() || isLoading || !selectedAssistantId) return;
+  const sendMessage = async () => {
+    if (!input.trim() || isLoading || !selectedAssistantId) return;
 
-  const messageText = input;
-  setInput("");
+    const messageText = input;
+    setInput("");
 
-  const userMessage: Message = {
-    id: `user-${Date.now()}`,
-    text: messageText,
-    sender: "user",
-    timestamp: new Date(),
-  };
-  addMessageIfNotExists(userMessage);
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      text: messageText,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    addMessageIfNotExists(userMessage);
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    // 1️⃣ Получаем сессию с бэкенда
-    const sessionRes = await fetch(`${API_BASE_URL}/support/sessions/get-or-create`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        assistantId: selectedAssistantId,
-        userIdentifier,
-      }),
-    });
-    const sessionData = await sessionRes.json();
-    const realSessionId = sessionData.id;
-    setChatSessionId(realSessionId);
+    try {
+      let currentSessionId = chatSessionId;
 
-    // 2️⃣ Ждём подключения socket к комнате
-    if (socketRef.current && socketRef.current.connected) {
-      await new Promise(resolve => {
-        socketRef.current!.emit('join', { sessionId: realSessionId });
-        socketRef.current!.emit('joinAssistant', {
+      if (!currentSessionId) {
+        currentSessionId = `temp-${Date.now()}`;
+        setChatSessionId(currentSessionId);
+
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('join', { sessionId: currentSessionId });
+          socketRef.current.emit('joinAssistant', {
+            assistantId: selectedAssistantId,
+            userIdentifier: userIdentifier,
+            sessionId: currentSessionId,
+          });
+          console.log('📌 Pre-joined to temp room:', currentSessionId);
+
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      const response = await fetch(`${API_BASE_URL}/chat/ask`, {
+        method: "POST",
+        credentials: 'include',
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: messageText,
           assistantId: selectedAssistantId,
-          userIdentifier,
-          sessionId: realSessionId,
-        });
-        setTimeout(resolve, 200); // маленькая задержка, чтобы точно присоединился
+          conversationId: conversationId,
+          chatSessionId: currentSessionId,
+          userIdentifier: userIdentifier,
+        }),
       });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
+          setChatSessionId(data.chatSessionId);
+        }
+
+        if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
+          setIsLoading(false);
+        }
+
+      } else {
+        if (response.status === 401) {
+          throw new Error('Сессия истекла. Пожалуйста, войдите снова');
+        }
+        throw new Error(`${t('errors.status')} ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Ошибка отправки сообщения:", error);
+
+      const errorMessage: Message = {
+        id: `error-${Date.now()}`,
+        text: error instanceof Error ? error.message : t('errors.requestError'),
+        sender: "assistant",
+        timestamp: new Date(),
+      };
+
+      addMessageIfNotExists(errorMessage);
+      setIsLoading(false);
     }
-
-    // 3️⃣ Теперь отправляем запрос на /chat/ask
-    const response = await fetch(`${API_BASE_URL}/chat/ask`, {
-      method: "POST",
-      credentials: 'include',
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: messageText,
-        assistantId: selectedAssistantId,
-        conversationId: conversationId,
-        chatSessionId: realSessionId,
-        userIdentifier,
-      }),
-    });
-
-    const data = await response.json();
-    setIsLoading(false);
-
-  } catch (err) {
-    console.error(err);
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
