@@ -184,16 +184,35 @@ constructor(
     }
 
 async generateAnswer(
-    query: string,
-    collectionName: string,
-    systemPrompt?: string,
-    conversationHistory?: ConversationMessage[],
-    toxicCount: number = 0,
-    assistantId?: string
-  ): Promise<GenerateAnswerResult> {
-    try {
-      console.log(`🔍 Query: "${query}"`);
-      console.log(`📦 Collection: ${collectionName}`);
+  query: string,
+  collectionName: string,
+  systemPrompt?: string,
+  conversationHistory?: ConversationMessage[],
+  toxicCount: number = 0,
+  assistantId?: string
+): Promise<GenerateAnswerResult> {
+  try {
+    console.log(`🔍 Query: "${query}"`);
+    console.log(`📦 Collection: ${collectionName}`);
+    
+    // 🚨 КРИТИЧЕСКАЯ ДИАГНОСТИКА ПАМЯТИ - НАЧАЛО
+    console.log('🧠 ========== MEMORY CHECK (START) ==========');
+    console.log('📜 conversationHistory parameter:', {
+      exists: !!conversationHistory,
+      type: typeof conversationHistory,
+      isArray: Array.isArray(conversationHistory),
+      length: conversationHistory?.length || 0
+    });
+    
+    if (conversationHistory && conversationHistory.length > 0) {
+      console.log(`💬 History contains ${conversationHistory.length} messages:`);
+      conversationHistory.forEach((msg, i) => {
+        console.log(`  ${i + 1}. [${msg.role}]: "${msg.content.substring(0, 80)}..."`);
+      });
+    } else {
+      console.log('⚠️ NO CONVERSATION HISTORY - будет только текущий вопрос!');
+    }
+    console.log('🧠 ========================================');
 
       // ============================================
       // ⚡ БЫСТРЫЕ ЗАГОТОВЛЕННЫЕ ОТВЕТЫ
@@ -362,6 +381,14 @@ async generateAnswer(
       ...(conversationHistory?.slice(-SupportBotConfig.behavior.maxHistoryMessages).filter(m => m.role !== 'system') || []),
       { role: 'user', content: query }
     ];
+
+    // 🚨 ДИАГНОСТИКА: Что передаём в LLM?
+    console.log('🧠 ========== MESSAGES TO LLM ==========');
+    console.log(`📊 Total messages: ${messages.length}`);
+    messages.forEach((msg, i) => {
+      console.log(`  ${i + 1}. [${msg.role}]: "${msg.content.substring(0, 80)}..."`);
+    });
+    console.log('🧠 ======================================');
 
       // ============================================
       // 🔧 FUNCTION CALLING
