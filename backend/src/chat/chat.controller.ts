@@ -226,33 +226,38 @@ async chat(
     };
   }
 
-  // ============================================
-  // ✅ ИСПРАВЛЕНИЕ: Загружаем историю из БД
+// ============================================
+  // ✅ ИСПРАВЛЕНИЕ: Загружаем ПОСЛЕДНИЕ сообщения из БД
   // ============================================
   
   const maxHistoryMessages = assistant.settings?.maxHistoryMessages || 10;
   
-  // Берём последние N*2 сообщений (user + assistant пары)
-  const dbMessages = await this.supportService.getChatMessages(
+  // 🚨 КРИТИЧНО: Берём больше сообщений, чтобы точно захватить свежие
+  const allMessages = await this.supportService.getChatMessages(
     chatSession.id, 
-    maxHistoryMessages * 2
+    100  // Загружаем много, затем возьмём последние
   );
   
+  // ✅ ИСПРАВЛЕНИЕ: Берём ПОСЛЕДНИЕ N*2 сообщений (самые свежие)
+  const recentMessages = allMessages.slice(-(maxHistoryMessages * 2));
+  
   // Конвертируем в формат ConversationMessage
-  const history = dbMessages.map(msg => ({
+  const history = recentMessages.map(msg => ({
     role: msg.senderType === 'user' ? ('user' as const) : ('assistant' as const),
     content: msg.content,
     timestamp: msg.createdAt,
   }));
   
-  console.log(`📚 Loaded conversation history from DB: ${history.length} messages`);
+  console.log(`📚 Loaded ${allMessages.length} total messages, using last ${history.length}`);
   
   // ✅ ДЕБАГ: Выводим последние 3 сообщения для проверки
   if (history.length > 0) {
-    console.log('📜 Recent history:', history.slice(-3).map(h => ({
-      role: h.role,
-      text: h.content.substring(0, 50)
-    })));
+    console.log('📜 Recent history (last 3):');
+    history.slice(-3).forEach((h, i) => {
+      console.log(`  ${i + 1}. [${h.role}]: "${h.content.substring(0, 60)}..."`);
+    });
+  } else {
+    console.log('⚠️ No conversation history found');
   }
 
   try {
@@ -262,7 +267,7 @@ async chat(
       body.message,
       assistant.collectionName,
       assistant.systemPrompt?.trim() || undefined,
-      history, // ✅ ПЕРЕДАЁМ РЕАЛЬНУЮ ИСТОРИЮ ИЗ БД!
+      history, // ✅ ПЕРЕДАЁМ ПОСЛЕДНИЕ СООБЩЕНИЯ ИЗ БД!
       0,
       assistant.id
     );
@@ -342,10 +347,6 @@ async chat(
       requestUserIdentifier,
       result.files
     );
-
-    // ❌ УДАЛЕНО: Больше не обновляем Map в памяти
-    // const updatedHistory = [...];
-    // this.conversations.set(conversationKey, updatedHistory);
 
     await this.assistantsService.incrementAssistantStats(assistant.id);
 
