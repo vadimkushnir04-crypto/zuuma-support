@@ -193,7 +193,7 @@ export class TelegramWebhookService {
           { escalated: true, reason, urgency }
         );
 
-        await this.sendTelegramMessage(botToken, chatId, result.answer);
+        // Удалено: await this.sendTelegramMessage(botToken, chatId, result.answer);
         return;
       }
 
@@ -212,8 +212,7 @@ export class TelegramWebhookService {
         result.files
       );
 
-      // Отправляем ответ в Telegram
-      await this.sendTelegramMessage(botToken, chatId, cleanAnswer);
+      // Удалено: await this.sendTelegramMessage(botToken, chatId, cleanAnswer);
 
       currentBot.totalMessages = (currentBot.totalMessages || 0) + 1;
       currentBot.lastMessageAt = new Date();

@@ -342,12 +342,14 @@ export class SupportService {
     const botToken = this.encryptionService.decrypt(bot.botToken);
     const chatId = Number(session.externalChatId);
 
-    // If there are files provide them, else send text
+    // Сначала отправляем файлы, если они есть (каждый отдельно, с caption = fileName или без)
     if (files && files.length > 0) {
       for (const file of files) {
         const fileUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}${file.fileUrl}`;
         try {
           if (file.fileType === 'image') {
+            // Можно добавить caption из savedMessage.content, если нужно интегрировать текст,
+            // но для простоты оставляем fileName или пустой
             await telegramService.sendTelegramPhoto(botToken, chatId, fileUrl, file.fileName);
           } else {
             await telegramService.sendTelegramDocument(botToken, chatId, fileUrl, file.fileName);
@@ -357,8 +359,10 @@ export class SupportService {
           this.logger.error(`Failed to send file ${file.fileName} to Telegram: ${err?.message || err}`);
         }
       }
-    } else {
-      // plain text
+    }
+
+    // Всегда отправляем текст, если он не пустой (независимо от файлов)
+    if (savedMessage.content && savedMessage.content.trim()) {
       try {
         await telegramService.sendTelegramMessageForSession(session, savedMessage.content);
         this.logger.log(`✅ Sent message ${savedMessage.id} to Telegram chat ${chatId}`);
