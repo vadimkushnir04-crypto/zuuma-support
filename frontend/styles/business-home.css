@@ -1,7 +1,7 @@
 /* ============================================
    BUSINESS HOME PAGE STYLES
    Современный дизайн для бизнес-аудитории
-   Цветовая схема: Telegram Blue (#0088cc)
+   Цветовая схема: Telegram Blue (#de8434)
    ✅ ИСПРАВЛЕНО: Равномерные отступы, grid для 4 карточек
    ============================================ */
 
@@ -47,7 +47,7 @@
   display: inline-block;
   background: rgba(0, 136, 204, 0.1);
   border: 1px solid rgba(0, 136, 204, 0.3);
-  color: #0088cc;
+  color: #de8434;
   padding: 0.5rem 1.5rem;
   border-radius: 100px;
   font-size: 0.875rem;
@@ -74,7 +74,7 @@
 }
 
 .gradient-text {
-  color: #0088cc;
+  color: #de8434;
 }
 
 .business-hero-subtitle {
@@ -103,7 +103,7 @@
 .stat-number {
   font-size: 2.5rem;
   font-weight: 800;
-  color: #0088cc;
+  color: #de8434;
   margin-bottom: 0.5rem;
 }
 
@@ -132,7 +132,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  background: #0088cc;
+  background: #de8434;
   color: white;
   padding: 1rem 2.5rem;
   border-radius: 12px;
@@ -165,7 +165,7 @@
 }
 
 .btn-secondary-large:hover {
-  border-color: #0088cc;
+  border-color: #de8434;
   background: rgba(0, 136, 204, 0.05);
 }
 
@@ -231,7 +231,7 @@
 
 .step-card:hover {
   transform: translateY(-5px);
-  border-color: #0088cc;
+  border-color: #de8434;
   box-shadow: 0 10px 40px rgba(0, 136, 204, 0.2);
 }
 
@@ -249,7 +249,7 @@
   justify-content: center;
   font-weight: 800;
   font-size: 1.25rem;
-  color: #0088cc;
+  color: #de8434;
 }
 
 .step-icon-wrapper {
@@ -265,7 +265,7 @@
 .step-icon-create {
   background: linear-gradient(135deg, rgba(0, 136, 204, 0.1) 0%, rgba(0, 108, 163, 0.1) 100%);
   border: 1px solid rgba(0, 136, 204, 0.3);
-  color: #0088cc;
+  color: #de8434;
 }
 
 .step-icon-upload {
@@ -321,7 +321,7 @@
 }
 
 .benefit-card:hover {
-  border-color: #0088cc;
+  border-color: #de8434;
   transform: translateY(-3px);
 }
 
@@ -342,12 +342,12 @@
 
 .benefit-icon-time {
   background: rgba(0, 136, 204, 0.1);
-  color: #0088cc;
+  color: #de8434;
 }
 
 .benefit-icon-scale {
   background: rgba(0, 136, 204, 0.1);
-  color: #0088cc;
+  color: #de8434;
 }
 
 .benefit-icon-security {
@@ -396,7 +396,7 @@
 
 .usecase-card:hover {
   transform: translateY(-5px);
-  border-color: #0088cc;
+  border-color: #de8434;
 }
 
 .usecase-emoji {
@@ -450,11 +450,11 @@
 
 .pricing-card-mini:hover {
   transform: translateY(-5px);
-  border-color: #0088cc;
+  border-color: #de8434;
 }
 
 .pricing-card-featured {
-  border-color: #0088cc;
+  border-color: #de8434;
   background: linear-gradient(135deg, rgba(0, 136, 204, 0.05) 0%, rgba(0, 108, 163, 0.05) 100%);
   transform: scale(1.05);
 }
@@ -464,7 +464,7 @@
   top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  background: #0088cc;
+  background: #de8434;
   color: white;
   padding: 0.25rem 1rem;
   border-radius: 100px;
@@ -482,7 +482,7 @@
 .pricing-price {
   font-size: 2.5rem;
   font-weight: 800;
-  color: #0088cc;
+  color: #de8434;
   margin-bottom: 1.5rem;
 }
 
@@ -557,7 +557,7 @@
 }
 
 .cta-link {
-  color: #0088cc;
+  color: #de8434;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;

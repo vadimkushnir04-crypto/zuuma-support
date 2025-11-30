@@ -121,7 +121,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '24px',
     fontWeight: 'bold',
     marginBottom: '12px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   description: {
     fontSize: '14px',
@@ -162,7 +162,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
   },
   highlightLink: {
-    color: '#4CAF50',
+    color: '#de8434',
     textDecoration: 'none',
     transition: 'color 0.2s',
   },
@@ -177,7 +177,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#2a2a2a',
     borderRadius: '6px',
     fontSize: '12px',
-    color: '#4CAF50',
+    color: '#de8434',
     fontWeight: '500',
     display: 'inline-block',
   },

@@ -33,7 +33,7 @@ export default function Home() {
     "url": "https://zuuma.ru",
     "provider": {
       "@type": "Organization",
-      "name": "Zuuma",
+      "name": "zuuma",
       "url": "https://zuuma.ru"
     },
     "featureList": [
@@ -114,7 +114,7 @@ export default function Home() {
                 <div className="step-icon-wrapper step-icon-integrate">
                   <Zap className="w-8 h-8" />
                 </div>
-                <h3 className="step-title">Интегрируйте в Telegram или на сайт</h3>
+                <h3 className="step-title">Интегрируйте в Telegram, Веб-сайт</h3>
                 <p className="step-description">
                   Подключите ассистента к Telegram-боту или добавьте виджет на свой сайт. 
                   Готово — ваши клиенты получают мгновенные ответы 24/7.

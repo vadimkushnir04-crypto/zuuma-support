@@ -5,7 +5,7 @@ export default function RefundPolicyPage() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <CreditCard size={40} style={{ color: '#4CAF50' }} />
+        <CreditCard size={40} style={{ color: '#de8434' }} />
         <h1 style={styles.title}>Политика возврата средств</h1>
         <p style={styles.subtitle}>
           Условия и порядок возврата оплаты за подписку
@@ -222,21 +222,21 @@ export default function RefundPolicyPage() {
           </p>
 
           <div style={styles.alternativeCard}>
-            <h4 style={{margin: '0 0 8px 0', color: '#4CAF50'}}>🔄 Перенос токенов</h4>
+            <h4 style={{margin: '0 0 8px 0', color: '#de8434'}}>🔄 Перенос токенов</h4>
             <p style={{margin: 0, fontSize: '14px', lineHeight: '1.6'}}>
               Мы можем перенести неиспользованные токены на следующий период (в исключительных случаях).
             </p>
           </div>
 
           <div style={styles.alternativeCard}>
-            <h4 style={{margin: '0 0 8px 0', color: '#4CAF50'}}>📉 Понижение тарифа</h4>
+            <h4 style={{margin: '0 0 8px 0', color: '#de8434'}}>📉 Понижение тарифа</h4>
             <p style={{margin: 0, fontSize: '14px', lineHeight: '1.6'}}>
               Вы можете перейти на более низкий тарифный план с возвратом разницы.
             </p>
           </div>
 
           <div style={styles.alternativeCard}>
-            <h4 style={{margin: '0 0 8px 0', color: '#4CAF50'}}>🆓 Дополнительные токены</h4>
+            <h4 style={{margin: '0 0 8px 0', color: '#de8434'}}>🆓 Дополнительные токены</h4>
             <p style={{margin: 0, fontSize: '14px', lineHeight: '1.6'}}>
               При технических проблемах мы можем добавить бесплатные токены в качестве компенсации.
             </p>
@@ -332,7 +332,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '12px',
     marginBottom: '24px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   sectionTitle: {
     fontSize: '24px',
@@ -361,11 +361,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     marginTop: '24px',
     marginBottom: '12px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   successBox: {
     background: '#1a2f1a',
-    border: '1px solid #4CAF50',
+    border: '1px solid #de8434',
     borderRadius: '8px',
     padding: '16px 20px',
     marginBottom: '20px',
@@ -386,14 +386,14 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   highlightBox: {
     background: '#2A2A2A',
-    borderLeft: '4px solid #4CAF50',
+    borderLeft: '4px solid #de8434',
     padding: '16px 20px',
     marginTop: '20px',
     borderRadius: '4px',
   },
   infoBox: {
     background: '#2A2A2A',
-    border: '1px solid #4CAF50',
+    border: '1px solid #de8434',
     borderRadius: '8px',
     padding: '16px 20px',
     marginTop: '20px',
@@ -413,7 +413,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '12px',
     height: '12px',
     borderRadius: '50%',
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#de8434',
     border: '2px solid #1E1E1E',
   },
   timelineContent: {
@@ -423,7 +423,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '16px',
     fontWeight: '600',
     marginBottom: '8px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   timelineText: {
     fontSize: '14px',
@@ -455,7 +455,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: '1.8',
   },
   link: {
-    color: '#4CAF50',
+    color: '#de8434',
     textDecoration: 'none',
   },
   footerNote: {

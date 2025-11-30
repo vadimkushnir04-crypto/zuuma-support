@@ -5,7 +5,7 @@ export default function PrivacyPolicyPage() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <Shield size={40} style={{ color: '#4CAF50' }} />
+        <Shield size={40} style={{ color: '#de8434' }} />
         <h1 style={styles.title}>Политика конфиденциальности</h1>
         <p style={styles.subtitle}>
           Как мы собираем, используем и защищаем ваши данные
@@ -315,7 +315,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '12px',
     marginBottom: '24px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   sectionTitle: {
     fontSize: '24px',
@@ -344,11 +344,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: '600',
     marginTop: '24px',
     marginBottom: '12px',
-    color: '#4CAF50',
+    color: '#de8434',
   },
   highlightBox: {
     background: '#2A2A2A',
-    borderLeft: '4px solid #4CAF50',
+    borderLeft: '4px solid #de8434',
     padding: '16px 20px',
     marginTop: '20px',
     marginBottom: '20px',
@@ -364,7 +364,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   infoBox: {
     background: '#2A2A2A',
-    border: '1px solid #4CAF50',
+    border: '1px solid #de8434',
     borderRadius: '8px',
     padding: '20px',
     marginTop: '20px',
@@ -376,7 +376,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginTop: '16px',
   },
   link: {
-    color: '#4CAF50',
+    color: '#de8434',
     textDecoration: 'none',
   },
   footerNote: {

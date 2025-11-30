@@ -198,7 +198,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   highlightBox: {
     background: '#1a2f1a',
-    borderLeft: '4px solid #4CAF50',
+    borderLeft: '4px solid #de8434',
     padding: '16px 20px',
     marginTop: '20px',
     borderRadius: '4px',
