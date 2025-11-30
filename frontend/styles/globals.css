@@ -547,7 +547,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   background: var(--accent);
   color: #fff;
 }
-.assistants-action-btn.blue { background: #2563eb; }
+.assistants-action-btn.blue { background: #de8434; }
 .assistants-action-btn.blue:hover { background: #1d4ed8; }
 .assistants-action-btn.green { background: #16a34a; }
 .assistants-action-btn.green:hover { background: #15803d; }
@@ -573,7 +573,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 
 /* Выбранный ассистент */
 .assistant-card-selected {
-  border: 2px solid #3b82f6; /* синяя рамка */
+  border: 2px solid #de8434; /* синяя рамка */
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.5); /* легкая подсветка */
   background: rgba(59, 130, 246, 0.05); /* легкий фон */
   transition: all 0.2s ease;
@@ -681,7 +681,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   color: var(--fg-main);
 }
 .api-key-toggle {
-  color: #2563eb;
+  color: #de8434;
   background: none;
   border: none;
   font-size: 0.95rem;
@@ -861,7 +861,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   color: var(--fg-main);
 }
 .assistant-modal-form .save-btn {
-  background: #2563eb;
+  background: #de8434;
   color: #fff;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -942,7 +942,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   background: var(--accent);
   color: #fff;
 }
-.assistants-action-btn.blue { background: #2563eb; }
+.assistants-action-btn.blue { background: #de8434; }
 .assistants-action-btn.blue:hover { background: #1d4ed8; }
 .assistants-action-btn.green { background: #16a34a; }
 .assistants-action-btn.green:hover { background: #15803d; }
@@ -1216,7 +1216,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   color: var(--fg-main);
 }
 .api-key-toggle {
-  color: #2563eb;
+  color: #de8434;
   background: none;
   border: none;
   font-size: 0.95rem;
@@ -1374,7 +1374,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
   color: var(--fg-main);
 }
 .assistant-modal-form .save-btn {
-  background: #2563eb;
+  background: #de8434;
   color: #fff;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -1423,7 +1423,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 .assistants-create-btn {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  background: #2563eb;
+  background: #de8434;
   color: #fff;
   border-radius: 0.5rem;
   font-weight: 500;
@@ -1473,7 +1473,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, a:focus-visib
 }
 
 .create-btn.blue {
-  background: #2563eb;
+  background: #de8434;
   color: white;
 }
 .create-btn.blue:hover {
@@ -2261,7 +2261,7 @@ background: #111111;
 }
 
 .tutorials-card-cta {
-  color: #3b82f6;
+  color: #de8434;
   font-weight: 600;
   font-size: 0.9rem;
   transition: all 0.3s ease;
@@ -2276,7 +2276,7 @@ background: #111111;
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #3b82f6, #1e1e1e);
+  background: linear-gradient(90deg, #de8434, #1e1e1e);
   transition: width 0.3s ease;
 }
 
@@ -2494,7 +2494,7 @@ background: #111111;
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(135deg, #3b82f6, #000000);
+  background: linear-gradient(135deg, #de8434, #000000);
   border-radius: 2px;
 }
 
@@ -2573,7 +2573,7 @@ background: #111111;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #3b82f6;
+  background: #de8434;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -2585,7 +2585,7 @@ background: #111111;
 }
 
 .tutorial-copy-btn:hover {
-  background: #2563eb;
+  background: #de8434;
   transform: scale(1.05);
 }
 
@@ -2815,7 +2815,7 @@ background: #111111;
 }
 
 .cta-button:hover {
-  background: #2563eb;
+  background: #de8434;
   box-shadow: #aaaaaa;
 }
 
@@ -2929,7 +2929,7 @@ background: #111111;
 
 .search-box input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #de8434;
 }
 
 .functions-list {
@@ -2955,7 +2955,7 @@ background: #111111;
 }
 
 .function-card.active {
-  border-color: #3b82f6;
+  border-color: #de8434;
   background: #1e293b;
 }
 
@@ -2988,7 +2988,7 @@ background: #111111;
 }
 
 .method-badge.get { background: #065f46; color: #10b981; }
-.method-badge.post { background: #1e3a8a; color: #3b82f6; }
+.method-badge.post { background: #1e3a8a; color: #de8434; }
 .method-badge.put { background: #92400e; color: #f59e0b; }
 .method-badge.delete { background: #7f1d1d; color: #ef4444; }
 
@@ -3036,7 +3036,7 @@ background: #111111;
   border-top: 1px solid #2a2a2a;
   display: flex;
   gap: 0.75rem;
-  color: #3b82f6;
+  color: #de8434;
 }
 
 .sidebar-help svg {
@@ -3131,7 +3131,7 @@ background: #111111;
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #de8434;
 }
 
 .form-input:disabled, .form-select:disabled, .form-textarea:disabled {
@@ -3211,14 +3211,14 @@ background: #111111;
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: #de8434;
   color: white;
-  border-color: #3b82f6;
+  border-color: #de8434;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #de8434;
+  border-color: #de8434;
 }
 
 .btn-success {
@@ -3398,7 +3398,7 @@ background: #111111;
   width: 2rem;
   height: 2rem;
   border: 2px solid #374151;
-  border-top: 2px solid #3b82f6;
+  border-top: 2px solid #de8434;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -3558,12 +3558,12 @@ background: #111111;
 }
 
 .assign-assistant-card .btn-primary {
-  background-color: #3b82f6;
+  background-color: #de8434;
   color: white;
 }
 
 .assign-assistant-card .btn-primary:hover {
-  background-color: #2563eb;
+  background-color: #de8434;
 }
 
 .assign-assistant-card .btn-success {
@@ -3600,10 +3600,10 @@ background: #111111;
 
 /* Синий — назначить */
 .assign-btn-primary {
-  background-color: #3b82f6;
+  background-color: #de8434;
 }
 .assign-btn-primary:hover {
-  background-color: #2563eb;
+  background-color: #de8434;
 }
 
 /* Зелёный — назначено */
