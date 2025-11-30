@@ -614,7 +614,7 @@
     }
 
     // Отправка сообщения пользователем
-    async function sendMessage() {
+async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message || isLoading) return;
 
@@ -633,7 +633,7 @@
             'Content-Type': 'application/json',
             'X-API-Key': config.apiKey
         },
-        credentials: 'omit', // ✅ без cookies — безопаснее для внешнего теста
+        credentials: 'omit',
         body: JSON.stringify({
             message: message,
             sessionId: sessionId,
@@ -648,11 +648,12 @@
 
         const data = await response.json();
 
-        // обновляем chatSessionId (если новый)
+        // ✅ ОБНОВЛЯЕМ chatSessionId
         if (data.chatSessionId && data.chatSessionId !== chatSessionId) {
         chatSessionId = data.chatSessionId;
         if (socket?.connected) {
             socket.emit('join', { sessionId: chatSessionId });
+            console.log('✅ Widget joined new session:', chatSessionId);
         }
         }
 
@@ -661,7 +662,7 @@
         conversationId = data.conversationId;
         }
 
-        // основной ответ ассистента
+        // ✅ ОСНОВНОЙ ОТВЕТ АССИСТЕНТА
         if (data.answer) {
         addMessage(data.answer, 'assistant');
         } else {
@@ -670,45 +671,7 @@
 
     } catch (error) {
         console.error('❌ Send error:', error);
-
-        // ✅ Обработка сетевых / CORS ошибок
-        if (
-        error.message.includes('CORS') ||
-        error.message.includes('Failed to fetch') ||
-        error.message.includes('NetworkError')
-        ) {
-        const safeFileName =
-            (config.assistantName || 'assistant')
-            .replace(/\s+/g, '-')
-            .toLowerCase();
-
-        addMessage(
-            `⚠️ Не удалось подключиться к серверу.<br><br>
-                Похоже, вы открыли страницу напрямую (через <code>file://</code>), и браузер блокирует запросы.<br><br>
-                Чтобы всё заработало, запустите локальный сервер:<br>
-                <pre style="background:#f3f4f6;padding:8px;border-radius:6px;margin-top:6px;">
-                # 🐍 Python
-                python -m http.server 8000
-
-                # 🟢 Node.js
-                npx http-server -p 8000 --cors
-
-                # 🌐 Ngrok (для HTTPS-теста)
-                ngrok http 8000
-                </pre>
-                Затем откройте страницу в браузере:<br>
-                👉 <strong>http://localhost:8000/${safeFileName}.html</strong><br>
-                или HTTPS-ссылку от ngrok.`,
-            'assistant'
-        );
-        } else {
-        // ✅ Общая обработка других ошибок
-        addMessage(
-            error.message ||
-            'Произошла непредвиденная ошибка. Попробуйте ещё раз немного позже.',
-            'assistant'
-        );
-        }
+        // ... остальная обработка ошибок
     } finally {
         hideTypingIndicator(typingIndicator);
         isLoading = false;

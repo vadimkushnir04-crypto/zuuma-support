@@ -226,16 +226,44 @@ export default function Chat() {
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
+    if (response.ok) {
+      const data = await response.json();
 
-        if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
-          setChatSessionId(data.chatSessionId);
+      // ✅ ИСПРАВЛЕНИЕ: Обновляем sessionId ДО того как WebSocket попытается слушать
+      if (data.chatSessionId && data.chatSessionId !== currentSessionId) {
+        console.log('🔄 Updating sessionId:', currentSessionId, '→', data.chatSessionId);
+        setChatSessionId(data.chatSessionId);
+        
+        // ✅ Немедленно переподключаемся к правильной комнате
+        if (socketRef.current?.connected) {
+          socketRef.current.emit('leave', { sessionId: currentSessionId });
+          socketRef.current.emit('join', { sessionId: data.chatSessionId });
+          socketRef.current.emit('joinAssistant', {
+            assistantId: selectedAssistantId,
+            userIdentifier: userIdentifier,
+            sessionId: data.chatSessionId,
+          });
+          console.log('✅ Immediately joined new session:', data.chatSessionId);
         }
+      }
 
-        if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
-          setIsLoading(false);
-        }
+      if (data.escalated || data.status === 'pending_human' || data.status === 'human_active') {
+        setIsLoading(false);
+      }
+      
+      // ✅ ДОБАВЬТЕ: Если ответ пришёл сразу (без WebSocket)
+      if (data.answer && !data.escalated) {
+        const aiMessage: Message = {
+          id: data.aiMessageId || `ai-${Date.now()}`,
+          text: data.answer,
+          sender: 'assistant',
+          timestamp: new Date(),
+          sources: data.sources,
+          files: data.files || [],
+        };
+        addMessageIfNotExists(aiMessage);
+        setIsLoading(false);
+      }
 
       } else {
         if (response.status === 401) {
@@ -329,8 +357,14 @@ export default function Chat() {
 
   useEffect(() => {
     if (chatSessionId && socketRef.current?.connected) {
-      console.log('🔄 ChatSessionId changed, joining room:', chatSessionId);
+      console.log('🔄 ChatSessionId changed, rejoining room:', chatSessionId);
       
+      // ✅ КРИТИЧНО: Сначала покидаем старую комнату (если была)
+      if (socketRef.current) {
+        socketRef.current.emit('leave', { sessionId: chatSessionId });
+      }
+      
+      // ✅ Затем присоединяемся к новой
       socketRef.current.emit('join', { sessionId: chatSessionId });
       socketRef.current.emit('joinAssistant', {
         assistantId: selectedAssistantId,
@@ -338,7 +372,7 @@ export default function Chat() {
         sessionId: chatSessionId,
       });
       
-      console.log('📌 Joined session room:', chatSessionId);
+      console.log('✅ Rejoined session room:', chatSessionId);
     }
   }, [chatSessionId, selectedAssistantId, userIdentifier]);
 

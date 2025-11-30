@@ -1,5 +1,5 @@
 // backend/src/telegram/telegram-webhook.service.ts
-// ✅ ИСПРАВЛЕНО: История загружается из БД вместо Map в памяти
+// ✅ ИСПРАВЛЕНО: История загружается ПОСЛЕДНИМИ сообщениями из БД
 
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,9 +32,6 @@ interface TelegramUpdate {
 
 @Injectable()
 export class TelegramWebhookService {
-  // ❌ УДАЛЕНО: Map в памяти больше не используется
-  // private conversations = new Map<...>();
-
   constructor(
     @InjectRepository(TelegramBot)
     private botsRepository: Repository<TelegramBot>,
@@ -121,23 +118,35 @@ export class TelegramWebhookService {
     );
 
     // ============================================
-    // ✅ ИСПРАВЛЕНИЕ: Загружаем историю из БД
+    // ✅ ИСПРАВЛЕНИЕ: Загружаем ПОСЛЕДНИЕ сообщения из БД
     // ============================================
     
     const maxHistoryMessages = assistant.settings?.maxHistoryMessages || 10;
     
-    const dbMessages = await this.supportService.getChatMessages(
+    // 🚨 КРИТИЧНО: Берём больше сообщений, затем возьмём последние
+    const allMessages = await this.supportService.getChatMessages(
       chatSession.id,
-      maxHistoryMessages * 2
+      100  // Загружаем много, затем возьмём последние
     );
     
-    const history = dbMessages.map(msg => ({
+    // ✅ ИСПРАВЛЕНИЕ: Берём ПОСЛЕДНИЕ N*2 сообщений (самые свежие)
+    const recentMessages = allMessages.slice(-(maxHistoryMessages * 2));
+    
+    const history = recentMessages.map(msg => ({
       role: msg.senderType === 'user' ? ('user' as const) : ('assistant' as const),
       content: msg.content,
       timestamp: msg.createdAt,
     }));
     
-    console.log(`📚 Loaded Telegram history from DB: ${history.length} messages`);
+    console.log(`📚 Loaded ${allMessages.length} total messages, using last ${history.length} for Telegram`);
+    
+    // ✅ ДЕБАГ: Выводим последние 3 сообщения для проверки
+    if (history.length > 0) {
+      console.log('📜 Recent Telegram history (last 3):');
+      history.slice(-3).forEach((h, i) => {
+        console.log(`  ${i + 1}. [${h.role}]: "${h.content.substring(0, 60)}..."`);
+      });
+    }
 
     // Сохраняем сообщение пользователя
     await this.supportService.saveMessage(
@@ -161,7 +170,7 @@ export class TelegramWebhookService {
         userMessage,
         assistant.collectionName,
         assistant.systemPrompt,
-        history, // ✅ ПЕРЕДАЁМ РЕАЛЬНУЮ ИСТОРИЮ ИЗ БД!
+        history, // ✅ ПЕРЕДАЁМ ПОСЛЕДНИЕ СООБЩЕНИЯ ИЗ БД!
         0,
         assistant.id
       );
@@ -203,10 +212,8 @@ export class TelegramWebhookService {
         result.files
       );
 
-      // ❌ УДАЛЕНО: Больше не обновляем Map в памяти
-      // const conversationKey = `telegram:${userId}:bot:${currentBot.id}`;
-      // const updatedHistory = [...];
-      // this.conversations.set(conversationKey, updatedHistory);
+      // Отправляем ответ в Telegram
+      await this.sendTelegramMessage(botToken, chatId, cleanAnswer);
 
       currentBot.totalMessages = (currentBot.totalMessages || 0) + 1;
       currentBot.lastMessageAt = new Date();
@@ -241,7 +248,6 @@ export class TelegramWebhookService {
         break;
 
       case '/clear':
-        // ✅ ИСПРАВЛЕНО: Очищаем историю в БД, а не в памяти
         const userIdentifier = `telegram:${chatId}`;
         const chatSession = await this.supportService.getOrCreateChatSession(
           bot.assistantId,
@@ -250,7 +256,6 @@ export class TelegramWebhookService {
           String(chatId),
         );
         
-        // Помечаем старую сессию как resolved и создаём новую
         if (chatSession) {
           await this.supportService.resolveChat(chatSession.id, 'user');
         }
