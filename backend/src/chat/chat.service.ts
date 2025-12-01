@@ -1,200 +1,419 @@
-// backend/src/chat/chat.service.ts
-import { Injectable, BadRequestException } from "@nestjs/common";
-import { LLMService, ChatMessage } from "../common/llm.service";
-import { SupportBotConfig } from "../knowledge/support-bot.config";
-import { TokensService } from "../tokens/tokens.service";
+// backend/src/chat/chat.service.ts - ПОЛНАЯ ВЕРСИЯ
+
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
+import { KnowledgeService } from "../knowledge/knowledge.service";
 import { SupportService } from '../support/support.service';
-import { NotificationService } from '../support/notification.service';
+import { AssistantsService } from '../assistants/assistants.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Assistant } from '../assistants/entities/assistant.entity';
+import { EmailService } from '../common/email.service';
+
+interface EscalationNotification {
+  sessionId: string;
+  assistantId: string;
+  assistantName: string;
+  userIdentifier: string;
+  reason: string;
+  urgency: 'low' | 'medium' | 'high';
+  lastMessages: Array<{ role: string; content: string }>;
+  timestamp: Date;
+  metadata?: any;
+}
 
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger('ChatService');
+
   constructor(
-    private llmService: LLMService,
-    private tokensService: TokensService,
+    private knowledgeService: KnowledgeService,
     private supportService: SupportService,
-    private notificationService: NotificationService,
+    private assistantsService: AssistantsService,
+    @InjectRepository(Assistant)
+    private assistantRepo: Repository<Assistant>,
+    private emailService: EmailService, // ✅ Используем EmailService напрямую
   ) {}
 
   /**
-   * Загружает последние N сообщений из БД
+   * 💬 Главный метод для общения с ассистентом
    */
-  private async loadHistory(conversationId: string, limit = 30) {
-    const dbMessages = await this.supportService.getChatMessages(conversationId, limit);
-
-    return dbMessages.map(m => ({
-      role: m.senderType === 'user' ? 'user' : 'assistant',
-      text: m.content
-    })) as ChatMessage[];
-  }
-
-  /**
-   * Основной LLM-запрос
-   */
-  async ask(
-    question: string,
-    conversationId: string = "default",
-    userId?: string,
-    assistantId?: string
-  ): Promise<string> {
-
-    console.log('💬 ChatService.ask:', {
-      conversationId,
-      question: question.substring(0, 100)
-    });
-
-    // Найдём сессию
-    const session = await this.supportService.findByConversationId(conversationId);
-
-    // Сохраняем сообщение пользователя в БД
-    if (session) {
-      await this.supportService.handleIncomingMessage(session.id, question, 'user');
-    }
-
-    // Загружаем историю из БД
-    const history = await this.loadHistory(conversationId, 50);
-
-    console.log('📚 История из БД:', history.length, 'сообщений');
-
-    // Эскалация
-    if (
-      question.toLowerCase().includes("переведи") ||
-      question.toLowerCase().includes("другому сотруднику")
-    ) {
-      const lastTwo = history.slice(-2).map(m => m.text).join(" ");
-      if (lastTwo.includes("переведи")) {
-        return "Понимаю ваше желание 📞. Передаю ваш запрос старшему специалисту.";
-      }
-      return "Я постараюсь помочь вам сам 🤝. Расскажите подробнее о ситуации.";
-    }
-
-    // Формируем system + историю + новый вопрос
-    const messages: ChatMessage[] = [
-      {
-        role: "system",
-        text: SupportBotConfig.systemPrompts.standard.replace(
-          "{contextText}",
-          "Контекст отсутствует."
-        )
-      },
-      ...history.slice(-SupportBotConfig.behavior.maxHistoryMessages),
-      { role: "user", text: question }
-    ];
-
-    // Вызов LLM
-    const response = await this.llmService.chat(messages, {
-      temperature: 0.7,
-      maxTokens: 2000,
-      provider: 'yandexgpt',
-      model: 'yandexgpt-lite',
-    });
-
-    const answer = response.content || "Нет ответа";
-
-    // Сохраняем ответ ассистента в БД
-    if (session && assistantId) {
-      await this.supportService.emitMessageToSessionSafe(conversationId, {
-        id: `msg-${Date.now()}`,
-        content: answer,
-        senderType: 'assistant',
-        chatSessionId: conversationId,
-        createdAt: new Date(),
-        assistantId: assistantId,
+  async chat(
+    apiKey: string,
+    message: string,
+    conversationId?: string,
+    conversationHistory: any[] = []
+  ) {
+    try {
+      console.log('💬 ChatService.chat:', {
+        apiKey: apiKey.substring(0, 10) + '...',
+        message: message.substring(0, 100),
+        conversationId,
+        historyLength: conversationHistory.length
       });
 
-      await this.supportService.handleIncomingMessage(
-        session.id,
-        answer,
-        'ai'   // <<<<<< правильный тип
-      );
-    }
-
-    // Списание токенов
-    if (userId && assistantId && response.tokensUsed) {
-      const t = response.tokensUsed.total;
-
-      try {
-        await this.tokensService.consumeTokens(
-          userId,
-          t,
-          assistantId,
-          {
-            conversationId,
-            question: question.substring(0, 100),
-            model: response.model,
-            promptTokens: response.tokensUsed.prompt,
-            completionTokens: response.tokensUsed.completion,
-            timestamp: new Date()
-          }
-        );
-      } catch (e) {
-        console.error("❌ Ошибка списания токенов:", e);
+      // ============================================
+      // 1️⃣ ПОЛУЧЕНИЕ АССИСТЕНТА
+      // ============================================
+      const assistant = await this.assistantsService.getAssistantByApiKey(apiKey);
+      
+      if (!assistant) {
+        throw new BadRequestException('Недействительный API ключ');
       }
-    }
 
-    return answer;
-  }
+      if (!assistant.isActive) {
+        throw new BadRequestException('Ассистент отключен');
+      }
 
-  /**
-   * Асинхронная версия LLM
-   */
-  async askAsync(question: string, conversationId: string = "default") {
-    const history = await this.loadHistory(conversationId, 50);
+      // ============================================
+      // 2️⃣ ПОЛУЧЕНИЕ ИЛИ СОЗДАНИЕ СЕССИИ
+      // ============================================
+      let chatSession = conversationId 
+        ? await this.supportService.findByConversationId(conversationId)
+        : null;
 
-    const messages: ChatMessage[] = [
-      {
-        role: "system",
-        text: SupportBotConfig.systemPrompts.standard.replace(
-          "{contextText}",
-          "Контекст отсутствует."
-        )
-      },
-      ...history.slice(-10),
-      { role: "user", text: question }
-    ];
+      if (!chatSession) {
+        // Создаём новую сессию
+        const userIdentifier = `user_${Date.now()}`;
+        chatSession = await this.supportService.getOrCreateChatSession(
+          assistant.id,
+          userIdentifier,
+          'web',
+          conversationId
+        );
+        
+        console.log(`✅ Created new session: ${chatSession.id}`);
+      }
 
-    return await this.llmService.chatYandexGPTAsync(messages, {
-      temperature: 0.7,
-      maxTokens: 2000,
-      model: 'yandexgpt-lite',
-    });
-  }
-
-  /**
-   * Получение результата асинхронной операции
-   */
-  async getAsyncAnswer(
-    operationId: string,
-    conversationId: string,
-    userId?: string,
-    assistantId?: string,
-  ): Promise<string | null> {
-
-    const response = await this.llmService.getAsyncResult(operationId);
-    if (!response) return null;
-
-    const session = await this.supportService.findByConversationId(conversationId);
-
-    if (session) {
-      await this.supportService.handleIncomingMessage(
-        session.id,
-        response.content,
-        'ai'  // правильный тип
+      // ============================================
+      // 3️⃣ СОХРАНЕНИЕ СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЯ
+      // ============================================
+      await this.supportService.saveMessage(
+        chatSession.id,
+        'user',
+        message,
+        undefined,
+        undefined,
+        chatSession.userIdentifier
       );
-    }
 
-    if (userId && assistantId && response.tokensUsed) {
-      await this.tokensService.consumeTokens(
-        userId,
-        response.tokensUsed.total,
-        assistantId,
+      // ============================================
+      // 4️⃣ ПОЛУЧЕНИЕ ОТВЕТА ОТ KNOWLEDGE SERVICE
+      // ============================================
+      const result = await this.knowledgeService.generateAnswer(
+        message,
+        assistant.collectionName,
+        assistant.systemPrompt,
+        conversationHistory,
+        0,
+        assistant.id
+      );
+
+      // ============================================
+      // 5️⃣ ОБРАБОТКА ЭСКАЛАЦИИ
+      // ============================================
+      if (result.functionCalled === 'escalate_to_human') {
+        console.log('🚨 Escalation detected - processing...');
+        
+        await this.handleEscalation(
+          chatSession,
+          assistant,
+          message,
+          conversationHistory,
+          result.functionArgs
+        );
+      }
+
+      // ============================================
+      // 6️⃣ СОХРАНЕНИЕ ОТВЕТА АССИСТЕНТА
+      // ============================================
+      await this.supportService.saveMessage(
+        chatSession.id,
+        'ai',
+        result.answer,
+        assistant.id,
         {
-          conversationId,
-          operationId,
-          timestamp: new Date(),
-        }
+          sources: result.sources,
+          hasContext: result.hasContext,
+          tokensCharged: result.tokensCharged,
+          functionCalled: result.functionCalled,
+          searchResults: result.searchResults
+        },
+        chatSession.userIdentifier,
+        result.files // передаём файлы если есть
       );
+
+      // ============================================
+      // 7️⃣ ОБНОВЛЕНИЕ СТАТИСТИКИ
+      // ============================================
+      await this.assistantsService.incrementAssistantStats(assistant.id);
+
+      // ============================================
+      // 8️⃣ ВОЗВРАТ РЕЗУЛЬТАТА
+      // ============================================
+      return {
+        response: result.answer,
+        conversationId: chatSession.id,
+        sessionId: chatSession.id,
+        sources: result.sources || 0,
+        hasContext: result.hasContext || false,
+        searchResults: result.searchResults,
+        files: result.files,
+        escalated: result.functionCalled === 'escalate_to_human',
+        tokensCharged: result.tokensCharged
+      };
+
+    } catch (error) {
+      this.logger.error('Chat error:', error);
+      
+      // Специальная обработка ошибки токенов
+      if (error.response?.type === 'INSUFFICIENT_TOKENS') {
+        throw new BadRequestException({
+          success: false,
+          error: 'Недостаточно токенов. Пожалуйста, пополните баланс.',
+          type: 'INSUFFICIENT_TOKENS'
+        });
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * 🚨 Обработка эскалации к человеку
+   */
+  private async handleEscalation(
+    chatSession: any,
+    assistant: Assistant,
+    currentMessage: string,
+    history: any[],
+    escalationArgs: any
+  ): Promise<void> {
+    try {
+      console.log('🚨 Processing escalation:', {
+        session: chatSession.id,
+        assistant: assistant.name,
+        reason: escalationArgs?.reason
+      });
+
+      // ============================================
+      // 1️⃣ ОБНОВЛЕНИЕ СТАТУСА СЕССИИ
+      // ============================================
+      await this.supportService.escalateToHuman(
+        chatSession.id,
+        escalationArgs?.reason || 'User requested human support',
+        escalationArgs?.urgency || 'medium'
+      );
+
+      // ============================================
+      // 2️⃣ ФОРМИРОВАНИЕ КОНТЕКСТА
+      // ============================================
+      const lastMessages = [
+        ...history.slice(-3),
+        { role: 'user', content: currentMessage }
+      ];
+
+      // ============================================
+      // 3️⃣ ОТПРАВКА УВЕДОМЛЕНИЙ
+      // ============================================
+      const notification: EscalationNotification = {
+        sessionId: chatSession.id,
+        assistantId: assistant.id,
+        assistantName: assistant.name,
+        userIdentifier: chatSession.userIdentifier,
+        reason: escalationArgs?.reason || 'User requested human support',
+        urgency: escalationArgs?.urgency || 'medium',
+        lastMessages: lastMessages,
+        timestamp: new Date(),
+        metadata: escalationArgs?.metadata
+      };
+
+      await this.sendEscalationNotifications(notification, assistant);
+
+      console.log('✅ Escalation processed successfully');
+
+    } catch (error) {
+      this.logger.error('Failed to process escalation:', error);
+      // Не прерываем ответ пользователю даже если уведомления не отправились
+    }
+  }
+
+  /**
+   * 📧 Отправка уведомлений о эскалации
+   */
+  private async sendEscalationNotifications(
+    notification: EscalationNotification,
+    assistant: Assistant
+  ): Promise<void> {
+    try {
+      const message = this.formatEscalationMessage(notification);
+
+      // 1️⃣ Telegram уведомление
+      if (assistant.settings?.notificationTelegramChatId) {
+        await this.sendTelegramNotification(
+          assistant.settings.notificationTelegramChatId,
+          message
+        );
+      }
+
+      // 2️⃣ Email уведомление
+      if (assistant.settings?.notificationEmail || assistant.user?.email) {
+        const email = assistant.settings?.notificationEmail || assistant.user?.email;
+        await this.sendEmailNotification(email, assistant.name, notification);
+      }
+
+      // 3️⃣ WebSocket уже обрабатывается через SupportGateway автоматически
+
+      this.logger.log(`✅ Escalation notifications sent for session ${notification.sessionId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send notifications: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📝 Форматирование сообщения
+   */
+  private formatEscalationMessage(notification: EscalationNotification): string {
+    const urgencyEmoji = {
+      low: '🔵',
+      medium: '🟡',
+      high: '🔴'
+    };
+
+    const emoji = urgencyEmoji[notification.urgency];
+
+    let message = `${emoji} Новая эскалация - ${notification.assistantName}\n\n`;
+    message += `👤 Пользователь: ${notification.userIdentifier}\n`;
+    message += `📋 Причина: ${notification.reason}\n`;
+    message += `⏰ Время: ${notification.timestamp.toLocaleString('ru-RU')}\n\n`;
+
+    if (notification.lastMessages && notification.lastMessages.length > 0) {
+      message += `💬 Последние сообщения:\n`;
+      notification.lastMessages.forEach((msg) => {
+        const roleEmoji = msg.role === 'user' ? '👤' : '🤖';
+        const content = msg.content.substring(0, 200);
+        message += `${roleEmoji} ${content}${msg.content.length > 200 ? '...' : ''}\n`;
+      });
     }
 
-    return response.content;
+    message += `\n🔗 Перейти к чату: ${process.env.FRONTEND_URL || 'https://zuuma.ru'}/support/chat/${notification.sessionId}`;
+
+    return message;
+  }
+
+  /**
+   * 📱 Отправка в Telegram
+   */
+  private async sendTelegramNotification(chatId: string, message: string): Promise<void> {
+    try {
+      const botToken = process.env.NOTIFICATION_BOT_TOKEN;
+      
+      if (!botToken) {
+        this.logger.warn('NOTIFICATION_BOT_TOKEN not configured in .env');
+        return;
+      }
+
+      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Telegram API error: ${response.statusText}`);
+      }
+
+      this.logger.log(`✅ Telegram notification sent to chat ${chatId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send Telegram notification: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📧 Отправка Email уведомления
+   */
+  private async sendEmailNotification(
+    email: string,
+    assistantName: string,
+    notification: EscalationNotification
+  ): Promise<void> {
+    try {
+      const subject = `🚨 Эскалация: ${assistantName}`;
+      const htmlBody = this.formatEmailBody(notification);
+      
+      // Отправляем через существующий EmailService
+      await this.emailService.sendEmail(
+        email,
+        subject,
+        htmlBody
+      );
+
+      this.logger.log(`✅ Email notification sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send email notification: ${error.message}`);
+    }
+  }
+
+  /**
+   * 📧 Форматирование HTML для email
+   */
+  private formatEmailBody(notification: EscalationNotification): string {
+    const urgencyColors = {
+      low: '#3b82f6',
+      medium: '#f59e0b',
+      high: '#ef4444'
+    };
+
+    const color = urgencyColors[notification.urgency];
+    const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
+
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: ${color}; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
+            .message { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid ${color}; }
+            .button { display: inline-block; background: ${color}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h2>🚨 Новая эскалация</h2>
+              <p>${notification.assistantName}</p>
+            </div>
+            <div class="content">
+              <p><strong>👤 Пользователь:</strong> ${notification.userIdentifier}</p>
+              <p><strong>📋 Причина:</strong> ${notification.reason}</p>
+              <p><strong>⏰ Время:</strong> ${notification.timestamp.toLocaleString('ru-RU')}</p>
+              
+              ${notification.lastMessages?.length > 0 ? `
+                <h3>💬 Последние сообщения:</h3>
+                ${notification.lastMessages.map(msg => `
+                  <div class="message">
+                    <strong>${msg.role === 'user' ? '👤 Пользователь' : '🤖 Ассистент'}:</strong><br/>
+                    ${msg.content}
+                  </div>
+                `).join('')}
+              ` : ''}
+              
+              <a href="${frontendUrl}/support/chat/${notification.sessionId}" class="button">
+                Перейти к чату
+              </a>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
   }
 }
