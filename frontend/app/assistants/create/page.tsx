@@ -181,7 +181,7 @@ export default function CreateAssistantWithNotifications() {
                   }}
                 />
                 <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#888888' }}>
-                  Получите Chat ID через бота @userinfobot
+                  Получите Chat ID через бота @zuumanotificationbot
                 </p>
               </div>
 
@@ -301,7 +301,7 @@ export default function CreateAssistantWithNotifications() {
           lineHeight: '1.8',
           color: '#B0B0B0'
         }}>
-          <li>Откройте бота <strong>@userinfobot</strong> в Telegram</li>
+          <li>Откройте бота <strong>@zuumanotificationbot</strong> в Telegram</li>
           <li>Отправьте ему любое сообщение</li>
           <li>Скопируйте ваш <strong>Chat ID</strong> из ответа</li>
           <li>Вставьте Chat ID в поле выше</li>
