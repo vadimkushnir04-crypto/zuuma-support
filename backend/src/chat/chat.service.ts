@@ -4,6 +4,7 @@ import { LLMService, ChatMessage } from "../common/llm.service";
 import { SupportBotConfig } from "../knowledge/support-bot.config";
 import { TokensService } from "../tokens/tokens.service";
 import { SupportService } from '../support/support.service';
+import { NotificationService } from '../support/notification.service';
 
 @Injectable()
 export class ChatService {
@@ -11,6 +12,7 @@ export class ChatService {
     private llmService: LLMService,
     private tokensService: TokensService,
     private supportService: SupportService,
+    private notificationService: NotificationService,
   ) {}
 
   /**

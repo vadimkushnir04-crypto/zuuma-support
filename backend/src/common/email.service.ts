@@ -376,5 +376,28 @@ export class EmailService {
     }
   }
 
+  /**
+ * 📧 Универсальный метод отправки email
+ */
+async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  if (!this.isEnabled || !this.transporter) {
+    throw new Error('Email sending is temporarily unavailable.');
+  }
+
+  try {
+    await this.transporter.sendMail({
+      from: process.env.EMAIL_FROM || 'noreply@zuuma.ru',
+      to,
+      subject,
+      html
+    });
+
+    console.log(`✅ Email sent to ${to}`);
+  } catch (error: any) {
+    console.error(`❌ Failed to send email to ${to}:`, error.message);
+    throw error;
+  }
+}
+
 
 }

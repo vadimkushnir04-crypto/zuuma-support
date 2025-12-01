@@ -1,329 +1,284 @@
-"use client";
+import React, { useState } from 'react';
+import { Plus, Bell, MessageSquare, Mail, AlertTriangle } from 'lucide-react';
 
-import React, { useState, useEffect } from "react";
-import { Plus, Bot, Loader2, CheckCircle, Users, Sparkles } from "lucide-react";
-import { useRouter } from "next/navigation";
-import AuthGuard from '../../../components/AuthGuard';
+export default function CreateAssistantWithNotifications() {
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    systemPrompt: "",
+    notificationTelegramChatId: "",
+    notificationEmail: "",
+    escalationAutoReply: "Ваш запрос передан специалисту. Мы свяжемся с вами в ближайшее время.",
+  });
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://zuuma.ru/api";
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
-export default function CreateAssistantPage() {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [notification, setNotification] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
-  const [assistants, setAssistants] = useState<{ id: string; name: string }[]>([]);
-  const [loadingAssistants, setLoadingAssistants] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const router = useRouter();
-
-  const showNotification = (type: "success" | "error", message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Submit:', formData);
   };
-
-  const loadAssistants = async () => {
-    setLoadingAssistants(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/assistants`, {
-        credentials: 'include', // ✅ используем cookie
-      });
-
-      if (!res.ok) throw new Error("Ошибка загрузки ассистентов");
-      const data = await res.json();
-      setAssistants(data.data.assistants || []);
-    } catch (err) {
-      setError("Не удалось загрузить ассистентов");
-    } finally {
-      setLoadingAssistants(false);
-    }
-  };
-
-  useEffect(() => {
-    loadAssistants();
-  }, []);
 
   return (
-    <AuthGuard requireAuth={true}>
-    <div className="new-design-system">
-      <div className="page-container">
-        <div className="page-content">
-          {/* Notification */}
-          {notification && (
-            <div className={`notification ${notification.type === "success" ? "notification-success" : "notification-error"}`}>
-              {notification.message}
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
+      <div style={{ 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '40px',
+        borderRadius: '16px',
+        color: 'white',
+        marginBottom: '30px'
+      }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '10px' }}>
+          Создать нового ассистента
+        </h1>
+        <p style={{ opacity: 0.9 }}>
+          Настройте AI ассистента и каналы уведомлений о важных событиях
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {/* Основная информация */}
+        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MessageSquare size={20} />
+            Основная информация
+          </h3>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+              Название ассистента *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="Ассистент поддержки"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '16px'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+              Описание
+            </label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Помогает клиентам с вопросами"
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '16px'
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+              Системный промпт
+            </label>
+            <textarea
+              value={formData.systemPrompt}
+              onChange={(e) => setFormData(prev => ({ ...prev, systemPrompt: e.target.value }))}
+              placeholder="Вы - профессиональный консультант..."
+              rows={4}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Настройки уведомлений */}
+        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+          <div 
+            onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              marginBottom: showNotificationSettings ? '20px' : '0'
+            }}
+          >
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bell size={20} />
+              Настройки уведомлений
+            </h3>
+            <span style={{ fontSize: '20px' }}>
+              {showNotificationSettings ? '▼' : '▶'}
+            </span>
+          </div>
+
+          {showNotificationSettings && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ 
+                background: '#fef3c7', 
+                padding: '16px', 
+                borderRadius: '8px',
+                border: '1px solid #fbbf24'
+              }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center' }}>
+                  <AlertTriangle size={20} color="#f59e0b" />
+                  <strong>Важно!</strong>
+                </div>
+                <p style={{ margin: 0, color: '#78350f', lineHeight: '1.6' }}>
+                  Настройте уведомления, чтобы получать мгновенные оповещения когда:<br/>
+                  • Пользователь просит связаться с оператором<br/>
+                  • Заканчиваются токены<br/>
+                  • Происходит критическая ошибка
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MessageSquare size={16} />
+                    Telegram Chat ID для уведомлений
+                  </div>
+                </label>
+                <input
+                  type="text"
+                  value={formData.notificationTelegramChatId}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    notificationTelegramChatId: e.target.value 
+                  }))}
+                  placeholder="123456789"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#64748b' }}>
+                  Получите Chat ID через бота @userinfobot в Telegram
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Mail size={16} />
+                    Email для уведомлений
+                  </div>
+                </label>
+                <input
+                  type="email"
+                  value={formData.notificationEmail}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    notificationEmail: e.target.value 
+                  }))}
+                  placeholder="manager@company.com"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '16px'
+                  }}
+                />
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#64748b' }}>
+                  На этот email будут приходить важные уведомления
+                </p>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
+                  Сообщение при передаче оператору
+                </label>
+                <textarea
+                  value={formData.escalationAutoReply}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    escalationAutoReply: e.target.value 
+                  }))}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#64748b' }}>
+                  Это сообщение увидит пользователь при эскалации к оператору
+                </p>
+              </div>
             </div>
           )}
-
-          {/* Page Header */}
-          <div className="page-header">
-            <div className="page-header-content">
-              <div>
-                <h1 className="page-title">Создать ассистента</h1>
-                <p className="page-subtitle">
-                  Настройте AI ассистента под конкретные задачи вашего бизнеса
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Create Section */}
-          <div className="grid grid-cols-1" style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div className="card" style={{ background: 'linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-secondary) 100%)' }}>
-              <div style={{ textAlign: 'center', marginBottom: 'var(--space-xl)' }}>
-                <div style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  width: '80px',
-                  height: '80px',
-                  background: 'var(--accent-light)',
-                  borderRadius: 'var(--radius-xl)',
-                  margin: '20px'
-                }}>
-                  <Sparkles size={40} color="var(--accent)" />
-                </div>
-                
-                <h2 style={{ fontSize: '1.5rem', margin: '10px' }}>
-                  Создать с нуля
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                  Полная кастомизация: настройте личность, поведение и специализацию 
-                  ассистента под ваши конкретные задачи
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn btn-primary btn-lg"
-                >
-                  <Plus size={20} />
-                  Начать создание
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Existing Assistants */}
-          <div style={{ marginTop: 'var(--space-3xl)' }}>
-            <div style={{ marginBottom: 'var(--space-xl)' }}>
-              <h2 style={{ fontSize: '1.5rem', margin: '20px' }}>
-                Ваши ассистенты
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', margin: '20px' }}>
-                {assistants.length > 0 
-                  ? `У вас ${assistants.length} ${assistants.length === 1 ? 'ассистент' : 'ассистентов'}`
-                  : 'Пока нет созданных ассистентов'
-                }
-              </p>
-            </div>
-
-            {loadingAssistants ? (
-              <div className="loading">
-                <div className="spinner"></div>
-                <span style={{ marginLeft: 'var(--space-md)' }}>Загрузка ассистентов...</span>
-              </div>
-            ) : error ? (
-              <div className="empty-state">
-                <span style={{ color: 'var(--error)' }}>{error}</span>
-              </div>
-            ) : assistants.length === 0 ? (
-              <div className="empty-state">
-                <Users size={48} />
-                <h3>Нет ассистентов</h3>
-                <p>Создайте своего первого ассистента, чтобы начать работу</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3">
-                {assistants.map((assistant) => (
-                  <div
-                    key={assistant.id}
-                    onClick={() => router.push("/assistants")}
-                    className="card"
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="flex items-center gap-md">
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: 'var(--radius-lg)',
-                        background: 'var(--accent-light)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <Bot size={24} color="var(--accent)" />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h4>{assistant.name}</h4>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Create Modal */}
-        {showCreateModal && (
-          <CreateAssistantModal
-            onClose={() => setShowCreateModal(false)}
-            onSuccess={(message) => {
-              showNotification("success", message);
-              setShowCreateModal(false);
-              loadAssistants();
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => window.history.back()}
+            style={{
+              padding: '12px 24px',
+              background: 'white',
+              border: '2px solid #e2e8f0',
+              borderRadius: '8px',
+              fontSize: '16px',
+              cursor: 'pointer'
             }}
-          />
-        )}
+          >
+            Отмена
+          </button>
+          <button
+            onClick={handleSubmit}
+            style={{
+              padding: '12px 24px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              color: 'white',
+              fontSize: '16px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Plus size={20} />
+            Создать ассистента
+          </button>
+        </div>
+      </div>
+
+      <div style={{ 
+        marginTop: '30px', 
+        padding: '20px', 
+        background: '#f1f5f9', 
+        borderRadius: '12px' 
+      }}>
+        <h4 style={{ marginBottom: '12px' }}>📱 Как настроить Telegram уведомления?</h4>
+        <ol style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.8' }}>
+          <li>Откройте бота <strong>@userinfobot</strong> в Telegram</li>
+          <li>Отправьте ему любое сообщение</li>
+          <li>Скопируйте ваш <strong>Chat ID</strong> из ответа</li>
+          <li>Вставьте Chat ID в поле выше</li>
+          <li>Готово! Вы будете получать мгновенные уведомления</li>
+        </ol>
       </div>
     </div>
-    </AuthGuard>
   );
 }
-
-// Modal Component
-  const CreateAssistantModal = ({
-    onClose,
-    onSuccess,
-  }: {
-    onClose: () => void;
-    onSuccess: (message: string) => void;
-  }) => {
-    const [formData, setFormData] = useState({
-      name: "",
-      description: "",
-      systemPrompt: "",
-    });
-    const [loading, setLoading] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!formData.name.trim()) return;
-
-      setLoading(true);
-      try {
-        const response = await fetch(`${API_BASE_URL}/assistants`, {
-          method: "POST",
-          credentials: 'include', // ✅ используем cookie
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          onSuccess(result.message || "Ассистент создан успешно");
-          onClose();
-        } else {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Ошибка создания ассистента");
-        }
-      } catch (error) {
-        console.error("Ошибка создания ассистента:", error);
-        alert(error instanceof Error ? error.message : "Ошибка создания ассистента");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  return (
-    <div className="new-design-system">
-    <>
-      <div className="modal-overlay" onClick={onClose}></div>
-      <div className="modal-container">
-        <div className="modal-header">
-          <div className="flex items-center gap-md">
-            <Plus size={24} />
-            <div>
-              <h2 className="modal-title">Создать нового ассистента</h2>
-              <p className="modal-description">
-                Настройте AI ассистента для конкретного направления бизнеса
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            <div className="form-group">
-              <label className="form-label">Название ассистента *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                className="form-input"
-                placeholder="Банковский помощник"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Описание</label>
-              <input
-                type="text"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                className="form-input"
-                placeholder="Помогает клиентам с банковскими услугами"
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Системный промпт</label>
-              <textarea
-                value={formData.systemPrompt}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    systemPrompt: e.target.value,
-                  }))
-                }
-                className="form-textarea"
-                placeholder="Вы - профессиональный консультант банка. Отвечайте вежливо и помогайте клиентам..."
-              />
-              <span className="form-help-text">
-                Определяет личность и стиль общения ассистента
-              </span>
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" onClick={onClose} className="btn btn-outline">
-              Отмена
-            </button>
-            <button
-              type="submit"
-              disabled={loading || !formData.name.trim()}
-              className="btn btn-primary"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="spinner" size={16} />
-                  Создание...
-                </>
-              ) : (
-                <>
-                  <Plus size={16} />
-                  Создать ассистента
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
-  </div>
-  );
-};
