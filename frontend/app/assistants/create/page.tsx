@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { Plus, Bell, MessageSquare, Mail, AlertTriangle } from 'lucide-react';
 
