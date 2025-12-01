@@ -122,35 +122,20 @@ export default function CreateAssistantWithNotifications() {
         </div>
 
         {/* Настройки уведомлений */}
-        <div style={{
-          background: '#111111',
-          padding: '24px',
-          borderRadius: '12px',
-          border: '1px solid #333',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-        }}>
-          <div
-            onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              marginBottom: showNotificationSettings ? '20px' : '0'
-            }}
-          >
-            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#E0E0E0' }}>
+          <div style={{
+            background: '#111111',
+            padding: '24px',
+            borderRadius: '12px',
+            border: '1px solid #333',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#E0E0E0', marginBottom: '20px' }}>
               <Bell size={20} />
               Настройки уведомлений
             </h3>
-            <span style={{ fontSize: '20px', color: "#E0E0E0" }}>
-              {showNotificationSettings ? '▼' : '▶'}
-            </span>
-          </div>
 
-          {showNotificationSettings && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
+              {/* Важное уведомление */}
               <div style={{
                 background: '#2a2a2a',
                 padding: '16px',
@@ -169,6 +154,7 @@ export default function CreateAssistantWithNotifications() {
                 </p>
               </div>
 
+              {/* Telegram Chat ID */}
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -199,6 +185,7 @@ export default function CreateAssistantWithNotifications() {
                 </p>
               </div>
 
+              {/* Email */}
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -229,6 +216,7 @@ export default function CreateAssistantWithNotifications() {
                 </p>
               </div>
 
+              {/* Escalation message */}
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>
                   Сообщение при передаче оператору
@@ -257,8 +245,8 @@ export default function CreateAssistantWithNotifications() {
                 </p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+
 
         {/* Кнопки */}
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
