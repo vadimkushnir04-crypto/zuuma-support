@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { SupportModule } from './support/support.module';
 import { AuditLogModule } from './common/audit-log.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationBotModule } from './notification-bot/notification-bot.module';
 
 // ✅ Импортируем модули (правильная архитектура)
 
@@ -45,6 +46,7 @@ import { AdminModule } from './admin/admin.module';
     PaymentsModule,
     AuditLogModule,
     AdminModule,
+    NotificationBotModule,
   ],
   controllers: [
     ErrorsController,

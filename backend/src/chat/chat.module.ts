@@ -8,12 +8,14 @@ import { AuthModule } from '../auth/auth.module';
 import { TokensModule } from '../tokens/tokens.module';
 import { SupportModule } from '../support/support.module';
 import { CommonModule } from '../common/common.module';
+import { NotificationBotModule } from '../notification-bot/notification-bot.module';
 
 @Module({
   imports: [
     KnowledgeModule,
     AssistantsModule,
     AuthModule,
+    NotificationBotModule,
     TokensModule,
     CommonModule, // ← для RateLimiterService
     forwardRef(() => SupportModule),

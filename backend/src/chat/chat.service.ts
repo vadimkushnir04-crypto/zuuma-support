@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Assistant } from '../assistants/entities/assistant.entity';
 import { EmailService } from '../common/email.service';
+import { NotificationBotService } from '../notification-bot/notification-bot.service';
 
 interface EscalationNotification {
   sessionId: string;
@@ -32,6 +33,7 @@ export class ChatService {
     @InjectRepository(Assistant)
     private assistantRepo: Repository<Assistant>,
     private emailService: EmailService, // ✅ Используем EmailService напрямую
+    private readonly notificationBotService: NotificationBotService,
   ) {}
 
   /**
@@ -305,30 +307,14 @@ export class ChatService {
    */
   private async sendTelegramNotification(chatId: string, message: string): Promise<void> {
     try {
-      const botToken = process.env.NOTIFICATION_BOT_TOKEN;
+      // ✅ Используем NotificationBotService вместо прямого fetch
+      const sent = await this.notificationBotService.sendNotification(chatId, message);
       
-      if (!botToken) {
-        this.logger.warn('NOTIFICATION_BOT_TOKEN not configured in .env');
-        return;
+      if (sent) {
+        this.logger.log(`✅ Telegram notification sent to chat ${chatId}`);
+      } else {
+        this.logger.warn(`⚠️ Failed to send Telegram notification (bot not available)`);
       }
-
-      const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Telegram API error: ${response.statusText}`);
-      }
-
-      this.logger.log(`✅ Telegram notification sent to chat ${chatId}`);
     } catch (error) {
       this.logger.error(`Failed to send Telegram notification: ${error.message}`);
     }
