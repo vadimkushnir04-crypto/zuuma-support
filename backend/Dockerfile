@@ -15,30 +15,41 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
+
+# ✅ Установка ВСЕХ зависимостей (включая dev) для сборки
 RUN npm ci --legacy-peer-deps && \
     npm cache clean --force
 
 COPY . .
+
+# ✅ КРИТИЧНО: Компиляция TypeScript
 RUN npm run build
+
+# ✅ Проверяем что файл создался
+RUN ls -la dist/ && \
+    test -f dist/main.js || (echo "ERROR: dist/main.js not found!" && exit 1)
 
 # ==========================================
 # STAGE 3: Production Runtime
 # ==========================================
 FROM node:20-alpine
 
-# 🧹 минимальная утилита для чистого завершения процессов
 RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# ❗ Работает от root, чтобы избежать проблем с volume правами
-# (nodejs UID=1001 не сможет chmod на host volume)
+# ✅ ИСПРАВЛЕНИЕ: Копируем node_modules из DEPENDENCIES (не из builder!)
 COPY --from=dependencies /app/node_modules ./node_modules
+
+# ✅ Копируем скомпилированный код из builder
 COPY --from=builder /app/dist ./dist
+
+# ✅ Копируем package.json
 COPY package*.json ./
 
-# 👇 создаём папки и выдаём полные права
-RUN mkdir -p /app/uploads /app/logs && chmod -R 777 /app/uploads /app/logs
+# ✅ Создаём необходимые папки
+RUN mkdir -p /app/uploads /app/logs && \
+    chmod -R 777 /app/uploads /app/logs
 
 EXPOSE 8000
 
