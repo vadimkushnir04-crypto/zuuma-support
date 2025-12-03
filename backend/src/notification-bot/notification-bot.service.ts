@@ -172,37 +172,36 @@ export class NotificationBotService implements OnModuleInit, OnModuleDestroy {
       
       this.logger.log(`🧪 /test from Chat ID: ${chatId}`);
 
-  const testMessage = `
-    <b>🧪 Тестовое уведомление</b><br><br>
+      const testMessage = `
+      <b>🧪 Тестовое уведомление</b>
 
-    Если вы видите это сообщение — уведомления работают корректно! ✅<br><br>
+      Если вы видите это сообщение — уведомления работают корректно! ✅
 
-    <b>📋 Ваш Chat ID:</b> <code>${chatId}</code><br><br>
+      <b>📋 Ваш Chat ID:</b> <code>${chatId}</code>
 
-    Пример реального уведомления:<br>
-    <hr>
-    <b>🔴 Новая эскалация — Тестовый ассистент</b><br><br>
+      Пример реального уведомления:
+      <b>──────────────────</b>
+      <b>🔴 Новая эскалация — Тестовый ассистент</b>
 
-    👤 <b>Пользователь:</b> user_12345<br>
-    📋 <b>Причина:</b> Пользователь запросил связь с оператором<br>
-    ⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}<br><br>
+      👤 <b>Пользователь:</b> user_12345
+      📋 <b>Причина:</b> Пользователь запросил связь с оператором
+      ⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}
 
-    <b>💬 Последние сообщения:</b><br>
-    👤 Здравствуйте, хочу поговорить с менеджером<br>
-    🤖 Конечно! Передаю ваш запрос специалисту...<br><br>
+      <b>💬 Последние сообщения:</b>
+      👤 Здравствуйте, хочу поговорить с менеджером
+      🤖 Конечно! Передаю ваш запрос специалисту...
 
-    🔗 <b>Перейти к чату:</b> https://zuuma.ru/support/chat/xxx<br>
-    <hr>
+      🔗 <b>Перейти к чату:</b> https://zuuma.ru/support/chat/xxx
+      <b>──────────────────</b>
 
-    <b>Всё работает! 🎉</b>
-  `.trim();
-
+      <b>Всё работает! 🎉</b>
+      `.trim();
 
       try {
-      await this.bot!.sendMessage(chatId, testMessage, { 
-        parse_mode: 'HTML',
-        disable_web_page_preview: true
-      });
+        await this.bot!.sendMessage(chatId, testMessage, { 
+          parse_mode: "HTML",
+          disable_web_page_preview: true
+        });
       } catch (error) {
         this.logger.error(`Failed to send /test response: ${error.message}`);
       }
