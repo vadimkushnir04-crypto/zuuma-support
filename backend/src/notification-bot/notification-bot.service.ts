@@ -172,36 +172,37 @@ export class NotificationBotService implements OnModuleInit, OnModuleDestroy {
       
       this.logger.log(`🧪 /test from Chat ID: ${chatId}`);
 
-      const testMessage = `
-🧪 *Тестовое уведомление*
+  const testMessage = `
+    <b>🧪 Тестовое уведомление</b><br><br>
 
-Если вы видите это сообщение - уведомления работают корректно! ✅
+    Если вы видите это сообщение — уведомления работают корректно! ✅<br><br>
 
-📋 Ваш Chat ID: \`${chatId}\`
+    <b>📋 Ваш Chat ID:</b> <code>${chatId}</code><br><br>
 
-Пример реального уведомления:
-──────────────────
-🔴 *Новая эскалация - Тестовый ассистент*
+    Пример реального уведомления:<br>
+    <hr>
+    <b>🔴 Новая эскалация — Тестовый ассистент</b><br><br>
 
-👤 Пользователь: user_12345
-📋 Причина: Пользователь запросил связь с оператором
-⏰ Время: ${new Date().toLocaleString('ru-RU')}
+    👤 <b>Пользователь:</b> user_12345<br>
+    📋 <b>Причина:</b> Пользователь запросил связь с оператором<br>
+    ⏰ <b>Время:</b> ${new Date().toLocaleString('ru-RU')}<br><br>
 
-💬 Последние сообщения:
-👤 Здравствуйте, хочу поговорить с менеджером
-🤖 Конечно! Передаю ваш запрос специалисту...
+    <b>💬 Последние сообщения:</b><br>
+    👤 Здравствуйте, хочу поговорить с менеджером<br>
+    🤖 Конечно! Передаю ваш запрос специалисту...<br><br>
 
-🔗 Перейти к чату: https://zuuma.ru/support/chat/xxx
-──────────────────
+    🔗 <b>Перейти к чату:</b> https://zuuma.ru/support/chat/xxx<br>
+    <hr>
 
-Всё работает! 🎉
-      `.trim();
+    <b>Всё работает! 🎉</b>
+  `.trim();
+
 
       try {
-        await this.bot!.sendMessage(chatId, testMessage, { 
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true 
-        });
+      await this.bot!.sendMessage(chatId, testMessage, { 
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      });
       } catch (error) {
         this.logger.error(`Failed to send /test response: ${error.message}`);
       }
