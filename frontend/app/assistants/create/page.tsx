@@ -30,19 +30,18 @@ export default function CreateAssistantPage() {
         description: formData.description,
         systemPrompt: formData.systemPrompt,
         settings: {
-          notificationTelegramChatId:
-            formData.notificationTelegramChatId || null,
+          notificationTelegramChatId: formData.notificationTelegramChatId || null,
           notificationEmail: formData.notificationEmail || null,
           escalationAutoReply: formData.escalationAutoReply,
         },
       };
 
-      const res = await fetch("/assistants", {
+      const res = await fetch("/api/assistants", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
+        credentials: "include", // ✅ отправляем cookie
         body: JSON.stringify(payload),
       });
 
@@ -53,7 +52,7 @@ export default function CreateAssistantPage() {
         return;
       }
 
-      // переход на страницу ассистента
+      // перенаправление на страницу ассистента
       window.location.href = `/assistants/${data.data.id}`;
     } catch (e) {
       console.error("Create assistant error:", e);
@@ -62,6 +61,7 @@ export default function CreateAssistantPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div style={{ maxWidth: "700px", margin: "0 auto", padding: "20px", color: "#E0E0E0" }}>
