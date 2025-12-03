@@ -148,8 +148,7 @@ export class NotificationBotService implements OnModuleInit, OnModuleDestroy {
 Да, просто удалите Chat ID из настроек ассистента на zuuma.ru
 
 *Проблемы?*
-Напишите в поддержку: support@zuuma.ru
-Или создайте тикет на https://zuuma.ru/support
+Напишите в поддержку: delovoi.acount@gmail.com
 
 *Команды:*
 /start - Получить Chat ID
