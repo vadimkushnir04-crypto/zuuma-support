@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Plus, Bell, MessageSquare, Mail, AlertTriangle } from "lucide-react";
+import AuthGuard from '../../../components/AuthGuard';
 
 export default function CreateAssistantPage() {
   const [formData, setFormData] = useState({
@@ -64,6 +65,7 @@ export default function CreateAssistantPage() {
 
 
   return (
+    <AuthGuard requireAuth={true}>
     <div style={{ maxWidth: "700px", margin: "0 auto", padding: "20px", color: "#E0E0E0" }}>
       {/* Заголовок */}
       <div
@@ -340,5 +342,6 @@ export default function CreateAssistantPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
