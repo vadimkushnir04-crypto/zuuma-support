@@ -40,14 +40,15 @@ export class ChatController {
   // ❌ УДАЛЕНО: Map в памяти больше не используется
   // private conversations = new Map<...>();
 
-  constructor(
-    private readonly knowledgeService: KnowledgeService,
-    private readonly assistantsService: AssistantsService,
-    private readonly authService: AuthService,
-    private readonly tokensService: TokensService,
-    private readonly rateLimiter: RateLimiterService,
-    private readonly supportService: SupportService,
-  ) {}
+constructor(
+  private readonly knowledgeService: KnowledgeService,
+  private readonly assistantsService: AssistantsService,
+  private readonly authService: AuthService,
+  private readonly tokensService: TokensService,
+  private readonly rateLimiter: RateLimiterService,
+  private readonly supportService: SupportService,
+  private readonly chatService: ChatService, // ✅ ДОБАВЬТЕ ЭТУ СТРОКУ
+) {}
 
 @Post('ask')
 @UseGuards(RateLimitGuard)
@@ -275,6 +276,7 @@ async chat(
     if (result.functionCalled === 'escalate_to_human' && result.functionArgs) {
       const { reason, urgency } = result.functionArgs;
       
+      // Обновляем статус сессии
       await this.supportService.escalateToHuman(
         chatSession.id,
         reason || 'User requested human support',
@@ -286,6 +288,27 @@ async chat(
         reason, 
         urgency 
       });
+
+      // ✅ ДОБАВЛЕНО: Отправка уведомлений через ChatService
+      try {
+        const notification = {
+          sessionId: chatSession.id,
+          assistantId: assistant.id,
+          assistantName: assistant.name,
+          userIdentifier: requestUserIdentifier,
+          reason: reason || 'User requested human support',
+          urgency: urgency || 'medium',
+          lastMessages: [...history.slice(-3), { role: 'user', content: body.message }],
+          timestamp: new Date(),
+        };
+        
+        await this.chatService['sendEscalationNotifications'](notification, assistant);
+        console.log('✅ Escalation notifications sent');
+      } catch (notifError) {
+        console.error('⚠️ Failed to send escalation notifications:', notifError.message);
+        // Не прерываем выполнение если уведомления не отправились
+      }
+      // ✅ КОНЕЦ ДОБАВЛЕНИЯ
 
       const aiMessage = await this.supportService.saveMessage(
         chatSession.id,

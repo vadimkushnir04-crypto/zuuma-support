@@ -252,7 +252,15 @@ export default function Chat() {
       }
       
       // ✅ ДОБАВЬТЕ: Если ответ пришёл сразу (без WebSocket)
-      if (data.answer && !data.escalated) {
+
+      // ✅ ИСПРАВЛЕНИЕ: Показываем ответ немедленно для /chat/ask endpoint
+      if (data.answer) {
+        console.log('📥 Received immediate answer:', {
+          messageId: data.aiMessageId,
+          textLength: data.answer.length,
+          escalated: data.escalated
+        });
+        
         const aiMessage: Message = {
           id: data.aiMessageId || `ai-${Date.now()}`,
           text: data.answer,
@@ -263,6 +271,8 @@ export default function Chat() {
         };
         addMessageIfNotExists(aiMessage);
         setIsLoading(false);
+      } else {
+        console.log('⏳ No immediate answer, waiting for WebSocket...');
       }
 
       } else {

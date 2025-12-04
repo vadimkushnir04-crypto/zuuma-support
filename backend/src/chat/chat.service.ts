@@ -242,7 +242,7 @@ export class ChatService {
   /**
    * 📧 Отправка уведомлений о эскалации
    */
-  private async sendEscalationNotifications(
+  async sendEscalationNotifications(
     notification: EscalationNotification,
     assistant: Assistant
   ): Promise<void> {
@@ -272,7 +272,7 @@ export class ChatService {
   }
 
   /**
-   * 📝 Форматирование сообщения
+   * 📝 Форматирование сообщения для Telegram (HTML формат)
    */
   private formatEscalationMessage(notification: EscalationNotification): string {
     const urgencyEmoji = {
@@ -282,22 +282,29 @@ export class ChatService {
     };
 
     const emoji = urgencyEmoji[notification.urgency];
+    const frontendUrl = process.env.FRONTEND_URL || 'https://zuuma.ru';
 
-    let message = `${emoji} Новая эскалация - ${notification.assistantName}\n\n`;
-    message += `👤 Пользователь: ${notification.userIdentifier}\n`;
-    message += `📋 Причина: ${notification.reason}\n`;
-    message += `⏰ Время: ${notification.timestamp.toLocaleString('ru-RU')}\n\n`;
+    // ✅ ИСПРАВЛЕНИЕ: Правильный HTML формат для Telegram
+    let message = `<b>${emoji} Новая эскалация — ${notification.assistantName}</b>\n\n`;
+    message += `👤 <b>Пользователь:</b> ${notification.userIdentifier}\n`;
+    message += `📋 <b>Причина:</b> ${notification.reason}\n`;
+    message += `⏰ <b>Время:</b> ${notification.timestamp.toLocaleString('ru-RU')}\n\n`;
 
     if (notification.lastMessages && notification.lastMessages.length > 0) {
-      message += `💬 Последние сообщения:\n`;
+      message += `<b>💬 Последние сообщения:</b>\n`;
       notification.lastMessages.forEach((msg) => {
         const roleEmoji = msg.role === 'user' ? '👤' : '🤖';
         const content = msg.content.substring(0, 200);
-        message += `${roleEmoji} ${content}${msg.content.length > 200 ? '...' : ''}\n`;
+        // ✅ Экранируем HTML символы
+        const escapedContent = content
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        message += `${roleEmoji} ${escapedContent}${msg.content.length > 200 ? '...' : ''}\n`;
       });
     }
 
-    message += `\n🔗 Перейти к чату: ${process.env.FRONTEND_URL || 'https://zuuma.ru'}/support/chat/${notification.sessionId}`;
+    message += `\n🔗 <a href="${frontendUrl}/support/chat/${notification.sessionId}">Перейти к чату</a>`;
 
     return message;
   }
@@ -307,6 +314,11 @@ export class ChatService {
    */
   private async sendTelegramNotification(chatId: string, message: string): Promise<void> {
     try {
+      console.log('📱 Attempting Telegram notification:', {
+        chatId,
+        botAvailable: this.notificationBotService.isAvailable()
+      });
+
       // ✅ Используем NotificationBotService вместо прямого fetch
       const sent = await this.notificationBotService.sendNotification(chatId, message);
       
