@@ -29,14 +29,17 @@ export class PaymentsService {
     private configService: ConfigService,
     private dataSource: DataSource,
   ) {
+    // ✅ ИСПРАВЛЕНО: Упрощённая логика - всегда используем основные credentials
     const shopId = this.configService.get<string>('YOOKASSA_SHOP_ID');
     const secretKey = this.configService.get<string>('YOOKASSA_SECRET_KEY');
 
     if (!shopId || !secretKey) {
       console.error('❌ YooKassa credentials not configured');
+      console.error('Проверьте переменные окружения: YOOKASSA_SHOP_ID и YOOKASSA_SECRET_KEY');
     } else {
       this.yooKassa = new YooCheckout({ shopId, secretKey });
       console.log('✅ YooKassa initialized');
+      console.log(`📍 Shop ID: ${shopId.substring(0, 6)}***`);
     }
   }
 
@@ -236,14 +239,26 @@ export class PaymentsService {
       if (!user) throw new Error('User not found');
 
       // Получаем количество токенов из метаданных платежа
-      const tokensAmount = payment.metadata?.tokensAmount || 
-                          (payment.plan ? parseInt(payment.plan.monthly_tokens.toString()) : 0);
+      const newTokens = payment.metadata?.tokensAmount || 
+                       (payment.plan ? parseInt(payment.plan.monthly_tokens.toString()) : 0);
 
-      if (tokensAmount === 0) {
+      if (newTokens === 0) {
         throw new Error('Tokens amount is 0');
       }
 
-      // Отменяем старые активные "подписки" (пакеты токенов)
+      // ✅ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Добавляем токены к существующим, а не заменяем
+      const currentTokensLimit = Number(user.tokens_limit || 0);
+      const currentTokensUsed = Number(user.tokens_used || 0);
+      const totalTokensLimit = currentTokensLimit + newTokens;
+
+      console.log('💰 Токены до покупки:', {
+        currentLimit: currentTokensLimit,
+        currentUsed: currentTokensUsed,
+        newTokens,
+        totalAfter: totalTokensLimit
+      });
+
+      // Отменяем старые активные пакеты и продлеваем срок
       const oldPackages = await manager.find(Subscription, {
         where: { userId: payment.userId, status: 'active' },
       });
@@ -264,7 +279,7 @@ export class PaymentsService {
         status: 'active',
         startedAt: now,
         expiresAt,
-        canRefund: false, // Убираем возвраты для простоты
+        canRefund: false,
       });
 
       const savedPackage = await manager.save(tokenPackage);
@@ -272,16 +287,16 @@ export class PaymentsService {
       payment.subscriptionId = savedPackage.id;
       await manager.save(payment);
 
-      // Обновляем баланс пользователя
-      user.tokens_limit = tokensAmount;
-      user.tokens_used = 0;
+      // ✅ ИСПРАВЛЕНО: Добавляем токены к существующим
+      user.tokens_limit = totalTokensLimit;
+      // tokens_used НЕ сбрасываем - пользователь продолжает с текущего баланса
       
-      // Определяем лимит ассистентов по размеру пакета
-      if (tokensAmount >= 10000000) {
+      // Определяем лимит ассистентов по ОБЩЕМУ количеству токенов
+      if (totalTokensLimit >= 10000000) {
         user.assistants_limit = 100;
-      } else if (tokensAmount >= 5000000) {
+      } else if (totalTokensLimit >= 5000000) {
         user.assistants_limit = 50;
-      } else if (tokensAmount >= 1000000) {
+      } else if (totalTokensLimit >= 1000000) {
         user.assistants_limit = 10;
       } else {
         user.assistants_limit = 1;
@@ -291,7 +306,9 @@ export class PaymentsService {
 
       console.log('✅ Token package activated:', {
         id: savedPackage.id,
-        tokens: tokensAmount,
+        addedTokens: newTokens,
+        totalTokensLimit: totalTokensLimit,
+        tokensRemaining: totalTokensLimit - currentTokensUsed,
         expiresAt: expiresAt.toISOString(),
       });
     });
