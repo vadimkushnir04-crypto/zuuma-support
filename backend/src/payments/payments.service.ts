@@ -400,6 +400,8 @@ export class PaymentsService {
       }
 
       const now = new Date();
+      const expiresAt = tokenPackage.expiresAt;
+      
       tokenPackage.status = 'cancelled';
       await manager.save(tokenPackage);
 
@@ -411,6 +413,7 @@ export class PaymentsService {
       return {
         success: true,
         message: 'Пакет токенов отменён. Вы переведены на Free план.',
+        expiresAt,
       };
     });
   }
@@ -503,6 +506,100 @@ export class PaymentsService {
     } catch (error) {
       console.error('❌ Refund failed:', error);
       throw new BadRequestException('Failed to process refund: ' + error.message);
+    }
+  }
+
+  /**
+   * ✅ Принудительный возврат средств (для админа)
+   * Обходит все проверки токенов и дедлайнов
+   */
+  async forceRefund(subscriptionId: string, adminEmail: string) {
+    console.log('🛡️ Force refund initiated by admin:', adminEmail);
+    
+    const tokenPackage = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+      relations: ['user'],
+    });
+
+    if (!tokenPackage) {
+      throw new NotFoundException('Token package not found');
+    }
+
+    const user = tokenPackage.user;
+    const tokensUsed = Number(user.tokens_used || 0);
+
+    // ⚠️ ПРЕДУПРЕЖДЕНИЕ в логах если токены использованы
+    if (tokensUsed > 0) {
+      console.warn(`⚠️ Admin ${adminEmail} is refunding package with ${tokensUsed} tokens used`);
+    }
+
+    // Находим платеж
+    let payment = await this.paymentRepository.findOne({
+      where: { subscriptionId: tokenPackage.id },
+    });
+
+    if (!payment) {
+      payment = await this.paymentRepository.findOne({
+        where: { 
+          userId: tokenPackage.userId,
+          planId: tokenPackage.planId,
+          yookassaStatus: 'succeeded',
+        },
+        order: { createdAt: 'DESC' },
+      });
+    }
+
+    if (!payment) {
+      throw new BadRequestException('Payment not found');
+    }
+
+    if (payment.refunded) {
+      throw new BadRequestException('Payment already refunded');
+    }
+
+    // ✅ Создаем возврат в ЮKassa (БЕЗ проверок)
+    try {
+      const refund = await this.yooKassa.createRefund({
+        payment_id: payment.yookassaPaymentId!,
+        amount: {
+          value: (payment.amountCents / 100).toFixed(2),
+          currency: payment.currency,
+        },
+      });
+
+      const now = new Date();
+
+      // Обновляем платеж
+      payment.refunded = true;
+      payment.refundAmountCents = payment.amountCents;
+      payment.refundedAt = now;
+      payment.yookassaRefundId = refund.id;
+      await this.paymentRepository.save(payment);
+
+      // Отменяем подписку
+      tokenPackage.status = 'cancelled';
+      await this.subscriptionRepository.save(tokenPackage);
+
+      // Возвращаем на Free план
+      await this.revertToFreePlan(tokenPackage.userId);
+
+      console.log('✅ Force refund completed by admin:', {
+        admin: adminEmail,
+        refundId: refund.id,
+        amount: refund.amount.value,
+        tokensWereUsed: tokensUsed,
+      });
+
+      return {
+        success: true,
+        refundId: refund.id,
+        amount: refund.amount.value,
+        message: 'Возврат средств выполнен администратором (обход проверок)',
+        tokensUsed,
+      };
+    } catch (error) {
+      console.error('❌ Force refund failed:', error);
+      throw new BadRequestException('Failed to process force refund: ' + error.message);
     }
   }
 

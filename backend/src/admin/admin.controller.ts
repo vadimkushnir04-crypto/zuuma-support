@@ -82,10 +82,11 @@ export class AdminController {
       status: subscription.status,
       startedAt: subscription.startedAt,
       expiresAt: subscription.expiresAt,
-      autoRenew: subscription.autoRenew,
-      paymentMethodId: subscription.paymentMethodId,
-      nextBillingDate: subscription.nextBillingDate,
-      failedPaymentsCount: subscription.failedPaymentsCount,
+      // ✅ Убрал поля автопродления (их больше нет в новой версии)
+      // autoRenew: subscription.autoRenew,
+      // paymentMethodId: subscription.paymentMethodId,
+      // nextBillingDate: subscription.nextBillingDate,
+      // failedPaymentsCount: subscription.failedPaymentsCount,
       cancelledAt: subscription.cancelledAt,
     };
   }
@@ -127,8 +128,8 @@ export class AdminController {
       subscription: {
         id: subscriptionId,
         status: 'cancelled',
-        expiresAt: result.expiresAt,
-        autoRenew: false,
+        expiresAt: result.expiresAt, // ✅ Теперь возвращается из cancelSubscription
+        // autoRenew: false, // ✅ Убрал - больше нет автопродления
       },
     };
   }
@@ -165,7 +166,7 @@ export class AdminController {
 
     // ✅ Используем forceRefund для админа (обходит все проверки)
     try {
-      // Попробуем сначала обычный возврат (если токены не использованы)
+      // Пробуем сначала обычный возврат (если токены не использованы)
       if (tokensUsed === 0) {
         const result = await this.paymentsService.refundPayment(
           subscription.userId, 
