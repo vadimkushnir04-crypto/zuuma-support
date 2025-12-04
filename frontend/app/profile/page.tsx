@@ -276,22 +276,18 @@ export default function ProfilePage() {
       features = [
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов на 30 дней`,
         'До 10 ассистентов',
-        'Все функции платформы',
-        'Техподдержка',
       ];
     } else if (plan.slug === 'business') {
       features = [
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов на 30 дней`,
         'До 50 ассистентов',
         'Скидка ~10% за объём',
-        'Приоритетная поддержка',
       ];
     } else if (plan.slug === 'enterprise') {
       features = [
         `${parseInt(plan.monthly_tokens).toLocaleString()} токенов на 30 дней`,
         'До 100 ассистентов',
         'Скидка ~20% за объём',
-        'Персональный менеджер',
       ];
     }
 
