@@ -515,61 +515,74 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div style={styles.section}>
-              <h2 style={styles.sectionTitle}>Готовые пакеты токенов</h2>
-              <p style={styles.sectionDescription}>
-                Выберите пакет, который лучше всего подходит для ваших потребностей. Токены действуют 30 дней.
-              </p>
-              
-              <div style={styles.pricingGrid}>
-                {pricingPlans.filter((p: any) => p.id !== 'free').map((plan: any) => {
-                  return (
-                    <div 
-                      key={plan.id} 
-                      style={{
-                        ...styles.pricingCard,
-                        ...(plan.popular ? styles.popularCard : {})
-                      }}
-                    >
-                      <div style={{ minHeight: '40px', marginBottom: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                        {plan.popular && (
-                          <div style={styles.pricingBadge}>
-                            <Crown size={16} />
-                            Рекомендуем
-                          </div>
-                        )}
-                      </div>
-                      
-                      <h3 style={styles.pricingName}>{plan.name}</h3>
-                      <div style={styles.pricingPrice}>{plan.price}</div>
-                      <div style={styles.pricingPeriod}>{plan.period}</div>
-                      
-                      <ul style={styles.pricingFeatures}>
-                        {plan.features.map((feature: string, index: number) => (
-                          <li key={index} style={styles.pricingFeature}>
-                            <Check size={16} style={styles.checkIcon} />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      
-                      <button 
-                        onClick={() => handlePurchasePlan(plan.id)}
-                        disabled={processingPayment}
-                        style={{
-                          ...styles.pricingButton,
-                          ...(plan.popular ? styles.popularButton : {}),
-                          ...(processingPayment ? { opacity: 0.5, cursor: 'not-allowed' } : {})
-                        }}
-                      >
-                        <CreditCard size={16} />
-                        Купить пакет
-                      </button>
+      <div style={styles.section}>
+        <h2 style={styles.sectionTitle}>Готовые пакеты токенов</h2>
+        <p style={styles.sectionDescription}>
+          Выберите пакет, который лучше всего подходит для ваших потребностей. Токены действуют 30 дней.
+        </p>
+
+        <div style={styles.pricingGrid}>
+          {pricingPlans
+            .filter((p: any) => p.id !== 'free' && p.id !== 'custom')
+            .map((plan: any) => (
+              <div
+                key={plan.id}
+                style={{
+                  ...styles.pricingCard,
+                  ...(plan.popular ? styles.popularCard : {})
+                }}
+              >
+                {/* Бейдж “Рекомендуем” */}
+                <div
+                  style={{
+                    minHeight: '40px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }}
+                >
+                  {plan.popular && (
+                    <div style={styles.pricingBadge}>
+                      <Crown size={16} />
+                      Рекомендуем
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+
+                {/* Название, цена, период */}
+                <h3 style={styles.pricingName}>{plan.name}</h3>
+                <div style={styles.pricingPrice}>{plan.price}</div>
+                <div style={styles.pricingPeriod}>{plan.period}</div>
+
+                {/* Фичи */}
+                <ul style={styles.pricingFeatures}>
+                  {plan.features.map((feature: string, index: number) => (
+                    <li key={index} style={styles.pricingFeature}>
+                      <Check size={16} style={styles.checkIcon} />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Кнопка покупки */}
+                <button
+                  onClick={() => handlePurchasePlan(plan.id)}
+                  disabled={processingPayment}
+                  style={{
+                    ...styles.pricingButton,
+                    ...(plan.popular ? styles.popularButton : {}),
+                    ...(processingPayment ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                  }}
+                >
+                  <CreditCard size={16} />
+                  Купить пакет
+                </button>
               </div>
-            </div>
+            ))}
+        </div>
+      </div>
+
 
             {/* Кастомная покупка */}
             <div style={styles.section}>
