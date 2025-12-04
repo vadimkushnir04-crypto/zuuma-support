@@ -22,34 +22,33 @@ interface Plan {
   slug: string;
   title: string;
   monthly_tokens: string;
-  tokens_per_chat: number;
   price_cents: string;
 }
 
-interface Subscription {
+interface TokenPackage {
   id: string;
   planId: string;
   status: string;
   startedAt: string;
   expiresAt: string;
-  cancelledAt?: string;
-  
-  // Поля для рекуррентных платежей
-  autoRenew: boolean;
-  paymentMethodId?: string;
-  nextBillingDate?: string;
-  lastPaymentAttempt?: string;
-  failedPaymentsCount: number;
+  tokensUsed: number;
+  tokensLimit: number;
+  tokensRemaining: number;
 }
 
 export default function ProfilePage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [tokenPackage, setTokenPackage] = useState<TokenPackage | null>(null);
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'billing'>('profile');
+  
+  // Кастомная покупка
+  const [customPacks, setCustomPacks] = useState(1);
+  const customTokens = customPacks * 100000;
+  const customPrice = customPacks * 99;
 
   const { plans, loading: plansLoading } = usePlans();
   const { balance, mutate: mutateBalance } = useTokens();
@@ -58,7 +57,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     loadUserProfile();
-    loadSubscription();
+    loadTokenPackage();
   }, []);
 
   // Проверяем success параметр при возврате с оплаты
@@ -67,7 +66,7 @@ export default function ProfilePage() {
     if (params.get('payment_success') === 'true') {
       const checkPaymentSuccess = async () => {
         await loadUserProfile();
-        await loadSubscription();
+        await loadTokenPackage();
         
         setTimeout(async () => {
           await loadUserProfile();
@@ -81,8 +80,8 @@ export default function ProfilePage() {
           
           if (res.ok) {
             const data = await res.json();
-            if (data.user.plan && data.user.plan !== 'free') {
-              alert('✅ Оплата прошла успешно! Ваша подписка активирована.');
+            if (data.user.tokens_limit > 100000) {
+              alert('✅ Оплата прошла успешно! Токены зачислены на ваш аккаунт.');
             }
           }
           
@@ -117,7 +116,7 @@ export default function ProfilePage() {
     }
   };
 
-  const loadSubscription = async () => {
+  const loadTokenPackage = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/payments/subscription`, {
         credentials: 'include',
@@ -125,24 +124,25 @@ export default function ProfilePage() {
 
       if (res.ok) {
         const data = await res.json();
-        setSubscription(data.subscription);
+        setTokenPackage(data.subscription);
       }
     } catch (error) {
-      console.error("Ошибка загрузки подписки:", error);
+      console.error("Ошибка загрузки пакета токенов:", error);
     }
   };
 
   const handlePurchasePlan = async (planSlug: string) => {
     if (planSlug === 'free') {
-      alert('Это бесплатный план');
+      alert('Это бесплатный стартовый план');
       return;
     }
 
     const plan = plans?.find((p: Plan) => p.slug === planSlug);
     if (!plan) return;
 
-    const confirmMessage = `Вы собираетесь оплатить план "${plan.title}"\n\n` +
-      `Токенов в месяц: ${parseInt(plan.monthly_tokens).toLocaleString()}\n` +
+    const confirmMessage = `Вы собираетесь купить пакет "${plan.title}"\n\n` +
+      `Токенов: ${parseInt(plan.monthly_tokens).toLocaleString()}\n` +
+      `Срок действия: 30 дней\n` +
       `Стоимость: ${(parseInt(plan.price_cents) / 100).toLocaleString('ru-RU')} ₽\n\n` +
       `Продолжить?`;
 
@@ -180,37 +180,52 @@ export default function ProfilePage() {
     }
   };
 
-  const handleToggleAutoRenew = async () => {
-    if (!subscription) return;
+  const handleCustomPurchase = async () => {
+    if (customPacks < 1) {
+      alert('Минимальная покупка: 1 пакет (100 000 токенов)');
+      return;
+    }
 
-    const confirmMessage = subscription.autoRenew
-      ? 'Вы действительно хотите отключить автоматическое продление?\n\n' +
-        'Подписка останется активной до конца оплаченного периода, ' +
-        'но автоматического списания не произойдет.'
-      : 'Включить автоматическое продление?';
+    const confirmMessage = `Вы собираетесь купить кастомный пакет\n\n` +
+      `Токенов: ${customTokens.toLocaleString()}\n` +
+      `Срок действия: 30 дней\n` +
+      `Стоимость: ${customPrice.toLocaleString('ru-RU')} ₽\n\n` +
+      `Продолжить?`;
 
     if (!confirm(confirmMessage)) return;
 
+    setProcessingPayment(true);
+
     try {
-      const res = await fetch(`${API_BASE_URL}/payments/subscription/${subscription.id}/toggle-auto-renew`, {
+      const res = await fetch(`${API_BASE_URL}/payments/create`, {
         method: 'POST',
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ 
+          planSlug: 'custom',
+          customTokens: customTokens 
+        }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        alert(data.message);
-        await loadSubscription();
+        
+        if (data.confirmationUrl) {
+          window.location.href = data.confirmationUrl;
+        } else {
+          alert('Ошибка: не получен URL для оплаты');
+        }
       } else {
         const error = await res.json();
-        alert('Ошибка: ' + (error.message || 'Не удалось изменить настройки'));
+        alert('Ошибка при создании платежа: ' + (error.message || 'Неизвестная ошибка'));
       }
     } catch (error) {
-      console.error('Ошибка при изменении автопродления:', error);
-      alert('Ошибка при изменении настроек');
+      console.error('Ошибка при оплате:', error);
+      alert('Ошибка при оплате. Попробуйте позже.');
+    } finally {
+      setProcessingPayment(false);
     }
   };
 
@@ -252,31 +267,40 @@ export default function ProfilePage() {
 
     if (plan.slug === 'free') {
       features = [
-        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
+        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов стартовый баланс`,
         '1 ассистент',
         'Интеграция в веб-виджет',
         'Интеграция в Telegram Bot',
       ];
-    } else if (plan.slug === 'pro') {
+    } else if (plan.slug === 'basic') {
       features = [
-        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
-        'Всё, что в Free, плюс:',
+        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов на 30 дней`,
         'До 10 ассистентов',
+        'Все функции платформы',
+        'Техподдержка',
       ];
-    } else if (plan.slug === 'max') {
+    } else if (plan.slug === 'business') {
       features = [
-        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов в месяц`,
-        'Всё, что в Pro, плюс:',
+        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов на 30 дней`,
         'До 50 ассистентов',
+        'Скидка ~10% за объём',
+        'Приоритетная поддержка',
+      ];
+    } else if (plan.slug === 'enterprise') {
+      features = [
+        `${parseInt(plan.monthly_tokens).toLocaleString()} токенов на 30 дней`,
+        'До 100 ассистентов',
+        'Скидка ~20% за объём',
+        'Персональный менеджер',
       ];
     }
 
     return {
       id: plan.slug,
       name: plan.title,
-      price: plan.price_cents === '0' ? '0 ₽' : `${(parseInt(plan.price_cents) / 100).toLocaleString('ru-RU')} ₽`,
-      period: plan.price_cents === '0' ? '' : '/месяц',
-      popular: plan.slug === 'pro',
+      price: plan.price_cents === '0' ? 'Бесплатно' : `${(parseInt(plan.price_cents) / 100).toLocaleString('ru-RU')} ₽`,
+      period: plan.price_cents === '0' ? '' : 'разовая покупка',
+      popular: plan.slug === 'business',
       features
     };
   }) || [];
@@ -305,12 +329,7 @@ export default function ProfilePage() {
   const tokensLimit = parseInt(String(userProfile.tokensLimit || 0));
   const tokensUsedPercent = Math.min(Math.round((tokensUsed / tokensLimit) * 100), 100);
   
-  const assistantsLimit = 
-    userProfile?.plan === 'free' ? 1 :
-    userProfile?.plan === 'pro' ? 10 :
-    userProfile?.plan === 'max' ? 50 : 1;
-
-  const isCurrent = (planSlug: string) => planSlug === (userProfile.plan || 'free');
+  const assistantsLimit = userProfile?.assistantsLimit || 1;
 
   return (
     <div style={styles.container}>
@@ -363,7 +382,7 @@ export default function ProfilePage() {
             ...(activeTab === 'billing' ? styles.activeTab : {})
           }}
         >
-          Тарифы и биллинг
+          Покупка токенов
         </button>
       </div>
 
@@ -423,16 +442,6 @@ export default function ProfilePage() {
               
               <div style={styles.statsGrid}>
                 <div style={styles.statCard}>
-                  <Shield size={24} style={styles.statIcon} />
-                  <div>
-                    <div style={styles.statLabel}>Тарифный план</div>
-                    <div style={styles.statValue}>
-                      {plans?.find((p: Plan) => p.slug === userProfile.plan)?.title || 'Free'}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={styles.statCard}>
                   <Coins size={24} style={styles.statIcon} />
                   <div>
                     <div style={styles.statLabel}>Токены</div>
@@ -448,10 +457,13 @@ export default function ProfilePage() {
                         }}
                       ></div>
                     </div>
-                    {tokensLimit - tokensUsed < 2000 && (
-                      <div style={{ marginTop: 8, color: '#ff6b6b', fontSize: 14 }}>
-                        <AlertCircle size={16} style={{ marginRight: 4 }} />
-                        Токенов недостаточно для полноценного ответа. Обновите тариф, чтобы ассистент продолжал отвечать вашим клиентам!
+                    {tokenPackage && (
+                      <div style={{ marginTop: 8, fontSize: 13, opacity: 0.7 }}>
+                        Действует до {new Date(tokenPackage.expiresAt).toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
                       </div>
                     )}
                   </div>
@@ -482,184 +494,129 @@ export default function ProfilePage() {
           </>
         )}
 
-          {activeTab === 'billing' && (
-            <>
-              {/* 🔒 Временно скрыто: автопродление
-              {subscription && subscription.status === 'active' && !subscription.cancelledAt && subscription.autoRenew && (
-                <div style={styles.autoRenewSection}>
-                  <div style={styles.autoRenewHeader}>
-                    <div>
-                      <h3 style={styles.autoRenewTitle}>
-                        Автоматическое продление
-                      </h3>
-                      <p style={styles.autoRenewDescription}>
-                        ✅ Включено. Следующее списание: {' '}
-                        <strong>
-                          {subscription.nextBillingDate 
-                            ? new Date(subscription.nextBillingDate).toLocaleDateString('ru-RU', {
-                                day: 'numeric',
-                                month: 'long',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : new Date(subscription.expiresAt).toLocaleDateString('ru-RU')
-                          }
-                        </strong>
-                      </p>
-                      {subscription.autoRenew && subscription.failedPaymentsCount > 0 && (
-                        <p style={{ ...styles.autoRenewDescription, color: '#ff6b6b', marginTop: 8 }}>
-                          ⚠️ Неудачных попыток списания: {subscription.failedPaymentsCount}/3
-                        </p>
-                      )}
-                    </div>
-                    
-                    <button
-                      onClick={handleToggleAutoRenew}
-                      style={styles.toggleAutoRenewButton}
-                    >
-                      Отключить автопродление
-                    </button>
-                  </div>
-                  
-                  <div style={styles.autoRenewDetails}>
-                    <div style={styles.autoRenewDetailItem}>
-                      <span style={styles.autoRenewDetailLabel}>Сохранен платежный метод:</span>
-                      <span style={styles.autoRenewDetailValue}>
-                        {subscription.paymentMethodId ? '✅ Да' : '❌ Нет'}
-                      </span>
-                    </div>
-                    <div style={styles.autoRenewDetailItem}>
-                      <span style={styles.autoRenewDetailLabel}>Сумма следующего списания:</span>
-                      <span style={styles.autoRenewDetailValue}>
-                        {plans?.find((p: Plan) => p.id === subscription.planId)
-                          ? `${(parseInt(plans.find((p: Plan) => p.id === subscription.planId)!.price_cents) / 100).toLocaleString('ru-RU')} ₽`
-                          : '—'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            */}
-
-              {/* ✅ Блок информации о подписке - показываем если активна ИЛИ отменена но еще действует */}
-              {subscription && (
-                subscription.status === 'active' || 
-                (subscription.status === 'cancelled' && new Date(subscription.expiresAt) > new Date())
-              ) && (
-                <div style={styles.subscriptionAlert}>
-                  <AlertCircle size={20} />
-                  <div style={{ flex: 1 }}>
-                    <strong>
-                      {subscription.cancelledAt 
-                        ? '⚠️ Подписка отменена администратором' 
-                        : 'Активная подписка'
-                      }
-                    </strong>
-                    <p style={{ margin: '4px 0 0 0', fontSize: 14, opacity: 0.8 }}>
-                      Действует до {new Date(subscription.expiresAt).toLocaleDateString('ru-RU')}
-                      {subscription.cancelledAt && ' (автопродление отключено)'}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div style={styles.section}>
-                <h2 style={styles.sectionTitle}>Тарифные планы</h2>
-                <p style={styles.sectionDescription}>
-                  Выберите тариф, который лучше всего подходит для ваших потребностей.
-                </p>
-                
-                <div style={styles.pricingGrid}>
-                  {pricingPlans.map((plan: any) => {
-                    const isCurrentPlan = isCurrent(plan.id);
-                    
-                    let buttonText = 'Выбрать план';
-                    let buttonIcon = <CreditCard size={16} />;
-                    
-                    if (isCurrentPlan) {
-                      buttonText = 'Текущий план';
-                      buttonIcon = <Check size={16} />;
-                    } else if (plan.id === 'free') {
-                      buttonText = 'Перейти на план';
-                      buttonIcon = <></>;
-                    } else {
-                      buttonText = 'Оплатить';
-                      buttonIcon = <CreditCard size={16} />;
-                    }
-                    
-                    return (
-                      <div 
-                        key={plan.id} 
-                        style={{
-                          ...styles.pricingCard,
-                          ...(plan.popular ? styles.popularCard : {}),
-                          ...(isCurrentPlan ? styles.currentCard : {})
-                        }}
-                      >
-                        <div style={{ minHeight: '40px', marginBottom: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                          {plan.popular && !isCurrentPlan && (
-                            <div style={styles.pricingBadge}>
-                              <Crown size={16} />
-                              Рекомендуем
-                            </div>
-                          )}
-                          {isCurrentPlan && (
-                            <div style={styles.currentBadge}>
-                              <Check size={16} />
-                              Текущий план
-                            </div>
-                          )}
-                        </div>
-                        
-                        <h3 style={styles.pricingName}>{plan.name}</h3>
-                        <div style={styles.pricingPrice}>{plan.price}</div>
-                        <div style={styles.pricingPeriod}>{plan.period}</div>
-                        
-                        <ul style={styles.pricingFeatures}>
-                          {plan.features.map((feature: string, index: number) => {
-                            if (feature === '') {
-                              return <li key={index} style={{ height: '40px' }}></li>;
-                            }
-                            
-                            if (feature.startsWith('Всё, что в')) {
-                              return (
-                                <li key={index} style={{ ...styles.pricingFeature, listStyle: 'none' }}>
-                                  <span style={styles.featureDivider}>{feature}</span>
-                                </li>
-                              );
-                            }
-                            
-                            return (
-                              <li key={index} style={styles.pricingFeature}>
-                                <Check size={16} style={styles.checkIcon} />
-                                {feature}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                        
-                        <button 
-                          onClick={() => handlePurchasePlan(plan.id)}
-                          disabled={isCurrentPlan || processingPayment}
-                          style={{
-                            ...styles.pricingButton,
-                            ...(isCurrentPlan ? styles.currentPlanButton : {}),
-                            ...(plan.popular && !isCurrentPlan ? styles.popularButton : {}),
-                            ...(processingPayment ? { opacity: 0.5, cursor: 'not-allowed' } : {})
-                          }}
-                        >
-                          {buttonIcon}
-                          {buttonText}
-                        </button>
-                      </div>
-                    );
-                  })}
+        {activeTab === 'billing' && (
+          <>
+            {tokenPackage && tokenPackage.status === 'active' && (
+              <div style={styles.tokenPackageAlert}>
+                <AlertCircle size={20} />
+                <div style={{ flex: 1 }}>
+                  <strong>✅ Активный пакет токенов</strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 14, opacity: 0.8 }}>
+                    Действует до {new Date(tokenPackage.expiresAt).toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: 13, opacity: 0.6 }}>
+                    После истечения срока токены сгорят. Вы сможете купить новый пакет в любой момент.
+                  </p>
                 </div>
               </div>
-            </>
-          )}
+            )}
+
+            <div style={styles.section}>
+              <h2 style={styles.sectionTitle}>Готовые пакеты токенов</h2>
+              <p style={styles.sectionDescription}>
+                Выберите пакет, который лучше всего подходит для ваших потребностей. Токены действуют 30 дней.
+              </p>
+              
+              <div style={styles.pricingGrid}>
+                {pricingPlans.filter((p: any) => p.id !== 'free').map((plan: any) => {
+                  return (
+                    <div 
+                      key={plan.id} 
+                      style={{
+                        ...styles.pricingCard,
+                        ...(plan.popular ? styles.popularCard : {})
+                      }}
+                    >
+                      <div style={{ minHeight: '40px', marginBottom: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        {plan.popular && (
+                          <div style={styles.pricingBadge}>
+                            <Crown size={16} />
+                            Рекомендуем
+                          </div>
+                        )}
+                      </div>
+                      
+                      <h3 style={styles.pricingName}>{plan.name}</h3>
+                      <div style={styles.pricingPrice}>{plan.price}</div>
+                      <div style={styles.pricingPeriod}>{plan.period}</div>
+                      
+                      <ul style={styles.pricingFeatures}>
+                        {plan.features.map((feature: string, index: number) => (
+                          <li key={index} style={styles.pricingFeature}>
+                            <Check size={16} style={styles.checkIcon} />
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                      
+                      <button 
+                        onClick={() => handlePurchasePlan(plan.id)}
+                        disabled={processingPayment}
+                        style={{
+                          ...styles.pricingButton,
+                          ...(plan.popular ? styles.popularButton : {}),
+                          ...(processingPayment ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                        }}
+                      >
+                        <CreditCard size={16} />
+                        Купить пакет
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Кастомная покупка */}
+            <div style={styles.section}>
+              <h2 style={styles.sectionTitle}>💎 Кастомная покупка</h2>
+              <p style={styles.sectionDescription}>
+                Купите нужное количество токенов. Цена: 99 ₽ за 100 000 токенов. Минимум: 1 пакет.
+              </p>
+              
+              <div style={styles.customPurchaseControls}>
+                <div style={styles.customInputGroup}>
+                  <label style={styles.customLabel}>Количество пакетов по 100k:</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={customPacks}
+                    onChange={(e) => setCustomPacks(Math.max(1, parseInt(e.target.value) || 1))}
+                    style={styles.customInput}
+                  />
+                </div>
+                
+                <div style={styles.customCalculation}>
+                  <div style={styles.customCalcItem}>
+                    <span style={styles.customCalcLabel}>Токенов:</span>
+                    <strong style={styles.customCalcValue}>{customTokens.toLocaleString()}</strong>
+                  </div>
+                  <div style={styles.customCalcItem}>
+                    <span style={styles.customCalcLabel}>Сумма:</span>
+                    <strong style={styles.customCalcValue}>{customPrice} ₽</strong>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleCustomPurchase}
+                  disabled={customPacks < 1 || processingPayment}
+                  style={{
+                    ...styles.customPurchaseButton,
+                    ...(processingPayment || customPacks < 1 ? { opacity: 0.5, cursor: 'not-allowed' } : {})
+                  }}
+                >
+                  <CreditCard size={16} />
+                  Купить токены
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -863,7 +820,7 @@ const styles = {
     height: '100%',
     transition: 'width 0.3s ease',
   },
-  subscriptionAlert: {
+  tokenPackageAlert: {
     display: 'flex',
     alignItems: 'flex-start',
     gap: 16,
@@ -872,16 +829,6 @@ const styles = {
     border: '2px solid var(--accent)',
     borderRadius: 12,
     marginBottom: 24,
-  },
-  cancelButton: {
-    padding: '8px 16px',
-    background: 'transparent',
-    border: '1px solid #ff6b6b',
-    borderRadius: 6,
-    cursor: 'pointer',
-    color: '#ff6b6b',
-    fontSize: 14,
-    transition: 'all 0.2s',
   },
   pricingGrid: {
     display: 'grid',
@@ -900,27 +847,12 @@ const styles = {
     borderColor: 'var(--accent)',
     boxShadow: '0 0 20px rgba(88, 101, 242, 0.3)',
   },
-  currentCard: {
-    borderColor: '#de8434',
-    background: 'rgba(76, 175, 80, 0.05)',
-  },
   pricingBadge: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
     padding: '6px 12px',
     background: 'var(--accent)',
-    borderRadius: 20,
-    fontSize: 12,
-    fontWeight: 600,
-    color: 'white',
-  },
-  currentBadge: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '6px 12px',
-    background: '#de8434',
     borderRadius: 20,
     fontSize: 12,
     fontWeight: 600,
@@ -963,14 +895,6 @@ const styles = {
     flexShrink: 0,
     marginTop: 2,
   },
-  featureDivider: {
-    display: 'block',
-    fontWeight: 600,
-    marginTop: 8,
-    marginBottom: 4,
-    fontSize: 13,
-    opacity: 0.8,
-  },
   pricingButton: {
     display: 'flex',
     alignItems: 'center',
@@ -990,13 +914,6 @@ const styles = {
     borderColor: 'var(--accent)',
     color: 'white',
   },
-  currentPlanButton: {
-    background: 'transparent',
-    borderColor: '#de8434',
-    color: '#de8434',
-    cursor: 'not-allowed',
-    opacity: 0.7,
-  },
   processingOverlay: {
     position: 'fixed' as const,
     top: 0,
@@ -1011,73 +928,64 @@ const styles = {
     zIndex: 9999,
     color: 'white',
   },
-
-  autoRenewSection: {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border)',
-    borderRadius: 12,
-    padding: '1.5rem',
-    marginBottom: '1.5rem',
-  },
-
-  autoRenewHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '1rem',
-    gap: '1rem',
-    flexWrap: 'wrap' as const,
-  },
-
-  autoRenewTitle: {
-    fontSize: '1.1rem',
-    fontWeight: 600,
-    marginBottom: '0.5rem',
-  },
-
-  autoRenewDescription: {
-    fontSize: '0.9rem',
-    color: 'var(--fg-muted)',
-    lineHeight: 1.5,
-  },
-
-  toggleAutoRenewButton: {
-    padding: '0.5rem 1rem',
-    fontSize: '0.85rem',
-    background: 'transparent',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    color: 'var(--fg-default)',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap' as const,
-    transition: 'all 0.2s',
-  },
-
-  autoRenewDetails: {
-    display: 'flex',
-    gap: '2rem',
-    paddingTop: '1rem',
-    borderTop: '1px solid var(--border)',
-    flexWrap: 'wrap' as const,
-  },
-
-  autoRenewDetailItem: {
+  customPurchaseControls: {
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '0.25rem',
+    gap: 20,
   },
-
-  autoRenewDetailLabel: {
-    fontSize: '0.75rem',
-    color: 'var(--fg-muted)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
+  customInputGroup: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 8,
   },
-
-  autoRenewDetailValue: {
-    fontSize: '0.9rem',
+  customLabel: {
+    fontSize: 14,
+    fontWeight: 500,
+    opacity: 0.9,
+  },
+  customInput: {
+    padding: '12px 16px',
+    background: 'var(--input-bg)',
+    border: '1px solid var(--border)',
+    borderRadius: 8,
+    fontSize: 16,
+    maxWidth: 300,
+  },
+  customCalculation: {
+    display: 'flex',
+    gap: 40,
+    padding: 20,
+    background: 'var(--bg-secondary)',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+  },
+  customCalcItem: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 4,
+  },
+  customCalcLabel: {
+    fontSize: 13,
+    opacity: 0.7,
+  },
+  customCalcValue: {
+    fontSize: 24,
     fontWeight: 600,
-    color: 'var(--fg-default)',
+    color: 'var(--accent)',
   },
-
-};
+  customPurchaseButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: '14px 24px',
+    background: 'var(--accent)',
+    border: 'none',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontSize: 16,
+    fontWeight: 600,
+    transition: 'all 0.2s',
+    maxWidth: 300,
+  },
+}

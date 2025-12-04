@@ -6,14 +6,13 @@ import {
   Body,
   Param,
   Headers,
-  UnauthorizedException,
   UseGuards,
   Req,
+  Res,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthService } from '../auth/auth.service';
-import { Res } from '@nestjs/common';
 
 @Controller('payments')
 export class PaymentsController {
@@ -23,20 +22,22 @@ export class PaymentsController {
   ) {}
 
   /**
-   * Создать платеж
+   * Создать платеж (с поддержкой кастомной покупки)
    * POST /payments/create
    */
   @Post('create')
   @UseGuards(JwtAuthGuard)
   async createPayment(
     @Req() req: any,
-    @Body() body: { planSlug: string }
+    @Body() body: { planSlug: string; customTokens?: number }
   ) {
     const userId = req.user.id;
+    const { planSlug, customTokens } = body;
 
     const result = await this.paymentsService.createPayment(
       userId,
-      body.planSlug
+      planSlug,
+      customTokens
     );
 
     return {
@@ -57,7 +58,7 @@ export class PaymentsController {
     @Headers() headers: any,
     @Res() res: any
   ) {
-    console.log('\n🔔 ==== WEBHOOK START ====================================');
+    console.log('\n📢 ==== WEBHOOK START ====================================');
     console.log('📦 Event:', webhookData.event);
     console.log('🆔 Payment ID:', webhookData.object?.id);
     console.log('📊 Status:', webhookData.object?.status);
@@ -66,7 +67,6 @@ export class PaymentsController {
     try {
       const result = await this.paymentsService.handleWebhook(webhookData);
 
-      // 🔁 Короткий лог, если webhook уже обрабатывался
       if (result === 'duplicate') {
         console.log(`🔁 Повторный webhook для платежа ${webhookData.object?.id} (игнорируем)`);
       } else {
@@ -83,7 +83,7 @@ export class PaymentsController {
   }
 
   /**
-   * Получить активную подписку
+   * Получить активный пакет токенов
    * GET /payments/subscription
    */
   @Get('subscription')
@@ -91,7 +91,7 @@ export class PaymentsController {
   async getSubscription(@Req() req: any) {
     const userId = req.user.id;
     
-    const subscription = await this.paymentsService.getActiveSubscription(userId);
+    const subscription = await this.paymentsService.getActiveTokenPackage(userId);
     
     return {
       success: true,
@@ -100,7 +100,7 @@ export class PaymentsController {
   }
 
   /**
-   * Отменить подписку
+   * Отменить пакет токенов (вернуться на Free)
    * POST /payments/subscription/:id/cancel
    */
   @Post('subscription/:id/cancel')
@@ -120,7 +120,7 @@ export class PaymentsController {
   }
 
   /**
-   * Запросить возврат
+   * Запросить возврат средств
    * POST /payments/subscription/:id/refund
    */
   @Post('subscription/:id/refund')
@@ -156,10 +156,5 @@ export class PaymentsController {
     };
   }
 
-@Post('subscription/:id/toggle-auto-renew')
-@UseGuards(JwtAuthGuard)
-async toggleAutoRenew(@Req() req: any, @Param('id') subscriptionId: string) {
-  return this.paymentsService.toggleAutoRenew(req.user.id, subscriptionId);
-}
-
+  // ❌ УДАЛЕНО: toggleAutoRenew (больше не нужен без автоплатежей)
 }
