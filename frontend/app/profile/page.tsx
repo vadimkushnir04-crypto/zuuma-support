@@ -950,6 +950,7 @@ const styles = {
     borderRadius: 8,
     fontSize: 16,
     maxWidth: 300,
+    color: 'var(--fg-default)', // ✅ Белый цвет текста
   },
   customCalculation: {
     display: 'flex',

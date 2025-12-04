@@ -53,7 +53,20 @@ export class PaymentsService {
     let description = '';
 
     if (planSlug === 'custom' && customTokens) {
-      // Кастомная покупка
+      // Кастомная покупка - ищем или создаём план "Custom"
+      plan = await this.planRepository.findOne({ where: { slug: 'custom' } });
+      
+      if (!plan) {
+        // Создаём план Custom, если его нет
+        plan = await this.planRepository.save({
+          slug: 'custom',
+          title: 'Custom Package',
+          monthly_tokens: '0',
+          tokens_per_chat: 0,
+          price_cents: '0',
+        });
+      }
+      
       const packs = Math.floor(customTokens / 100000);
       if (packs < 1) {
         throw new BadRequestException('Минимальная покупка: 100 000 токенов');
@@ -81,7 +94,7 @@ export class PaymentsService {
     return await this.dataSource.transaction(async (manager) => {
       const payment = manager.create(Payment, {
         userId,
-        planId: plan?.id,
+        planId: plan.id,
         amountCents: priceCents,
         currency: 'RUB',
         yookassaStatus: 'pending',
