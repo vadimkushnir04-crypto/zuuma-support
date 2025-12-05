@@ -54,7 +54,7 @@ export default function CreateAssistantPage() {
       }
 
       // перенаправление на страницу ассистента
-      window.location.href = `/assistants/${data.data.id}`;
+      window.location.href = `/assistants`;
     } catch (e) {
       console.error("Create assistant error:", e);
       alert("Ошибка подключения к серверу");
