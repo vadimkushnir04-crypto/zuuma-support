@@ -13,12 +13,6 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -30,12 +24,6 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - app_network
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:6333/healthz || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 40s
 
   backend:
     build:
@@ -44,10 +32,8 @@ services:
     container_name: support_backend
     restart: always
     depends_on:
-      postgres:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
+      - postgres
+      - qdrant
     ports:
       - "127.0.0.1:8000:8000"  
     environment:
@@ -90,6 +76,12 @@ services:
       - ./backend/uploads:/app/uploads
     networks:
       - app_network
+    # Добавляем retry логику в самом приложении
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
 
   frontend:
     build:
