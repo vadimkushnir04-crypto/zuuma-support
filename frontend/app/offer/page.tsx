@@ -329,22 +329,8 @@ export default function OfferPage() {
               </div>
             </div>
 
-            <div style={styles.contactCard}>
-              <MapPin size={20} style={{ color: "#de8434" }} />
-              <div>
-                <span style={styles.contactLabel}>Адрес</span>
-                <span style={styles.contactValue}>г. Ставрополь, ул. Доваторцев, 44/2, кв. 93</span>
-                <span style={styles.contactNote}>Только почтовая связь</span>
-              </div>
-            </div>
           </div>
 
-          <div style={styles.dangerBox}>
-            <AlertTriangle size={16} style={{ color: "#ff6b6b", marginRight: "8px" }} />
-            <p style={{ margin: 0, display: "inline" }}>
-              <strong>Внимание:</strong> Чеки об оплате формируются автоматически в соответствии с ФЗ-54 и отправляются на email Пользователя.
-            </p>
-          </div>
         </div>
       </section>
 
