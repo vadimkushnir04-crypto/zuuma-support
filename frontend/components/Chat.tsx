@@ -340,6 +340,14 @@ export default function Chat() {
     });
 
     socket.on('assistant:message', (payload) => {
+      console.log('📩 WebSocket message received:', {
+        id: payload.id,
+        senderType: payload.senderType,
+        contentLength: payload.content?.length || 0,
+        sources: payload.metadata?.sources || payload.sources,
+        files: payload.files?.length || 0
+      });
+
       const newMessage: Message = {
         id: payload.id || `ws-${Date.now()}`,
         text: payload.content || 'No content',
@@ -356,6 +364,35 @@ export default function Chat() {
       
       addMessageIfNotExists(newMessage);
       setIsLoading(false);
+    });
+
+    // ✅ КРИТИЧНО: Обработка эскалации к оператору
+    socket.on('escalation:notify', (data) => {
+      console.log('🚨 Escalation event received:', data);
+      
+      const escalationMessage: Message = {
+        id: `escalation-${Date.now()}`,
+        text: data.message || t('escalationMessage') || 'Передаю ваш запрос специалисту поддержки. Пожалуйста, ожидайте.',
+        sender: 'assistant',
+        timestamp: new Date(),
+      };
+      
+      addMessageIfNotExists(escalationMessage);
+      setIsLoading(false);
+    });
+
+    // ✅ Обработка возврата от оператора к AI
+    socket.on('session:returned', (data) => {
+      console.log('🔄 Session returned to AI:', data);
+      
+      const returnMessage: Message = {
+        id: `return-${Date.now()}`,
+        text: data.message || t('returnMessage') || 'Спасибо за ожидание! Я снова готов помочь вам.',
+        sender: 'assistant',
+        timestamp: new Date(),
+      };
+      
+      addMessageIfNotExists(returnMessage);
     });
 
     return () => {
