@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:15
@@ -15,6 +13,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -26,6 +29,11 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -34,8 +42,10 @@ services:
     container_name: support_backend
     restart: always
     depends_on:
-      - postgres
-      - qdrant
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
     ports:
       - "127.0.0.1:8000:8000"  
     environment:
@@ -50,13 +60,13 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
 
       # === YOOKASSA ===
-      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID}                 # тестовые ключи
+      YOOKASSA_SHOP_ID: ${YOOKASSA_SHOP_ID}
       YOOKASSA_SECRET_KEY: ${YOOKASSA_SECRET_KEY}
-      YOOKASSA_SHOP_ID_REAL: ${YOOKASSA_SHOP_ID_REAL}       # реальные ключи
-      YOOKASSA_SECRET_KEY_REAL: ${YOOKASSA_SECRET_KEY_REAL} # реальные ключи
+      YOOKASSA_SHOP_ID_REAL: ${YOOKASSA_SHOP_ID_REAL}
+      YOOKASSA_SECRET_KEY_REAL: ${YOOKASSA_SECRET_KEY_REAL}
 
       # === Подписки ===
-      SUBSCRIPTION_TEST_MODE: ${SUBSCRIPTION_TEST_MODE}  # false
+      SUBSCRIPTION_TEST_MODE: ${SUBSCRIPTION_TEST_MODE}
       SUBSCRIPTION_TEST_PERIOD_MINUTES: ${SUBSCRIPTION_TEST_PERIOD_MINUTES}
       SUBSCRIPTION_CRON_INTERVAL_MINUTES: ${SUBSCRIPTION_CRON_INTERVAL_MINUTES}
 
