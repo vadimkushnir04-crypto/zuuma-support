@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { LifeBuoy, Mail, FileText, Book } from "lucide-react";
+import { LifeBuoy, Mail, FileText, Book, MessageCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function HelpPage() {
@@ -14,11 +14,11 @@ export default function HelpPage() {
 
       // ✅ ОБНОВЛЕННЫЙ конфиг для страницы помощи - используем apiKey
       (window as any).chatConfig = {
-        apiKey: 'ak_2d92a92e561f4d9fa35cf7746b6c2afa', // Теперь используем apiKey вместо assistantId
+        apiKey: 'ak_7d501bda6dd948b684f5a4bffce26522', // Теперь используем apiKey вместо assistantId
         serverUrl: 'https://zuuma.ru/api',
         theme: 'light',
         assistantName: 'Служба поддержки zuuma.ru',
-        customGreeting: 'Здравствуйте! Я помогу вам разобраться с платформой. Задайте ваш вопрос.',
+        customGreeting: 'Здравствуйте! Я помогу вам разобраться с платформой. Задайте ваш вопрос :)',
         primaryColor: '#10b981',
         autoOpen: false,          // Не открываем автоматически
         alwaysVisible: true,      // Всегда показываем кнопку
@@ -47,13 +47,45 @@ export default function HelpPage() {
         </div>
       </div>
 
-      {/* Способы связи - БЕЗ блока чата */}
+      {/* Способы связи */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
         gap: '24px',
         marginBottom: '48px'
       }}>
+        {/* Telegram поддержка */}
+        <div style={{ 
+          padding: '24px', 
+          border: '1px solid #e5e7eb', 
+          borderRadius: '12px',
+          background: '#2a2a2a'
+        }}>
+          <MessageCircle size={32} style={{ color: '#0088cc', marginBottom: '16px' }} />
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '20px' }}>Telegram бот</h3>
+          <p style={{ color: '#666', marginBottom: '16px' }}>
+            Получите мгновенную помощь через нашего Telegram бота
+          </p>
+          <a 
+            href="https://t.me/zuuma_support_bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              padding: '10px 20px',
+              background: '#0088cc',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            Открыть @zuuma_support_bot
+          </a>
+        </div>
+
+        {/* База знаний */}
         <div style={{ 
           padding: '24px', 
           border: '1px solid #e5e7eb', 
@@ -82,6 +114,7 @@ export default function HelpPage() {
           </Link>
         </div>
 
+        {/* Email поддержка */}
         <div style={{ 
           padding: '24px', 
           border: '1px solid #e5e7eb', 
