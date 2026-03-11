@@ -3,7 +3,7 @@
 
 import TelegramBot from 'node-telegram-bot-api';
 
-const NOTIFICATION_BOT_TOKEN = process.env.NOTIFICATION_BOT_TOKEN || '8439423890:AAH6EbSCbX7IYoKcskX6xdrt-BaQkUwKr2A';
+const NOTIFICATION_BOT_TOKEN = process.env.NOTIFICATION_BOT_TOKEN || '';
 
 console.log('🤖 Testing notification bot...');
 console.log('Token:', NOTIFICATION_BOT_TOKEN.substring(0, 10) + '...');
